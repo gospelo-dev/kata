@@ -210,7 +210,7 @@ Each item needs an id, status (draft/pending/approve/reject), and tags.
 | `edit`            | Browser-based data editor                                 |
 | `workflow-status` | Track pipeline progress                                   |
 
-See the [CLI Reference](docs/manual/en/cli-reference.md) for full details.
+See the [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md) for full details.
 
 ## AI Integration
 
@@ -231,17 +231,17 @@ The `kata-lint` extension provides:
 - Hover information for `data-kata` attributes
 - Preview CSS for kata-specific styles
 
-See the [VSCode Integration Guide](docs/manual/en/vscode-integration.md).
+See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md).
 
 ## Documentation
 
-- [Quick Start](docs/manual/en/quick-start.md)
-- [CLI Reference](docs/manual/en/cli-reference.md)
-- [KATA Markdown Format](docs/manual/en/kata-markdown-format.md)
-- [Lint Rules](docs/manual/en/lint-rules.md)
-- [Workflow Guide](docs/manual/en/workflow-guide.md)
-- [VSCode Integration](docs/manual/en/vscode-integration.md)
-- [Copilot Setup](docs/manual/en/copilot-setup.md)
+- [Quick Start](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/quick-start.md)
+- [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md)
+- [KATA Markdown Format](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/kata-markdown-format.md)
+- [Lint Rules](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/lint-rules.md)
+- [Workflow Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/workflow-guide.md)
+- [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md)
+- [Copilot Setup](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/copilot-setup.md)
 
 ## License
 
