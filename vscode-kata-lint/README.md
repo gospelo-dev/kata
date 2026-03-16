@@ -4,10 +4,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/gospelo-dev/kata/blob/main/LICENSE.md)
 [![KATA Markdown](https://img.shields.io/badge/Format-KATA_Markdown-00bcd4.svg)](https://github.com/gospelo-dev/kata)
 [![Linter](https://img.shields.io/badge/Category-Linter-4caf50.svg)](#features)
+[![Marketplace](https://img.shields.io/badge/VS_Marketplace-gospelo.kata--lint-007ACC.svg?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint)
 
-[gospelo-kata](https://github.com/gospelo-dev/kata) の VSCode 拡張機能です。KATA Markdown テンプレート (`.kata.md`) のリアルタイム lint、シンタックスハイライト、ホバー情報、プレビューを提供します。
+A VSCode extension for [gospelo-kata](https://github.com/gospelo-dev/kata). Provides real-time lint, syntax highlighting, hover information, and preview for KATA Markdown templates (`.kata.md`).
 
-[Japanese / 日本語](README.ja.md)
+[Japanese / 日本語](https://github.com/gospelo-dev/kata/blob/main/vscode-kata-lint/README.ja.md)
 
 ---
 
@@ -15,24 +16,24 @@
 
 ### Lint
 
-- **Auto Lint** — `gospelo-kata lint` をファイル保存・オープン時に自動実行
-- **Inline Diagnostics** — エラー箇所にインライン波線 + Problems パネルに表示
-- **Template & Document Mode** — テンプレート (`_tpl.kata.md`) とレンダリング済みドキュメント (`.kata.md`) の両方を検証
+- **Auto Lint** — Runs `gospelo-kata lint` automatically on file save and open
+- **Inline Diagnostics** — Inline squiggles at error locations + Problems panel listing
+- **Template & Document Mode** — Validates both templates (`_tpl.kata.md`) and rendered documents (`.kata.md`)
 
 ### Syntax Highlighting
 
-- `{{ variable }}` — 変数補間
-- `{% for %}` / `{% if %}` — 制御構文
-- `{#schema ... #}` / `{#prompt ... #}` / `{#data ... #}` — Kata ブロック
+- `{{ variable }}` — Variable interpolation
+- `{% for %}` / `{% if %}` — Control structures
+- `{#schema ... #}` / `{#prompt ... #}` / `{#data ... #}` — KATA blocks
 
 ### Hover Information
 
-- `data-kata` 属性にホバーするとスキーマパスとバインディング情報を表示
+- Hover over `data-kata` attributes to see schema path and binding information
 
 ### Preview CSS
 
-- KATA Markdown 専用のプレビュースタイルを提供
-- `kata-card` テーブルレイアウト、`kata-badge` ステータスバッジの表示
+- Provides preview styles dedicated to KATA Markdown
+- `kata-card` table layout, `kata-badge` status badge rendering
 
 ---
 
@@ -95,13 +96,13 @@ pip install gospelo-kata
 
 ## VSCode Setup
 
-gospelo-kata CLI でタスク設定を自動生成できます:
+Auto-generate task configuration with the gospelo-kata CLI:
 
 ```bash
 gospelo-kata init-vscode --output .vscode/
 ```
 
-詳細は [VSCode 連携ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md) を参照してください。
+See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md) for details.
 
 ---
 

@@ -225,7 +225,7 @@ gospelo-kata は AI アシスタントとの連携を前提に設計されてい
 
 ## VSCode 拡張機能
 
-`kata-lint` 拡張機能の機能:
+[VS Marketplace](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint) からインストールできます。`kata-lint` 拡張機能の機能:
 
 - Problems パネルへのリアルタイム lint 表示
 - `data-kata` 属性のホバー情報

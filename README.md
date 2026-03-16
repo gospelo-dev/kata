@@ -225,7 +225,7 @@ The 3-step workflow (`data.yml` → `assemble` → `render` + `lint`) works reli
 
 ## VSCode Extension
 
-The `kata-lint` extension provides:
+Install from [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint). The `kata-lint` extension provides:
 
 - Real-time lint diagnostics in the Problems panel
 - Hover information for `data-kata` attributes
