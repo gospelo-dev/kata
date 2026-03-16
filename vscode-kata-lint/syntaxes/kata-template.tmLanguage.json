@@ -1,0 +1,143 @@
+{
+  "scopeName": "text.html.markdown.kata",
+  "name": "Kata Template",
+  "patterns": [
+    { "include": "#schema-block" },
+    { "include": "#template-tag" },
+    { "include": "#template-variable" },
+    { "include": "#comment-block" },
+    { "include": "#kata-internal-link" },
+    { "include": "#kata-html-span" },
+    { "include": "#kata-html-anchor" },
+    { "include": "text.html.markdown" }
+  ],
+  "repository": {
+    "schema-block": {
+      "name": "meta.embedded.block.json.kata",
+      "begin": "^\\{#schema\\s*$",
+      "end": "^#\\}\\s*$",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.tag.kata" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.tag.kata" }
+      },
+      "patterns": [
+        { "include": "source.json" }
+      ]
+    },
+    "comment-block": {
+      "name": "comment.block.kata",
+      "begin": "\\{#(?!schema)",
+      "end": "#\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.comment.begin.kata" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.comment.end.kata" }
+      }
+    },
+    "kata-internal-link": {
+      "comment": "Neutralise internal anchor links [text](#p-...) and [#p-...](#u-...) so they render as plain text",
+      "name": "markup.plain.kata-link",
+      "match": "\\[([^\\]]*)\\]\\(#[pu]-[^)]*\\)",
+      "captures": {
+        "1": { "name": "markup.plain.kata-link" }
+      }
+    },
+    "kata-html-span": {
+      "comment": "Neutralise <span class=\"kata-...\">...</span> including content",
+      "name": "markup.plain.kata-link",
+      "begin": "<span[^>]*>",
+      "end": "</span>",
+      "beginCaptures": {
+        "0": { "name": "markup.plain.kata-link" }
+      },
+      "endCaptures": {
+        "0": { "name": "markup.plain.kata-link" }
+      },
+      "patterns": [
+        { "include": "#kata-html-anchor" },
+        { "include": "#kata-internal-link" }
+      ]
+    },
+    "kata-html-anchor": {
+      "comment": "Neutralise <a ...>...</a> including content",
+      "name": "markup.plain.kata-link",
+      "begin": "<a[^>]*>",
+      "end": "</a>",
+      "beginCaptures": {
+        "0": { "name": "markup.plain.kata-link" }
+      },
+      "endCaptures": {
+        "0": { "name": "markup.plain.kata-link" }
+      }
+    },
+    "template-tag": {
+      "name": "meta.tag.template.kata",
+      "begin": "\\{%[-\\s]*",
+      "end": "[-\\s]*%\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.tag.begin.kata" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.tag.end.kata" }
+      },
+      "patterns": [
+        {
+          "name": "keyword.control.kata",
+          "match": "\\b(for|endfor|if|elif|else|endif|set|block|endblock|extends|include|in|not|and|or|is)\\b"
+        },
+        {
+          "name": "variable.other.kata",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        },
+        {
+          "name": "string.quoted.double.kata",
+          "begin": "\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.single.kata",
+          "begin": "'",
+          "end": "'"
+        }
+      ]
+    },
+    "template-variable": {
+      "name": "meta.expression.kata",
+      "begin": "\\{\\{[-\\s]*",
+      "end": "[-\\s]*\\}\\}",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.variable.begin.kata" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.variable.end.kata" }
+      },
+      "patterns": [
+        {
+          "name": "support.function.filter.kata",
+          "match": "(?<=\\|\\s*)\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        },
+        {
+          "name": "keyword.operator.pipe.kata",
+          "match": "\\|"
+        },
+        {
+          "name": "variable.other.kata",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_.]*\\b"
+        },
+        {
+          "name": "string.quoted.double.kata",
+          "begin": "\"",
+          "end": "\""
+        },
+        {
+          "name": "string.quoted.single.kata",
+          "begin": "'",
+          "end": "'"
+        }
+      ]
+    }
+  }
+}
