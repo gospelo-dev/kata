@@ -210,7 +210,7 @@ categories:
 | `edit`            | ブラウザベースのデータエディター                              |
 | `workflow-status` | パイプラインの進捗管理                                        |
 
-詳細は [CLI リファレンス](docs/manual/ja/cli-reference.md) を参照。
+詳細は [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md) を参照。
 
 ## AI 連携
 
@@ -231,17 +231,17 @@ gospelo-kata は AI アシスタントとの連携を前提に設計されてい
 - `data-kata` 属性のホバー情報
 - kata 専用スタイルのプレビュー CSS
 
-詳細は [VSCode 連携ガイド](docs/manual/ja/vscode-integration.md) を参照。
+詳細は [VSCode 連携ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md) を参照。
 
 ## ドキュメント
 
-- [クイックスタート](docs/manual/ja/quick-start.md)
-- [CLI リファレンス](docs/manual/ja/cli-reference.md)
-- [KATA Markdown フォーマット](docs/manual/ja/kata-markdown-format.md)
-- [Lint ルール一覧](docs/manual/ja/lint-rules.md)
-- [ワークフローガイド](docs/manual/ja/workflow-guide.md)
-- [VSCode 連携](docs/manual/ja/vscode-integration.md)
-- [Copilot セットアップ](docs/manual/ja/copilot-setup.md)
+- [クイックスタート](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/quick-start.md)
+- [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md)
+- [KATA Markdown フォーマット](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/kata-markdown-format.md)
+- [Lint ルール一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/lint-rules.md)
+- [ワークフローガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/workflow-guide.md)
+- [VSCode 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md)
+- [Copilot セットアップ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/copilot-setup.md)
 
 ## ライセンス
 

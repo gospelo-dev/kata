@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "gospelo-kata"
 version = "0.1.0"
-description = "JSON-driven document generation toolkit: validate, generate, and edit structured documents"
+description = "KATA Markdown toolkit for human-AI collaboration: schema, validation, and template in a single file"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
@@ -39,7 +39,7 @@ classifiers = [
 gospelo-kata = "gospelo_kata.cli:main"
 
 [project.urls]
-Repository = "https://github.com/gospelo/kata"
+Repository = "https://github.com/gospelo-dev/kata"
 
 [tool.hatch.build.targets.sdist]
 include = [
