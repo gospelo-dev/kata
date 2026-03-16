@@ -1,0 +1,24 @@
+/* Kata default theme */
+:root {
+  --kata-base: #FAFAFA;
+  --kata-gray: #E5E5E5;
+  --kata-ok: #5BA4C9;
+  --kata-ng: #E87461;
+  --kata-ng-light: #F0A898;
+}
+.kata-card { border: 1px solid var(--kata-gray); border-radius: 6px; margin-bottom: 12px; }
+.kata-card td { padding: 12px 16px; vertical-align: top; }
+.kata-card .kata-left { background: var(--kata-base); border-right: 1px solid var(--kata-gray); }
+.kata-card .kata-right { background: #fff; }
+.kata-props { width: 100%; border-collapse: collapse; }
+.kata-props td { padding: 4px 0; border-bottom: 1px solid var(--kata-gray); }
+.kata-props td:first-child { width: 80px; color: #888; }
+.kata-status-draft { color: #888; }
+.kata-status-pending { color: #B8860B; font-weight: bold; }
+.kata-status-approve { color: var(--kata-ok); font-weight: bold; }
+.kata-status-reject { color: var(--kata-ng); font-weight: bold; }
+.kata-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }
+.kata-badge-approve { background: var(--kata-ok); color: #fff; }
+.kata-badge-reject { background: var(--kata-ng); color: #fff; }
+.kata-badge-pending { background: #F0D58C; color: #333; }
+.kata-badge-draft { background: var(--kata-gray); color: #666; }

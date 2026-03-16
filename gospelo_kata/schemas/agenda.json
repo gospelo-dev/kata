@@ -1,0 +1,85 @@
+{
+  "title": "Meeting Agenda",
+  "description": "Meeting agenda with decisions and action items",
+  "type": "object",
+  "required": ["title", "date", "attendees", "agenda"],
+  "properties": {
+    "title": { "type": "string", "minLength": 1 },
+    "date": { "type": "string" },
+    "time": { "type": "string" },
+    "location": { "type": "string" },
+    "attendees": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "role": { "type": "string" },
+          "department": { "type": "string" }
+        }
+      }
+    },
+    "absentees": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "agenda": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "topic"],
+        "properties": {
+          "id": { "type": "string" },
+          "topic": { "type": "string" },
+          "presenter": { "type": "string" },
+          "duration_min": { "type": "integer" },
+          "notes": { "type": "string" },
+          "discussion": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "decided_by": { "type": "string" },
+          "related_agenda": { "type": "string" }
+        }
+      }
+    },
+    "action_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "assignee"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "assignee": { "type": "string" },
+          "due_date": { "type": "string" },
+          "status": { "type": "string", "enum": ["open", "in_progress", "done", "cancelled"] },
+          "related_agenda": { "type": "string" }
+        }
+      }
+    },
+    "next_meeting": {
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "location": { "type": "string" }
+      }
+    },
+    "remarks": { "type": "string" }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Test Prerequisites",
+  "description": "Test prerequisites and metadata for Excel report generation",
+  "type": "object",
+  "required": ["test_name", "summary", "risk_map", "background", "perspectives", "constraints", "environment", "test_data", "references"],
+  "properties": {
+    "test_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Test name displayed in Excel Summary sheet"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["project", "target", "steps"],
+      "properties": {
+        "project": { "type": "string" },
+        "target": { "type": "string" },
+        "db": { "type": "string" },
+        "client": { "type": "string" },
+        "test_environment": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        }
+      }
+    },
+    "risk_map": {
+      "type": "object",
+      "description": "Category -> risk description mapping"
+    },
+    "background": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "value"],
+        "properties": {
+          "key": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      },
+      "minItems": 1
+    },
+    "perspectives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "minItems": 1
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "environment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "value"],
+        "properties": {
+          "key": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      },
+      "minItems": 1
+    },
+    "test_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "value"],
+        "properties": {
+          "key": { "type": "string" },
+          "value": { "type": "string" }
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "path"],
+        "properties": {
+          "name": { "type": "string" },
+          "path": { "type": "string" }
+        }
+      }
+    }
+  }
+}

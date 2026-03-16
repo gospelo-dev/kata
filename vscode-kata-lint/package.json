@@ -1,0 +1,128 @@
+{
+  "name": "kata-lint",
+  "displayName": "KATA Markdown™ Language Support",
+  "description": "Linter for .kata.md template files — powered by gospelo-kata CLI",
+  "version": "0.1.0",
+  "publisher": "gospelo",
+  "author": {
+    "name": "gorosun",
+    "email": "goro-hayakawa@no-studio.net"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gospelo-dev/kata"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Linters"],
+  "keywords": ["linter", "template", "markdown", "json-schema", "kata"],
+  "activationEvents": [
+    "workspaceContains:**/*.kata.md",
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "grammars": [
+      {
+        "scopeName": "text.html.markdown.kata",
+        "path": "./syntaxes/kata-template.tmLanguage.json",
+        "injectTo": ["text.html.markdown"],
+        "embeddedLanguages": {
+          "meta.embedded.block.json": "json"
+        }
+      }
+    ],
+    "markdown.previewStyles": [
+      "./styles/kata-preview.css"
+    ],
+    "configurationDefaults": {
+      "editor.tokenColorCustomizations": {
+        "[Default Dark+][Default Dark Modern]": {
+          "textMateRules": [
+            {
+              "scope": "markup.plain.kata-link",
+              "settings": { "foreground": "#d4d4d4", "fontStyle": "" }
+            }
+          ]
+        },
+        "[Default Light+][Default Light Modern]": {
+          "textMateRules": [
+            {
+              "scope": "markup.plain.kata-link",
+              "settings": { "foreground": "#333333", "fontStyle": "" }
+            }
+          ]
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "kataLint.lintFile",
+        "title": "Kata: Lint Current File"
+      },
+      {
+        "command": "kataLint.formatFile",
+        "title": "Kata: Format Current File"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "kataLint.formatFile",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "editorTextFocus && resourceFilename =~ /\\.kata\\.md$/"
+      }
+    ],
+    "configuration": {
+      "title": "Kata Lint",
+      "properties": {
+        "kataLint.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to the Python interpreter (must have gospelo-kata installed)"
+        },
+        "kataLint.lintOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run linter automatically on file save"
+        },
+        "kataLint.lintOnOpen": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run linter when a file is opened"
+        },
+        "kataLint.severity.info": {
+          "type": "string",
+          "default": "Information",
+          "enum": ["Error", "Warning", "Information", "Hint"],
+          "description": "VS Code severity for 'info' level lint messages"
+        },
+        "kataLint.exclude": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "Glob patterns to exclude from linting (e.g. '**/docs/samples/**')"
+        },
+        "kataLint.ignoreCodes": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string" },
+          "description": "Lint codes to ignore (e.g. ['V002', 'S000'])"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
