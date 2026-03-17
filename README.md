@@ -9,7 +9,7 @@ A document format and toolkit designed for **human-AI collaboration**. KATA Mark
 
 ## Why gospelo-kata?
 
-KATA Markdown is designed so that both humans and AI can read, understand, and work with the same document. The format is self-describing: AI can understand the template structure from the embedded schema and prompt without needing external instructions, while humans can read and edit the same file naturally. It acts as a harness for autonomous AI — schema, validation, and trust management guide AI output along safe, structured paths.
+KATA Markdown™ is designed so that both humans and AI can read, understand, and work with the same document. The format is self-describing: AI can understand the template structure from the embedded schema and prompt without needing external instructions, while humans can read and edit the same file naturally. It acts as a harness for autonomous AI — schema, validation, and trust management guide AI output along safe, structured paths.
 
 When generating documents with AI, you often face these problems:
 
@@ -116,7 +116,7 @@ gospelo-kata extract outputs/checklist.kata.md -o extracted.json
 
 Reconstructs the original structured data from the rendered document.
 
-## KATA Markdown Format
+## KATA Markdown™ Format
 
 A `_tpl.kata.md` file has three blocks:
 
@@ -237,7 +237,7 @@ See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main
 
 - [Quick Start](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/quick-start.md)
 - [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md)
-- [KATA Markdown Format](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/kata-markdown-format.md)
+- [KATA Markdown™ Format](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/kata-markdown-format.md)
 - [Lint Rules](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/lint-rules.md)
 - [Workflow Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/workflow-guide.md)
 - [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md)

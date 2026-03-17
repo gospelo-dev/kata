@@ -1,6 +1,6 @@
 ---
 name: gospelo-kata-gen
-description: Generate and validate KATA Markdown documents via AI
+description: Generate and validate KATA Markdown™ documents via AI
 ---
 
 # KATA Markdown™ Document Generation

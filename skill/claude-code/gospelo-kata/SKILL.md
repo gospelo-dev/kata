@@ -1,16 +1,16 @@
 ---
 name: gospelo-kata
-description: KATA Markdown ドキュメントの生成・検証・編集
+description: Generate, validate, and edit KATA Markdown™ documents
 ---
 
-# /gospelo-kata — AI Native ドキュメント生成ツールキット
+# /gospelo-kata — AI Native Document Generation Toolkit
 
-KATA Markdown™ テンプレートから構造化ドキュメントを生成するツール。
-テンプレートに埋め込まれた `{#prompt}` と `{#schema}` をAIが読み取り、自律的にドキュメントを生成できます。
+A tool for generating structured documents from KATA Markdown™ templates.
+AI reads the `{#prompt}` and `{#schema}` embedded in templates to autonomously generate documents.
 
-## 前提条件
+## Prerequisites
 
-`gospelo-kata` パッケージがインストール済みであること。
+The `gospelo-kata` package must be installed.
 
 ```bash
 pip install gospelo-kata
@@ -18,94 +18,94 @@ pip install gospelo-kata
 
 ---
 
-## AI ドキュメント生成ワークフロー
+## AI Document Generation Workflow
 
-AIがテンプレートを理解してドキュメントを生成する手順:
+AI follows these steps to understand templates and generate documents:
 
-### 1. テンプレート選択
+### 1. Template Selection
 
 ```bash
 python -m gospelo_kata.cli templates
 ```
 
-利用可能なテンプレートと、schema/prompt の有無を確認します。
+Check available templates and whether they have schema/prompt.
 
-### 2. テンプレートの理解
+### 2. Understanding the Template
 
 ```bash
-# プロンプト（テンプレートの使い方説明）を取得
+# Get the prompt (template usage instructions)
 python -m gospelo_kata.cli show-prompt {template_name}
 
-# スキーマ（JSON Schema）を取得
+# Get the schema (JSON Schema)
 python -m gospelo_kata.cli show-schema {template_name}
 python -m gospelo_kata.cli show-schema {template_name} --format yaml
 ```
 
-**重要**: 必ず show-prompt と show-schema の両方を読み、テンプレートの仕様を理解してからデータを生成すること。
+**Important**: Always read both show-prompt and show-schema to understand the template specification before generating data.
 
-### 3. JSON データ生成
+### 3. Generate JSON Data
 
-show-schema で取得したスキーマに従い、ユーザーの要件をもとに JSON データを作成します。
+Create JSON data based on the schema obtained from show-schema and the user's requirements.
 
-- required フィールドは必ず含める
-- enum フィールドは許可値のみ使用
-- `status` の初期値は `"draft"`
+- Always include required fields
+- Use only permitted values for enum fields
+- Set `status` initial value to `"draft"`
 
-### 4. バリデーション
+### 4. Validation
 
 ```bash
 python -m gospelo_kata.cli validate {json_file}
 ```
 
-### 5. ドキュメント生成
+### 5. Document Generation
 
 ```bash
 # Markdown (stdout)
 python -m gospelo_kata.cli generate {json_file} --format markdown
 
-# Markdown (ファイル出力)
+# Markdown (file output)
 python -m gospelo_kata.cli generate {json_file} --format markdown --output output.kata.md
 
 # Excel
 python -m gospelo_kata.cli generate {json_file} --format excel --output output.xlsx
 ```
 
-### 6. Lint 検証
+### 6. Lint Verification
 
 ```bash
 python -m gospelo_kata.cli lint {output.kata.md}
 ```
 
-### 7. 修正ループ
+### 7. Fix Loop
 
-Lint エラーがある場合:
-1. エラー内容を分析
-2. JSON データを修正
-3. 再度バリデーション・生成・Lint を実行
-4. エラーが 0 になるまで繰り返す
-
----
-
-## コマンド一覧
-
-| コマンド | 説明 |
-|---------|------|
-| `templates` | テンプレート一覧（schema/prompt 有無表示） |
-| `show-prompt {name}` | テンプレートの `{#prompt}` を表示 |
-| `show-schema {name}` | テンプレートのスキーマを JSON Schema で表示 |
-| `validate {file}` | JSON ファイルをスキーマ検証 |
-| `generate {file}` | JSON からドキュメント生成 |
-| `lint {file}` | .kata.md ファイルの Lint 検証 |
-| `init --type {name}` | テンプレートから雛形を初期化 |
-| `edit {file}` | ブラウザエディターで JSON 編集 |
-| `infer-schema {file}` | テンプレートからスキーマ推論 |
-| `schemas` | 利用可能なスキーマ一覧 |
+If lint errors exist:
+1. Analyze the error details
+2. Fix the JSON data
+3. Re-run validation, generation, and lint
+4. Repeat until errors reach 0
 
 ---
 
-## テンプレート仕様（KATA Markdown v2）
+## Command Reference
 
-### スキーマブロック
+| Command | Description |
+|---------|-------------|
+| `templates` | List templates (shows schema/prompt availability) |
+| `show-prompt {name}` | Display the template's `{#prompt}` |
+| `show-schema {name}` | Display the template's schema as JSON Schema |
+| `validate {file}` | Validate a JSON file against the schema |
+| `generate {file}` | Generate a document from JSON |
+| `lint {file}` | Lint verify a .kata.md file |
+| `init --type {name}` | Initialize a scaffold from a template |
+| `edit {file}` | Edit JSON in the browser editor |
+| `infer-schema {file}` | Infer schema from a template |
+| `schemas` | List available schemas |
+
+---
+
+## Template Specification (KATA Markdown™ v2)
+
+### Schema Block
 
 ```markdown
 {#schema
@@ -121,34 +121,34 @@ categories[]!:
 #}
 ```
 
-- `string!` — 必須の文字列
-- `enum(a, b)` — 許可値の列挙
-- `items[]!` — 必須の配列（子はオブジェクト）
-- `string[]` — 文字列の配列
+- `string!` — Required string
+- `enum(a, b)` — Enumeration of permitted values
+- `items[]!` — Required array (children are objects)
+- `string[]` — Array of strings
 
-### プロンプトブロック
+### Prompt Block
 
 ```markdown
 {#prompt
-テンプレートの使い方をAI向けに説明するブロック。
-レンダリング時は自動的に除去される。
+A block that explains template usage for AI.
+Automatically removed during rendering.
 #}
 ```
 
-### データ属性
+### Data Attributes
 
 ```html
 <span data-kata="p-categories-items-status">draft</span>
 ```
 
-`data-kata` 属性でスキーマプロパティへの参照を表現。VSCode 拡張でホバー時に型情報を表示。
+The `data-kata` attribute represents a reference to a schema property. The VSCode extension displays type information on hover.
 
 ---
 
-## 注意事項
+## Notes
 
-- テンプレートの `{#prompt}` に記載された規約に従うこと
-- `data-kata` 属性はテンプレートエンジンが自動付与（手動不要）
-- Schema Reference セクションも自動生成（手動不要）
-- Excel 生成には `openpyxl` が必要
-- YAML スキーマには `PyYAML` が必要
+- Follow the conventions described in the template's `{#prompt}`
+- `data-kata` attributes are automatically added by the template engine (no manual input needed)
+- The Schema Reference section is also auto-generated (no manual input needed)
+- Excel generation requires `openpyxl`
+- YAML schema requires `PyYAML`

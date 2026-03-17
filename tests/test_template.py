@@ -1,3 +1,7 @@
+# KATA Markdown™ — gospelo-kata
+# Copyright (c) 2025 gospelo. All rights reserved.
+# Licensed under the MIT License. See LICENSE.md for details.
+
 """Tests for gospelo_kata.template — Jinja2 3.1.6 compatible template engine."""
 
 from __future__ import annotations

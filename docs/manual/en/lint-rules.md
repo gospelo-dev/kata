@@ -39,7 +39,7 @@ Template syntax validation. Applied to files containing `{#schema}` / `{{ }}` / 
 |------|-------|-------------|
 | F001 | error | Unknown filter name |
 
-**Remedy**: See the built-in filter list in [KATA Markdown Format](kata-markdown-format.md).
+**Remedy**: See the built-in filter list in [KATA Markdown™ Format](kata-markdown-format.md).
 
 ### V — Variable References
 

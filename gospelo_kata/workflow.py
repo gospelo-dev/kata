@@ -1,3 +1,7 @@
+# KATA Markdown™ — gospelo-kata
+# Copyright (c) 2025 gospelo. All rights reserved.
+# Licensed under the MIT License. See LICENSE.md for details.
+
 """Workflow status management for document generation pipeline.
 
 Each document directory has a .workflow_status.json that tracks

@@ -1,3 +1,7 @@
+# KATA Markdown™ — gospelo-kata
+# Copyright (c) 2025 gospelo. All rights reserved.
+# Licensed under the MIT License. See LICENSE.md for details.
+
 """Browser-based HTML editor for JSON documents.
 
 Launches a local HTTP server with a single-page editor that:
