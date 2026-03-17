@@ -64,17 +64,23 @@
       },
       {
         "command": "kataLint.formatFile",
-        "title": "Kata: Format Current File"
+        "title": "Kata: Sync Data"
       }
     ],
-    "keybindings": [
-      {
-        "command": "kataLint.formatFile",
-        "key": "ctrl+shift+f",
-        "mac": "cmd+shift+f",
-        "when": "editorTextFocus && resourceFilename =~ /\\.kata\\.md$/"
-      }
-    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "kataLint.formatFile",
+          "when": "resourceFilename =~ /\\.kata\\.md$/",
+          "group": "1_modification@99"
+        },
+        {
+          "command": "kataLint.lintFile",
+          "when": "resourceFilename =~ /\\.kata\\.md$/",
+          "group": "1_modification@100"
+        }
+      ]
+    },
     "configuration": {
       "title": "Kata Lint",
       "properties": {
@@ -83,10 +89,15 @@
           "default": "python",
           "description": "Path to the Python interpreter (must have gospelo-kata installed)"
         },
+        "kataLint.syncOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Sync Data (span → Data YAML) and lint on file save"
+        },
         "kataLint.lintOnSave": {
           "type": "boolean",
           "default": true,
-          "description": "Run linter automatically on file save"
+          "description": "Run linter automatically on file save (when syncOnSave is disabled)"
         },
         "kataLint.lintOnOpen": {
           "type": "boolean",

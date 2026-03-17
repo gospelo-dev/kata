@@ -421,12 +421,33 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const config = vscode.workspace.getConfiguration("kataLint");
 
-  // Lint on save
+  // Sync and lint on save
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
       if (!isTargetDocument(document)) return;
       const cfg = vscode.workspace.getConfiguration("kataLint");
-      if (cfg.get<boolean>("lintOnSave", true)) {
+      if (cfg.get<boolean>("syncOnSave", true)) {
+        const pythonPath = cfg.get<string>("pythonPath", "python");
+        const filePath = document.uri.fsPath;
+        execFile(
+          pythonPath,
+          ["-m", "gospelo_kata.cli", "fmt", filePath],
+          { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, timeout: 10000 },
+          (error, _stdout, stderr) => {
+            if (error && error.code !== 0) {
+              vscode.window.showErrorMessage(
+                `kata-lint: sync failed — ${stderr || error.message}`
+              );
+              lintDocument(document, diagnosticCollection);
+              return;
+            }
+            // Revert the editor to pick up the file changes written by fmt
+            vscode.commands.executeCommand("workbench.action.files.revert").then(() => {
+              lintDocument(document, diagnosticCollection);
+            });
+          }
+        );
+      } else if (cfg.get<boolean>("lintOnSave", true)) {
         lintDocument(document, diagnosticCollection);
       }
     })

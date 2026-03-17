@@ -1378,6 +1378,10 @@ def _render_nodes(
 
                 for i, item in enumerate(items):
                     child_ctx = dict(context)
+                    # Build per-iteration var_map with array index
+                    iter_var_map = dict(child_var_map)
+                    if arr_prop and len(node.var_names) == 1:
+                        iter_var_map[node.var_names[0]] = f"{arr_prop}-{i}"
                     if len(node.var_names) == 1:
                         child_ctx[node.var_names[0]] = item
                     else:
@@ -1404,7 +1408,7 @@ def _render_nodes(
                     }
                     parts.append(_render_nodes(
                         node.body, child_ctx,
-                        annotate=annotate, _var_map=child_var_map,
+                        annotate=annotate, _var_map=iter_var_map,
                     ))
             elif node.else_body:
                 parts.append(_render_nodes(

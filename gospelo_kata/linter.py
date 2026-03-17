@@ -617,7 +617,7 @@ def lint_document(
     _check_html_in_spans(text, messages)
 
     # Check structural integrity of kata-card format
-    if has_inline_anchors:
+    if has_inline_anchors and "kata-badge" in text:
         _check_badge_consistency(text, messages)
         _check_card_structure(text, messages)
         _check_required_sections_present(text, messages)
