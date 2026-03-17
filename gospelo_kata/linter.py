@@ -617,8 +617,7 @@ def lint_document(
     _check_html_in_spans(text, messages)
 
     # Check structural integrity of kata-card format
-    if has_inline_anchors and "kata-badge" in text:
-        _check_badge_consistency(text, messages)
+    if has_inline_anchors:
         _check_card_structure(text, messages)
         _check_required_sections_present(text, messages)
         _check_unlinked_values(text, schema, messages)
@@ -830,6 +829,77 @@ def _parse_inline_constraints(
                     c.max_items = value
 
 
+def _parse_shorthand_constraints(
+    text: str,
+    valid_anchors: set[str],
+    constraints: dict[str, PropConstraints],
+) -> None:
+    """Parse Schema shorthand YAML block for type constraints.
+
+    Handles nested arrays recursively, e.g.:
+        categories[]!:
+          items[]!:
+            status: enum(draft, pending, approve, reject)
+    → anchor p-categories-items-status with enum constraint.
+    """
+    schema_match = re.search(
+        r"\*\*Schema\*\*\s*\n\s*```yaml\n([\s\S]*?)```", text
+    )
+    if not schema_match:
+        return
+
+    lines = schema_match.group(1).split("\n")
+
+    def _parse_level(start: int, base_indent: int, parent_anchor: str) -> int:
+        i = start
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.lstrip()
+            if not stripped:
+                i += 1
+                continue
+            indent = len(line) - len(stripped)
+            if indent < base_indent:
+                break
+
+            # Array: name[]!:
+            arr_match = re.match(r"^([a-z_][a-z0-9_]*)\[\](!)?:\s*$", stripped)
+            if arr_match:
+                name = arr_match.group(1)
+                anchor_part = f"{parent_anchor}-{name}" if parent_anchor else name
+                anchor_part = anchor_part.replace("_", "-")
+                anchor = f"p-{anchor_part}"
+                valid_anchors.add(anchor)
+                i = _parse_level(i + 1, indent + 2, anchor_part)
+                continue
+
+            # Field: name: type
+            field_match = re.match(r"^([a-z_][a-z0-9_]*):\s+(.+)$", stripped)
+            if field_match:
+                name = field_match.group(1)
+                type_str = field_match.group(2).strip()
+                required = type_str.endswith("!")
+                if required:
+                    type_str = type_str[:-1]
+
+                anchor_part = f"{parent_anchor}-{name}" if parent_anchor else name
+                anchor_part = anchor_part.replace("_", "-")
+                anchor = f"p-{anchor_part}"
+                valid_anchors.add(anchor)
+
+                c = constraints.setdefault(anchor, PropConstraints())
+                enum_match = re.match(r"^enum\((.+)\)$", type_str)
+                if enum_match:
+                    c.enum = [v.strip() for v in enum_match.group(1).split(",")]
+                i += 1
+                continue
+
+            i += 1
+        return i
+
+    _parse_level(0, 0, "")
+
+
 def _check_annotation_links(
     text: str,
     schema: dict[str, Any] | None,
@@ -858,9 +928,6 @@ def _check_annotation_links(
 
     valid_anchors |= defined_anchors
 
-    if not valid_anchors:
-        return
-
     # Collect constraints from external schema
     constraint_map: dict[str, PropConstraints] = {}
     if schema is not None:
@@ -868,6 +935,11 @@ def _check_annotation_links(
 
     # Also parse inline constraint definitions from Schema Reference section
     _parse_inline_constraints(text, defined_anchors, constraint_map)
+    # Parse Schema shorthand block for constraints
+    _parse_shorthand_constraints(text, valid_anchors, constraint_map)
+
+    if not valid_anchors:
+        return
 
     # Find all annotation props in the text and validate values
     # Supports both data-kata="p-xxx" and legacy [text](#p-xxx)
@@ -880,17 +952,23 @@ def _check_annotation_links(
         for m in legacy_link_pattern.finditer(line):
             yield m.group(2), m.group(1), m.start()
 
+    def _strip_indices(anchor: str) -> str:
+        """Strip array indices from anchor: p-categories-0-items-0-status → p-categories-items-status"""
+        return re.sub(r"-\d+", "", anchor)
+
     for line_num, line in enumerate(lines, 1):
         for anchor, link_text, start_pos in _iter_annotations(line):
             col = start_pos + 1
-            if anchor not in valid_anchors:
+            # Match indexed anchors by stripping indices
+            base_anchor = _strip_indices(anchor)
+            if anchor not in valid_anchors and base_anchor not in valid_anchors:
                 messages.append(LintMessage(
                     level="warning", line=line_num, column=col,
                     code="D005",
                     message=f"Annotation link '#{anchor}' does not match any schema property",
                 ))
-            elif anchor in constraint_map and link_text:
-                c = constraint_map[anchor]
+            elif (anchor in constraint_map or base_anchor in constraint_map) and link_text:
+                c = constraint_map.get(anchor) or constraint_map.get(base_anchor)
                 # D007: enum check
                 if c.enum is not None and link_text not in c.enum:
                     messages.append(LintMessage(
@@ -998,58 +1076,6 @@ def _check_html_in_spans(text: str, messages: list[LintMessage]) -> None:
 # Structural integrity checks for hand-edited documents
 # ---------------------------------------------------------------------------
 
-def _check_badge_consistency(text: str, messages: list[LintMessage]) -> None:
-    """D011: Check that badge class matches the status link value in the same card.
-
-    Detects:
-        <span class="kata-badge kata-badge-approve">approve</span>
-    but status link says [reject](#p-categories-items-status)
-    """
-    lines = text.split("\n")
-    badge_pattern = re.compile(r'kata-badge-(\w+)">')
-    status_prop_pattern = re.compile(r'data-kata="p-categories-items-status">(\w+)</span>')
-    status_link_pattern = re.compile(r'\[(\w+)\]\(#p-categories-items-status\)')
-
-    # Scan by card: collect badge and status per card block (v1: <table>, v2: <div>)
-    in_card = False
-    card_start = 0
-    card_depth = 0  # nesting depth for div-based cards
-    card_is_table = False
-    badge_val: str | None = None
-    status_val: str | None = None
-    status_line = 0
-
-    for line_num, line in enumerate(lines, 1):
-        if card_depth == 0 and 'class="kata-card"' in line:
-            in_card = True
-            card_start = line_num
-            badge_val = None
-            status_val = None
-            card_is_table = "<table" in line
-            card_depth = 1
-        elif in_card:
-            close_tag = "</table>" if card_is_table else "</div>"
-            open_tag = "<table" if card_is_table else "<div"
-            card_depth += line.count(open_tag)
-            card_depth -= line.count(close_tag)
-            _flush_badge = card_depth <= 0
-            if _flush_badge:
-                if badge_val and status_val and badge_val != status_val:
-                    messages.append(LintMessage(
-                        level="warning", line=status_line, column=1,
-                        code="D011",
-                        message=f"Badge '{badge_val}' does not match status link '{status_val}' (card at line {card_start})",
-                    ))
-                in_card = False
-
-        if in_card:
-            bm = badge_pattern.search(line)
-            if bm:
-                badge_val = bm.group(1)
-            sm = status_prop_pattern.search(line) or status_link_pattern.search(line)
-            if sm:
-                status_val = sm.group(1)
-                status_line = line_num
 
 
 def _extract_card_blocks(text: str) -> list[tuple[int, str, str]]:
@@ -1195,9 +1221,6 @@ def _check_unlinked_values(
             cell_stripped = cell.strip()
             # Skip cells that already have annotations
             if annotated_pattern.search(cell):
-                continue
-            # Skip badge spans (decorative, not data)
-            if "kata-badge" in cell:
                 continue
             # Check if cell contains a bare enum value (possibly inside <span>)
             # Strip HTML tags to get the text content
