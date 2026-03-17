@@ -70,7 +70,7 @@ Structural validation of rendered documents. Auto-applied to files with `data-ka
 | D008 | warning | String shorter than minLength |
 | D009 | warning | String exceeds maxLength |
 | D010 | warning | Array element count outside minItems/maxItems range |
-| D011 | warning | Badge class and status link value mismatch (kata-card) |
+| D011 | warning | Duplicate `data-kata` anchor ID |
 | D012 | error/warning | kata-card structure issue (unclosed, missing kata-left/kata-right) |
 | D014 | warning | Missing `<details>` or `<style>` section |
 | D015 | warning | Enum value in table lacks data-kata annotation |

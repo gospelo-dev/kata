@@ -8,7 +8,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-0-id">IAM-01</span>. <span data-kata="p-categories-0-items-0-name">Root Account MFA</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-0-status">draft</span></span>
+**<span data-kata="p-categories-0-items-0-id">IAM-01</span>. <span data-kata="p-categories-0-items-0-name">Root Account MFA</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-0-name-ja">ルートアカウントMFA有効化</span></b></td></tr>
@@ -31,7 +31,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-1-id">IAM-02</span>. <span data-kata="p-categories-0-items-1-name">Unused IAM Credentials</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-1-status">draft</span></span>
+**<span data-kata="p-categories-0-items-1-id">IAM-02</span>. <span data-kata="p-categories-0-items-1-name">Unused IAM Credentials</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-1-name-ja">未使用IAMクレデンシャル検出</span></b></td></tr>
@@ -56,7 +56,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-0-id">S3-01</span>. <span data-kata="p-categories-1-items-0-name">S3 Public Access Block</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-0-status">draft</span></span>
+**<span data-kata="p-categories-1-items-0-id">S3-01</span>. <span data-kata="p-categories-1-items-0-name">S3 Public Access Block</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-0-name-ja">S3パブリックアクセスブロック</span></b></td></tr>
@@ -79,7 +79,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-1-id">KMS-01</span>. <span data-kata="p-categories-1-items-1-name">KMS Key Rotation</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-1-status">draft</span></span>
+**<span data-kata="p-categories-1-items-1-id">KMS-01</span>. <span data-kata="p-categories-1-items-1-name">KMS Key Rotation</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-1-name-ja">KMSキーローテーション</span></b></td></tr>
@@ -104,7 +104,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-2-items-0-id">LOG-01</span>. <span data-kata="p-categories-2-items-0-name">CloudTrail Enabled</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-2-items-0-status">draft</span></span>
+**<span data-kata="p-categories-2-items-0-id">LOG-01</span>. <span data-kata="p-categories-2-items-0-name">CloudTrail Enabled</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-2-items-0-name-ja">CloudTrail有効化</span></b></td></tr>

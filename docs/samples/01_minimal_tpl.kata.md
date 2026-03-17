@@ -61,7 +61,7 @@ categories:
 <tr>
 <td class="kata-left">
 
-**{{ item.id }}. {{ item.name }}** <span class="kata-badge kata-badge-{{ item.status | default("draft") }}">{{ item.status | default("draft") }}</span>
+**{{ item.id }}. {{ item.name }}**
 
 <table class="kata-props">
 <tr><td colspan="2"><b>{{ item.name_ja | default(item.name) }}</b></td></tr>

@@ -70,7 +70,7 @@
 | D008 | warning | 文字列が minLength に満たない |
 | D009 | warning | 文字列が maxLength を超過 |
 | D010 | warning | 配列の要素数が minItems/maxItems の範囲外 |
-| D011 | warning | バッジクラスとステータスリンク値が不一致 (kata-card) |
+| D011 | warning | `data-kata` アンカー ID が重複している |
 | D012 | error/warning | kata-card 構造の問題 (未閉じ、kata-left/kata-right 欠落) |
 | D014 | warning | `<details>` または `<style>` セクションが欠落 |
 | D015 | warning | テーブル内の enum 値に data-kata アノテーションがない |

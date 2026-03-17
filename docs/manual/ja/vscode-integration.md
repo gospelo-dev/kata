@@ -76,9 +76,35 @@ code --install-extension kata-lint-0.1.0.vsix
 - enum: `high` | `medium` | `low`
 ```
 
-### 3. プレビュー CSS
+### 3. データ同期 (Sync Data)
 
-`.kata.md` の Markdown プレビュー時に kata 専用スタイル (`kata-card`, `kata-badge` 等) が適用されます。
+`.kata.md` ファイルを保存すると、本文中の `data-kata` span の値が Schema Reference 内の Data YAML ブロックに自動同期されます。
+
+**動作の流れ**:
+1. ファイル保存 (⌘+S)
+2. `gospelo-kata fmt` が自動実行され、span の値を Data YAML に反映
+3. エディタが更新される
+4. lint が再実行される
+
+**手動実行**: エディタ上で右クリック → 「Kata: Sync Data」
+
+**設定** (`settings.json`):
+
+```json
+{
+  "kataLint.syncOnSave": true
+}
+```
+
+| 設定 | デフォルト | 説明 |
+|------|-----------|------|
+| `kataLint.syncOnSave` | `true` | 保存時に自動データ同期 |
+
+> **注意**: Data YAML は span から自動生成される読み取り専用のスナップショットです。値の編集は常に本文の span 側で行ってください。
+
+### 4. プレビュー CSS
+
+`.kata.md` の Markdown プレビュー時に kata 専用スタイル (`kata-card` 等) が適用されます。
 
 ---
 

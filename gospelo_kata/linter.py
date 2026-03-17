@@ -620,6 +620,7 @@ def lint_document(
 
     # Check structural integrity of kata-card format
     if has_inline_anchors:
+        _check_duplicate_anchors(text, messages)
         _check_card_structure(text, messages)
         _check_required_sections_present(text, messages)
         _check_unlinked_values(text, schema, messages)
@@ -1035,6 +1036,23 @@ def _check_annotation_links(
             code="D006",
             message=f"Schema properties with no annotation links: {', '.join(sorted(orphan))}",
         ))
+
+
+def _check_duplicate_anchors(text: str, messages: list[LintMessage]) -> None:
+    """D011: Check for duplicate data-kata anchor IDs."""
+    pattern = re.compile(r'data-kata="(p-[a-z0-9-]+)"')
+    seen: dict[str, int] = {}  # anchor → first line number
+    for line_num, line in enumerate(text.split("\n"), 1):
+        for m in pattern.finditer(line):
+            anchor = m.group(1)
+            if anchor in seen:
+                messages.append(LintMessage(
+                    level="warning", line=line_num, column=m.start() + 1,
+                    code="D011",
+                    message=f"Duplicate anchor '{anchor}' (first seen at line {seen[anchor]})",
+                ))
+            else:
+                seen[anchor] = line_num
 
 
 # ---------------------------------------------------------------------------

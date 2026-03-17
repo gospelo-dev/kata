@@ -279,6 +279,18 @@ gospelo-kata extract outputs/test.kata.md
 
 ---
 
+## AI スキルでの利用
+
+Claude Code や GitHub Copilot で `/gospelo-kata-pack` スキルを使うと、テンプレートの展開・修正・再パック・テストを AI が一気に実行できます。
+
+```
+/gospelo-kata-pack
+```
+
+スキルの詳細は `skill/claude-code/gospelo-kata-pack/SKILL.md` を参照。
+
+---
+
 ## 配布
 
 `.katatpl` ファイルは以下の方法で配布できます:

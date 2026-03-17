@@ -8,7 +8,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">Create Resource</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-0-status">draft</span></span>
+**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">Create Resource</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-0-name-ja">リソース作成 (POST)</span></b></td></tr>
@@ -31,7 +31,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">Read Resource</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-1-status">draft</span></span>
+**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">Read Resource</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-1-name-ja">リソース取得 (GET)</span></b></td></tr>
@@ -54,7 +54,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Update Resource</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-2-status">draft</span></span>
+**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Update Resource</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-2-name-ja">リソース更新 (PUT/PATCH)</span></b></td></tr>
@@ -77,7 +77,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-3-id">4</span>. <span data-kata="p-categories-0-items-3-name">Delete Resource</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-3-status">draft</span></span>
+**<span data-kata="p-categories-0-items-3-id">4</span>. <span data-kata="p-categories-0-items-3-name">Delete Resource</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-3-name-ja">リソース削除 (DELETE)</span></b></td></tr>
@@ -102,7 +102,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-0-id">5</span>. <span data-kata="p-categories-1-items-0-name">Bearer Token Auth</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-0-status">draft</span></span>
+**<span data-kata="p-categories-1-items-0-id">5</span>. <span data-kata="p-categories-1-items-0-name">Bearer Token Auth</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-0-name-ja">Bearerトークン認証</span></b></td></tr>
@@ -125,7 +125,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-1-id">6</span>. <span data-kata="p-categories-1-items-1-name">Role-Based Access</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-1-status">draft</span></span>
+**<span data-kata="p-categories-1-items-1-id">6</span>. <span data-kata="p-categories-1-items-1-name">Role-Based Access</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-1-name-ja">ロールベースアクセス制御</span></b></td></tr>

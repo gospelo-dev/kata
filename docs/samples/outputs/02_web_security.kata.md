@@ -8,7 +8,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">SQL Injection</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-0-status">draft</span></span>
+**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">SQL Injection</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-0-name-ja">SQLインジェクション</span></b></td></tr>
@@ -31,7 +31,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">XSS</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-1-status">draft</span></span>
+**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">XSS</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-1-name-ja">クロスサイトスクリプティング</span></b></td></tr>
@@ -54,7 +54,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Command Injection</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-2-status">draft</span></span>
+**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Command Injection</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-2-name-ja">OSコマンドインジェクション</span></b></td></tr>
@@ -77,7 +77,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-3-id">4</span>. <span data-kata="p-categories-0-items-3-name">Path Traversal</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-3-status">draft</span></span>
+**<span data-kata="p-categories-0-items-3-id">4</span>. <span data-kata="p-categories-0-items-3-name">Path Traversal</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-3-name-ja">パストラバーサル</span></b></td></tr>
@@ -102,7 +102,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-0-id">5</span>. <span data-kata="p-categories-1-items-0-name">Brute Force</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-0-status">draft</span></span>
+**<span data-kata="p-categories-1-items-0-id">5</span>. <span data-kata="p-categories-1-items-0-name">Brute Force</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-0-name-ja">ブルートフォース耐性</span></b></td></tr>
@@ -125,7 +125,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-1-id">6</span>. <span data-kata="p-categories-1-items-1-name">IDOR</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-1-status">draft</span></span>
+**<span data-kata="p-categories-1-items-1-id">6</span>. <span data-kata="p-categories-1-items-1-name">IDOR</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-1-name-ja">認可制御の不備</span></b></td></tr>
@@ -148,7 +148,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-1-items-2-id">7</span>. <span data-kata="p-categories-1-items-2-name">CSRF</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-1-items-2-status">draft</span></span>
+**<span data-kata="p-categories-1-items-2-id">7</span>. <span data-kata="p-categories-1-items-2-name">CSRF</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-1-items-2-name-ja">クロスサイトリクエストフォージェリ</span></b></td></tr>
@@ -173,7 +173,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-2-items-0-id">8</span>. <span data-kata="p-categories-2-items-0-name">Security Headers</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-2-items-0-status">draft</span></span>
+**<span data-kata="p-categories-2-items-0-id">8</span>. <span data-kata="p-categories-2-items-0-name">Security Headers</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-2-items-0-name-ja">セキュリティヘッダー</span></b></td></tr>
@@ -196,7 +196,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-2-items-1-id">9</span>. <span data-kata="p-categories-2-items-1-name">Error Disclosure</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-2-items-1-status">draft</span></span>
+**<span data-kata="p-categories-2-items-1-id">9</span>. <span data-kata="p-categories-2-items-1-name">Error Disclosure</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-2-items-1-name-ja">エラーメッセージ情報漏洩</span></b></td></tr>
@@ -219,7 +219,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-2-items-2-id">10</span>. <span data-kata="p-categories-2-items-2-name">Dependency Check</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-2-items-2-status">draft</span></span>
+**<span data-kata="p-categories-2-items-2-id">10</span>. <span data-kata="p-categories-2-items-2-name">Dependency Check</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-2-items-2-name-ja">依存パッケージ脆弱性</span></b></td></tr>

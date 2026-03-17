@@ -8,7 +8,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">Login Function</span>** <span class="kata-badge kata-badge-approve"><span data-kata="p-categories-0-items-0-status">approve</span></span>
+**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">Login Function</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-0-name-ja">ログイン機能</span></b></td></tr>
@@ -31,7 +31,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">User Registration</span>** <span class="kata-badge kata-badge-reject"><span data-kata="p-categories-0-items-1-status">reject</span></span>
+**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">User Registration</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-1-name-ja">ユーザー登録</span></b></td></tr>
@@ -54,7 +54,7 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Data Export</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-2-status">draft</span></span>
+**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Data Export</span>**
 
 <table class="kata-props">
 <tr><td colspan="2"><b><span data-kata="p-categories-0-items-2-name-ja">データエクスポート</span></b></td></tr>
