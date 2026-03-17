@@ -138,7 +138,7 @@ Automatically removed during rendering.
 ### Data Attributes
 
 ```html
-<span data-kata="p-categories-items-status">draft</span>
+<span data-kata="p-categories-0-items-0-status">draft</span>
 ```
 
 The `data-kata` attribute represents a reference to a schema property. The VSCode extension displays type information on hover.

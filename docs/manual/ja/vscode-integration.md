@@ -15,7 +15,7 @@ npm install && npm run compile
 npx vsce package
 
 # インストール
-code --install-extension kata-lint-0.1.0.vsix
+code --install-extension kata-lint-0.2.0.vsix
 ```
 
 ### 前提条件

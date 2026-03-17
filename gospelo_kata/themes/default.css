@@ -17,8 +17,3 @@
 .kata-status-pending { color: #B8860B; font-weight: bold; }
 .kata-status-approve { color: var(--kata-ok); font-weight: bold; }
 .kata-status-reject { color: var(--kata-ng); font-weight: bold; }
-.kata-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }
-.kata-badge-approve { background: var(--kata-ok); color: #fff; }
-.kata-badge-reject { background: var(--kata-ng); color: #fff; }
-.kata-badge-pending { background: #F0D58C; color: #333; }
-.kata-badge-draft { background: var(--kata-gray); color: #666; }
