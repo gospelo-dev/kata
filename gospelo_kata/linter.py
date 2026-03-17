@@ -581,10 +581,12 @@ def lint_document(
         from .validator import get_builtin_schema
         schema = get_builtin_schema(schema_name)
     except FileNotFoundError:
-        messages.append(LintMessage(
-            level="info", line=1, column=1,
-            code="D001", message=f"External schema not found: {schema_name} — using inline anchors",
-        ))
+        has_schema_ref = "Schema Reference" in text and "**Schema**" in text
+        if not has_schema_ref:
+            messages.append(LintMessage(
+                level="info", line=1, column=1,
+                code="D001", message=f"External schema not found: {schema_name} — using inline anchors",
+            ))
 
     # Check required sections (only when external schema available
     # AND the document has no inline anchors — template-generated docs
