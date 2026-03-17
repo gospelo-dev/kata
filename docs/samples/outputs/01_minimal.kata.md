@@ -2,26 +2,26 @@
 
 > Version: <span data-kata="p-version">1.0</span>
 
-## <span data-kata="p-categories-id">basic</span>. <span data-kata="p-categories-name">基本テスト</span>
+## <span data-kata="p-categories-0-id">basic</span>. <span data-kata="p-categories-0-name">基本テスト</span>
 
 <table class="kata-card">
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-items-id">1</span>. <span data-kata="p-categories-items-name">Login Function</span>** <span class="kata-badge kata-badge-approve"><span data-kata="p-categories-items-status">approve</span></span>
+**<span data-kata="p-categories-0-items-0-id">1</span>. <span data-kata="p-categories-0-items-0-name">Login Function</span>** <span class="kata-badge kata-badge-approve"><span data-kata="p-categories-0-items-0-status">approve</span></span>
 
 <table class="kata-props">
-<tr><td colspan="2"><b><span data-kata="p-categories-items-name-ja">ログイン機能</span></b></td></tr>
-<tr><td>target</td><td><span data-kata="p-categories-items-target">/api/auth/login</span></td></tr>
-<tr><td>auto</td><td><span data-kata="p-categories-items-auto">full</span></td></tr>
-<tr><td>status</td><td><span class="kata-status-approve"><span data-kata="p-categories-items-status">approve</span></span></td></tr>
-<tr><td>tags</td><td><span data-kata="p-categories-items-tags">auth</span></td></tr>
+<tr><td colspan="2"><b><span data-kata="p-categories-0-items-0-name-ja">ログイン機能</span></b></td></tr>
+<tr><td>target</td><td><span data-kata="p-categories-0-items-0-target">/api/auth/login</span></td></tr>
+<tr><td>auto</td><td><span data-kata="p-categories-0-items-0-auto">full</span></td></tr>
+<tr><td>status</td><td><span class="kata-status-approve"><span data-kata="p-categories-0-items-0-status">approve</span></span></td></tr>
+<tr><td>tags</td><td><span data-kata="p-categories-0-items-0-tags">auth</span></td></tr>
 </table>
 
 </td>
 <td class="kata-right">
 
-- <span data-kata="p-categories-items-requirements">正常系: 有効なメール+パスワードで200とJWTトークンが返る</span>
+- <span data-kata="p-categories-0-items-0-requirements">正常系: 有効なメール+パスワードで200とJWTトークンが返る</span>
 
 </td>
 </tr>
@@ -31,20 +31,20 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-items-id">2</span>. <span data-kata="p-categories-items-name">User Registration</span>** <span class="kata-badge kata-badge-reject"><span data-kata="p-categories-items-status">reject</span></span>
+**<span data-kata="p-categories-0-items-1-id">2</span>. <span data-kata="p-categories-0-items-1-name">User Registration</span>** <span class="kata-badge kata-badge-reject"><span data-kata="p-categories-0-items-1-status">reject</span></span>
 
 <table class="kata-props">
-<tr><td colspan="2"><b><span data-kata="p-categories-items-name-ja">ユーザー登録</span></b></td></tr>
-<tr><td>target</td><td><span data-kata="p-categories-items-target">/api/auth/register</span></td></tr>
-<tr><td>auto</td><td><span data-kata="p-categories-items-auto">full</span></td></tr>
-<tr><td>status</td><td><span class="kata-status-reject"><span data-kata="p-categories-items-status">reject</span></span></td></tr>
-<tr><td>tags</td><td><span data-kata="p-categories-items-tags">auth</span></td></tr>
+<tr><td colspan="2"><b><span data-kata="p-categories-0-items-1-name-ja">ユーザー登録</span></b></td></tr>
+<tr><td>target</td><td><span data-kata="p-categories-0-items-1-target">/api/auth/register</span></td></tr>
+<tr><td>auto</td><td><span data-kata="p-categories-0-items-1-auto">full</span></td></tr>
+<tr><td>status</td><td><span class="kata-status-reject"><span data-kata="p-categories-0-items-1-status">reject</span></span></td></tr>
+<tr><td>tags</td><td><span data-kata="p-categories-0-items-1-tags">auth</span></td></tr>
 </table>
 
 </td>
 <td class="kata-right">
 
-- <span data-kata="p-categories-items-requirements">正常系: 必須フィールド入力で201とユーザーオブジェクトが返る</span>
+- <span data-kata="p-categories-0-items-1-requirements">正常系: 必須フィールド入力で201とユーザーオブジェクトが返る</span>
 
 </td>
 </tr>
@@ -54,20 +54,20 @@
 <tr>
 <td class="kata-left">
 
-**<span data-kata="p-categories-items-id">3</span>. <span data-kata="p-categories-items-name">Data Export</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-items-status">draft</span></span>
+**<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Data Export</span>** <span class="kata-badge kata-badge-draft"><span data-kata="p-categories-0-items-2-status">draft</span></span>
 
 <table class="kata-props">
-<tr><td colspan="2"><b><span data-kata="p-categories-items-name-ja">データエクスポート</span></b></td></tr>
-<tr><td>target</td><td><span data-kata="p-categories-items-target">/api/export</span></td></tr>
-<tr><td>auto</td><td><span data-kata="p-categories-items-auto">full</span></td></tr>
-<tr><td>status</td><td><span class="kata-status-draft"><span data-kata="p-categories-items-status">draft</span></span></td></tr>
-<tr><td>tags</td><td><span data-kata="p-categories-items-tags">data</span></td></tr>
+<tr><td colspan="2"><b><span data-kata="p-categories-0-items-2-name-ja">データエクスポート</span></b></td></tr>
+<tr><td>target</td><td><span data-kata="p-categories-0-items-2-target">/api/export</span></td></tr>
+<tr><td>auto</td><td><span data-kata="p-categories-0-items-2-auto">full</span></td></tr>
+<tr><td>status</td><td><span class="kata-status-draft"><span data-kata="p-categories-0-items-2-status">draft</span></span></td></tr>
+<tr><td>tags</td><td><span data-kata="p-categories-0-items-2-tags">data</span></td></tr>
 </table>
 
 </td>
 <td class="kata-right">
 
-- <span data-kata="p-categories-items-requirements">正常系: CSV形式でデータがダウンロードできる</span>
+- <span data-kata="p-categories-0-items-2-requirements">正常系: CSV形式でデータがダウンロードできる</span>
 
 </td>
 </tr>
