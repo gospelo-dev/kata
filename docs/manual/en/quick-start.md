@@ -123,7 +123,7 @@ JSON data recovery (round-trip)
 ## Next Steps
 
 - [CLI Reference](cli-reference.md) — Full command details
-- [KATA Markdown Format](kata-markdown-format.md) — Template syntax
+- [KATA Markdown™ Format](kata-markdown-format.md) — Template syntax
 - [Lint Rules](lint-rules.md) — Error code reference
 - [Workflow Guide](workflow-guide.md) — Pipeline management
 - [VSCode Integration](vscode-integration.md) — Extension setup

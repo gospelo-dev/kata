@@ -19,7 +19,9 @@ Add the following to `.vscode/settings.json`:
 }
 ```
 
-This tells Copilot to load `.github/copilot-instructions.md` automatically on every chat session. Without this setting, Copilot will not follow the gospelo-kata workflow rules.
+This tells Copilot to load `.github/copilot-instructions.md` automatically on every chat session. With smaller models, Copilot may not follow the gospelo-kata workflow rules without this setting.
+
+Append the contents of [`skill/copilot/copilot-instructions.md`](https://github.com/gospelo-dev/kata/blob/main/skill/copilot/copilot-instructions.md) to your project's `.github/copilot-instructions.md`.
 
 ### 2. Auto-approve terminal commands (optional)
 
@@ -84,10 +86,10 @@ skill/
 In Copilot Chat, simply describe what you want to generate:
 
 ```
-「リーダー人材定着プロジェクト」のセキュリティチェックリストを作成してください。
-出力先: docs/output/
-テンプレート: checklist
-カテゴリ: 認証・認可(auth)、データ保護(data)、インフラ(infra)
+Create a security checklist for the "Leader Talent Retention Project".
+Output: docs/output/
+Template: checklist
+Categories: Authentication & Authorization (auth), Data Protection (data), Infrastructure (infra)
 ```
 
 Copilot will automatically follow the 3-step workflow defined in `copilot-instructions.md`.

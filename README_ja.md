@@ -9,7 +9,7 @@
 
 ## なぜ gospelo-kata？
 
-KATA Markdown は、人間と AI が同じドキュメントを読み、理解し、共同で作業できるように設計されています。フォーマットは自己記述的で、AI は埋め込まれたスキーマとプロンプトからテンプレート構造を自力で理解でき、人間も同じファイルを自然に読み書きできます。スキーマ・バリデーション・信頼管理によって AI の出力を安全な経路に導くハーネスとして機能し、自律型 AI が構造から逸脱せず安全に動作します。
+KATA Markdown™ は、人間と AI が同じドキュメントを読み、理解し、共同で作業できるように設計されています。フォーマットは自己記述的で、AI は埋め込まれたスキーマとプロンプトからテンプレート構造を自力で理解でき、人間も同じファイルを自然に読み書きできます。スキーマ・バリデーション・信頼管理によって AI の出力を安全な経路に導くハーネスとして機能し、自律型 AI が構造から逸脱せず安全に動作します。
 
 AI でドキュメントを生成する際、よくある問題:
 
@@ -116,7 +116,7 @@ gospelo-kata extract outputs/checklist.kata.md -o extracted.json
 
 レンダリング済みドキュメントから元の構造化データを復元します。
 
-## KATA Markdown フォーマット
+## KATA Markdown™ フォーマット
 
 `_tpl.kata.md` テンプレートファイルは3つのブロックで構成されます:
 
@@ -237,7 +237,7 @@ gospelo-kata は AI アシスタントとの連携を前提に設計されてい
 
 - [クイックスタート](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/quick-start.md)
 - [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md)
-- [KATA Markdown フォーマット](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/kata-markdown-format.md)
+- [KATA Markdown™ フォーマット](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/kata-markdown-format.md)
 - [Lint ルール一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/lint-rules.md)
 - [ワークフローガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/workflow-guide.md)
 - [VSCode 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md)

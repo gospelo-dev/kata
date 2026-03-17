@@ -39,7 +39,7 @@
 |--------|--------|------|
 | F001 | error | 不明なフィルター名 |
 
-**対処**: 組み込みフィルター一覧は [KATA Markdown フォーマット](kata-markdown-format.md) を参照。
+**対処**: 組み込みフィルター一覧は [KATA Markdown™ フォーマット](kata-markdown-format.md) を参照。
 
 ### V — 変数参照
 

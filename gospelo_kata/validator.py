@@ -1,3 +1,7 @@
+# KATA Markdown™ — gospelo-kata
+# Copyright (c) 2025 gospelo. All rights reserved.
+# Licensed under the MIT License. See LICENSE.md for details.
+
 """JSON Schema based document validation.
 
 Validates JSON documents against built-in or custom schemas.

@@ -1,3 +1,7 @@
+# KATA Markdown™ — gospelo-kata
+# Copyright (c) 2025 gospelo. All rights reserved.
+# Licensed under the MIT License. See LICENSE.md for details.
+
 """Extract structured JSON data from rendered .kata.md documents.
 
 Parses data-kata annotations to reconstruct the original JSON data

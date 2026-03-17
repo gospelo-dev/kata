@@ -1,16 +1,16 @@
 ---
 name: gospelo-kata
-description: KATA Markdown ドキュメントの生成・検証・編集
+description: Generate, validate, and edit KATA Markdown™ documents
 ---
 
-# gospelo-kata — AI Native ドキュメント生成ツールキット
+# gospelo-kata — AI Native Document Generation Toolkit
 
-KATA Markdown™ テンプレートから構造化ドキュメント (Markdown / Excel) を生成するツール。
-テンプレートに埋め込まれた `{#prompt}` (AI向け説明) と `{#schema}` (型定義) を読み取り、自律的にドキュメントを生成できます。
+A tool for generating structured documents (Markdown / Excel) from KATA Markdown™ templates.
+Reads `{#prompt}` (AI instructions) and `{#schema}` (type definitions) embedded in templates to autonomously generate documents.
 
-## 前提条件
+## Prerequisites
 
-`gospelo-kata` パッケージがインストール済みであること。
+The `gospelo-kata` package must be installed.
 
 ```bash
 pip install gospelo-kata
@@ -18,15 +18,15 @@ pip install gospelo-kata
 
 ---
 
-## AI ドキュメント生成ワークフロー
+## AI Document Generation Workflow
 
-### Step 1: テンプレート選択
+### Step 1: Template Selection
 
 ```bash
 gospelo-kata templates
 ```
 
-出力例:
+Example output:
 ```
 Available templates:
   agenda               Meeting agenda with decisions and action items [schema]
@@ -34,24 +34,24 @@ Available templates:
   test_spec            Test specification with prerequisites...
 ```
 
-`[schema, prompt]` タグのあるテンプレートが AI 生成に対応しています。
+Templates with `[schema, prompt]` tags support AI generation.
 
-### Step 2: テンプレートの仕様を取得
+### Step 2: Get Template Specification
 
 ```bash
-# テンプレートの使い方説明を取得
+# Get template usage instructions
 gospelo-kata show-prompt {template_name}
 
-# データ構造 (JSON Schema) を取得
+# Get data structure (JSON Schema)
 gospelo-kata show-schema {template_name}
 gospelo-kata show-schema {template_name} --format yaml
 ```
 
-**重要**: 必ず show-prompt と show-schema の両方を読み、テンプレートの仕様を理解してからデータを生成してください。
+**Important**: Always read both show-prompt and show-schema to understand the template specification before generating data.
 
-### Step 3: `_tpl.kata.md` ファイルを作成
+### Step 3: Create `_tpl.kata.md` File
 
-テンプレートの `{#schema}` と `{#prompt}` に従い、`{#data}` ブロックにYAMLデータを埋め込んだ `_tpl.kata.md` ファイルを作成します。
+Following the template's `{#schema}` and `{#prompt}`, create a `_tpl.kata.md` file with YAML data embedded in the `{#data}` block.
 
 ```markdown
 {#schema
@@ -77,69 +77,69 @@ items:
 {% endfor %}
 ```
 
-ルール:
-- `!` 付きフィールドは必須
-- `enum()` フィールドは許可値のみ使用する
-- `status` の初期値は `"draft"` とする
-- 日本語コンテンツでは `name_ja` フィールドを必ず設定する
+Rules:
+- Fields marked with `!` are required
+- Use only permitted values for `enum()` fields
+- Set `status` initial value to `"draft"`
+- Always set the `name_ja` field for Japanese content
 
-### Step 4: レンダリング
+### Step 4: Rendering
 
 ```bash
-# Markdown 出力
+# Markdown output
 gospelo-kata render my_template_tpl.kata.md -o outputs/my_template.kata.md
 
-# Lint 検証
+# Lint verification
 gospelo-kata lint outputs/my_template.kata.md
 ```
 
-### Step 5: Excel 生成 (オプション)
+### Step 5: Excel Generation (Optional)
 
 ```bash
 gospelo-kata generate data.json --format excel --output output.xlsx
 ```
 
-### Step 6: 修正ループ
+### Step 6: Fix Loop
 
-Lint エラーがある場合:
-1. エラー内容を確認
-2. `_tpl.kata.md` の `{#data}` またはテンプレートを修正
-3. Step 4 を再実行
-4. エラーが 0 になるまで繰り返す
-
----
-
-## コマンドリファレンス
-
-| コマンド | 説明 |
-|---------|------|
-| `templates` | テンプレート一覧（schema/prompt 有無表示） |
-| `show-prompt {name}` | テンプレートの `{#prompt}` を表示 |
-| `show-schema {name}` | テンプレートのスキーマを JSON Schema で表示 |
-| `render {file}` | `_tpl.kata.md` をレンダリングして `.kata.md` を生成 |
-| `lint {file}` | .kata.md ファイルの Lint 検証 |
-| `extract {file}` | レンダリング済み `.kata.md` からデータを抽出 |
-| `init --type {name}` | テンプレートから雛形を初期化 |
-| `validate {file}` | JSON ファイルをスキーマ検証 |
-| `generate {file}` | JSON からドキュメント生成 |
-| `edit {file}` | ブラウザエディターで JSON 編集 |
-| `infer-schema {file}` | テンプレートからスキーマ推論 |
-| `schemas` | 利用可能なスキーマ一覧 |
-
-全コマンドは `gospelo-kata {command}` で実行します。
+If lint errors exist:
+1. Check error details
+2. Fix `{#data}` or the template in `_tpl.kata.md`
+3. Re-run Step 4
+4. Repeat until errors reach 0
 
 ---
 
-## テンプレート仕様 (KATA Markdown v2)
+## Command Reference
 
-### ファイル命名規則
+| Command | Description |
+|---------|-------------|
+| `templates` | List templates (shows schema/prompt availability) |
+| `show-prompt {name}` | Display the template's `{#prompt}` |
+| `show-schema {name}` | Display the template's schema as JSON Schema |
+| `render {file}` | Render `_tpl.kata.md` to generate `.kata.md` |
+| `lint {file}` | Lint verify a .kata.md file |
+| `extract {file}` | Extract data from a rendered `.kata.md` |
+| `init --type {name}` | Initialize a scaffold from a template |
+| `validate {file}` | Validate a JSON file against the schema |
+| `generate {file}` | Generate a document from JSON |
+| `edit {file}` | Edit JSON in the browser editor |
+| `infer-schema {file}` | Infer schema from a template |
+| `schemas` | List available schemas |
 
-- `*_tpl.kata.md` — テンプレートソース（`{#schema}` + `{#data}` + Jinja テンプレート）
-- `*.kata.md` — レンダリング済み出力（`data-kata` 属性付き）
+All commands are executed with `gospelo-kata {command}`.
 
-### スキーマブロック `{#schema ... #}`
+---
 
-YAML shorthand でデータ型を定義:
+## Template Specification (KATA Markdown™ v2)
+
+### File Naming Convention
+
+- `*_tpl.kata.md` — Template source (`{#schema}` + `{#data}` + Jinja template)
+- `*.kata.md` — Rendered output (with `data-kata` attributes)
+
+### Schema Block `{#schema ... #}`
+
+Define data types with YAML shorthand:
 
 ```markdown
 {#schema
@@ -157,55 +157,55 @@ categories[]!:
 #}
 ```
 
-- `string!` — 必須文字列
-- `string` — オプション文字列
-- `integer` — 整数
-- `number` — 数値
-- `boolean` — 真偽値
-- `enum(a, b)` — 許可値の列挙
-- `items[]!` — 必須オブジェクト配列
-- `string[]` — 文字列配列
+- `string!` — Required string
+- `string` — Optional string
+- `integer` — Integer
+- `number` — Number
+- `boolean` — Boolean
+- `enum(a, b)` — Enumeration of permitted values
+- `items[]!` — Required object array
+- `string[]` — String array
 
-### プロンプトブロック `{#prompt ... #}`
+### Prompt Block `{#prompt ... #}`
 
-AI 向けのテンプレート説明。レンダリング時は自動除去されます。
+Template instructions for AI. Automatically removed during rendering.
 
-### データブロック `{#data ... #}`
+### Data Block `{#data ... #}`
 
-YAML 形式でデータを埋め込み。レンダリング時にテンプレートへ注入されます。
+Embed data in YAML format. Injected into the template during rendering.
 
-### データ属性 `data-kata`
+### Data Attribute `data-kata`
 
 ```html
 <span data-kata="p-categories-items-status">draft</span>
 ```
 
-スキーマプロパティへの参照を表現。テンプレートエンジンが自動付与するため手動記述は不要です。
+Represents a reference to a schema property. The template engine adds these automatically, so manual input is not needed.
 
 ---
 
-## ワークフロー例
+## Workflow Example
 
-### チェックリストの作成
+### Creating a Checklist
 
 ```bash
-# 1. テンプレートから初期化
+# 1. Initialize from template
 gospelo-kata init --type checklist --output ./guides/
 
-# 2. _tpl.kata.md の {#data} ブロックを編集
+# 2. Edit the {#data} block in _tpl.kata.md
 
-# 3. レンダリング
+# 3. Render
 gospelo-kata render guides/templates/checklist_tpl.kata.md -o guides/outputs/checklist.kata.md
 
-# 4. Lint 検証
+# 4. Lint verification
 gospelo-kata lint guides/outputs/checklist.kata.md
 ```
 
 ---
 
-## 注意事項
+## Notes
 
-- `data-kata` 属性と Schema Reference セクションはテンプレートエンジンが自動生成（手動不要）
-- テンプレートの `{#prompt}` に記載された規約に従うこと
-- Excel 生成には `openpyxl` が必要
-- YAML スキーマには `PyYAML` が必要
+- `data-kata` attributes and Schema Reference sections are auto-generated by the template engine (no manual input needed)
+- Follow the conventions described in the template's `{#prompt}`
+- Excel generation requires `openpyxl`
+- YAML schema requires `PyYAML`

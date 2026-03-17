@@ -123,7 +123,7 @@ JSON データ復元 (ラウンドトリップ)
 ## 次のステップ
 
 - [CLI リファレンス](cli-reference.md) — 全コマンド詳細
-- [KATA Markdown フォーマット](kata-markdown-format.md) — テンプレート記法
+- [KATA Markdown™ フォーマット](kata-markdown-format.md) — テンプレート記法
 - [Lint ルール一覧](lint-rules.md) — エラーコード解説
 - [ワークフローガイド](workflow-guide.md) — 生成パイプライン管理
 - [VSCode 連携](vscode-integration.md) — 拡張機能の設定

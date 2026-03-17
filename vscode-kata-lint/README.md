@@ -6,7 +6,7 @@
 [![Linter](https://img.shields.io/badge/Category-Linter-4caf50.svg)](#features)
 [![Marketplace](https://img.shields.io/badge/VS_Marketplace-gospelo.kata--lint-007ACC.svg?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint)
 
-A VSCode extension for [gospelo-kata](https://github.com/gospelo-dev/kata). Provides real-time lint, syntax highlighting, hover information, and preview for KATA Markdown templates (`.kata.md`).
+A VSCode extension for [gospelo-kata](https://github.com/gospelo-dev/kata). Provides real-time lint, syntax highlighting, hover information, and preview for KATA Markdown™ templates (`.kata.md`).
 
 [Japanese / 日本語](https://github.com/gospelo-dev/kata/blob/main/vscode-kata-lint/README.ja.md)
 
@@ -32,7 +32,7 @@ A VSCode extension for [gospelo-kata](https://github.com/gospelo-dev/kata). Prov
 
 ### Preview CSS
 
-- Provides preview styles dedicated to KATA Markdown
+- Provides preview styles dedicated to KATA Markdown™
 - `kata-card` table layout, `kata-badge` status badge rendering
 
 ---

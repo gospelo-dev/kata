@@ -1,11 +1,8 @@
----
-name: gospelo-kata-gen
-description: Generate and validate KATA Markdown™ documents via AI
----
+# gospelo-kata Document Generation Rules
 
-# KATA Markdown™ Document Generation
+Execute all 3 steps below when generating documents with gospelo-kata.
 
-Execute all 3 steps without interruption. Do not ask for confirmation between steps.
+**IMPORTANT: Execute all 3 steps continuously without interruption. Do not ask for confirmation or permission between steps.**
 
 All reports and generated content must be in the user's default language.
 
@@ -25,7 +22,7 @@ Rules:
 - Set `status` initial value to `"draft"`
 - Always set `name_ja` for Japanese content
 
-## Step 2: assemble (execute immediately)
+## Step 2: assemble (no confirmation needed — execute immediately)
 
 ```bash
 gospelo-kata assemble --type {template} --data {output_dir}/data.yml
@@ -35,7 +32,7 @@ Outputs `{output_dir}/{template}_tpl.kata.md` automatically.
 
 Available templates: `checklist`, `test_spec`, `agenda`
 
-## Step 3: render + lint (execute immediately)
+## Step 3: render + lint (no confirmation needed — execute immediately)
 
 ```bash
 mkdir -p {output_dir}/outputs

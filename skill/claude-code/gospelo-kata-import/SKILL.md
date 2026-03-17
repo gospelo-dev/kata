@@ -1,85 +1,85 @@
 ---
 name: gospelo-kata-import
-description: 外部ソース (swagger.json, OpenAPI等) から KATA Markdown テスト仕様書を生成
+description: Generate KATA Markdown™ test specifications from external sources (swagger.json, OpenAPI, etc.)
 ---
 
-# /kata-import — 外部ソースから KATA Markdown™ 変換
+# /kata-import — Convert External Sources to KATA Markdown™
 
-swagger.json / OpenAPI 仕様などの外部ソースを読み取り、gospelo-kata のテスト仕様書 (.kata.md) を自動生成するスキル。
-
----
-
-## 対応ソース
-
-| ソース | 拡張子 | 説明 |
-|--------|--------|------|
-| OpenAPI / Swagger | `.json`, `.yaml` | REST API 仕様 → API テスト仕様書 |
+A skill that reads external sources such as swagger.json / OpenAPI specifications and automatically generates gospelo-kata test specification documents (.kata.md).
 
 ---
 
-## ワークフロー
+## Supported Sources
 
-### Step 1: ソースファイルの読み取り
+| Source | Extensions | Description |
+|--------|-----------|-------------|
+| OpenAPI / Swagger | `.json`, `.yaml` | REST API spec → API test specification |
 
-ユーザーが指定した swagger.json / OpenAPI ファイルを読み取る。
+---
+
+## Workflow
+
+### Step 1: Read the Source File
+
+Read the swagger.json / OpenAPI file specified by the user.
 
 ```bash
-# ファイルを読み取る (Read ツール使用)
+# Read the file (using Read tool)
 ```
 
-以下の情報を抽出:
-- **info**: API 名、バージョン
-- **paths**: 各エンドポイント (method + path)
-- **parameters**: クエリ/パス/ヘッダーパラメータ
-- **requestBody**: リクエストボディのスキーマ
-- **responses**: レスポンスコードと説明
-- **security**: 認証方式
-- **tags**: カテゴリ分類
+Extract the following information:
+- **info**: API name, version
+- **paths**: Each endpoint (method + path)
+- **parameters**: Query/path/header parameters
+- **requestBody**: Request body schema
+- **responses**: Response codes and descriptions
+- **security**: Authentication methods
+- **tags**: Category classification
 
-### Step 2: テストケースの設計
+### Step 2: Design Test Cases
 
-各エンドポイントから以下の観点でテストケースを生成:
+Generate test cases from each endpoint using the following perspectives:
 
-#### カテゴリ分類ルール
+#### Category Classification Rules
 
-| OpenAPI 情報 | テストカテゴリ |
+| OpenAPI Info | Test Category |
 |-------------|--------------|
-| tag | そのまま category に使用 |
-| tag なし | path の第1セグメントを使用 (e.g., `/users/...` → `users`) |
-| security あり | `認証・認可` カテゴリを追加 |
+| tag | Use directly as category |
+| No tag | Use the first path segment (e.g., `/users/...` → `users`) |
+| security present | Add `Authentication & Authorization` category |
 
-#### テストケース生成ルール
+#### Test Case Generation Rules
 
-各エンドポイントに対して、以下のテストケースを検討:
+For each endpoint, consider the following test cases:
 
-1. **正常系**: 正しいパラメータでリクエストし、期待するレスポンスコード (200/201) を確認
-2. **バリデーション**: required パラメータを欠落させ、400 エラーを確認
-3. **認証**: security 定義があれば、トークンなし/不正トークンで 401/403 を確認
-4. **境界値**: minLength/maxLength/minimum/maximum があれば境界値テスト
-5. **存在しないリソース**: path パラメータ付きエンドポイントで存在しない ID → 404
+1. **Happy path**: Request with correct parameters and verify expected response code (200/201)
+2. **Validation**: Omit required parameters and verify 400 error
+3. **Authentication**: If security is defined, verify 401/403 with no token/invalid token
+4. **Boundary values**: If minLength/maxLength/minimum/maximum exist, test boundary values
+5. **Non-existent resource**: For endpoints with path parameters, use a non-existent ID → 404
 
-#### test_id 採番ルール
+#### test_id Numbering Rules
 
 ```
-{PREFIX}-{連番:02d}
+{PREFIX}-{sequential:02d}
 ```
 
-- PREFIX はユーザー指定、またはAPI名から自動生成 (e.g., `USER-API` → `UA`)
-- 連番はカテゴリ順に通し番号
+- PREFIX is user-specified, or auto-generated from the API name (e.g., `USER-API` → `UA`)
+- Sequential numbers are ordered by category
 
-#### priority 判定ルール
+#### Priority Rules
 
-| 条件 | priority |
-|------|----------|
-| POST/PUT/DELETE メソッド | high |
-| security 定義あり | high |
-| GET で path パラメータなし | medium |
-| GET で path パラメータあり | medium |
+| Condition | Priority |
+|-----------|----------|
+| POST/PUT/DELETE method | high |
+| security defined | high |
+| GET without path parameters | medium |
+| GET with path parameters | medium |
 | OPTIONS/HEAD | low |
 
-### Step 3: .kata.md ソースファイル生成
+### Step 3: Generate .kata.md Source File
 
-以下の形式で `.kata.md` ファイルを生成:
+Generate a `.kata.md` file in the following format:
 
 ```markdown
 {#schema
@@ -96,18 +96,18 @@ test_cases[]!:
 #}
 
 {#data
-test_name: {API名} テスト仕様書
+test_name: {API name} Test Specification
 test_id_prefix: {PREFIX}
-version: {APIバージョン}
+version: {API version}
 test_cases:
   - test_id: {PREFIX}-01
-    category: {カテゴリ}
-    description: {テスト内容の説明}
-    expected_result: {期待される結果}
+    category: {category}
+    description: {test description}
+    expected_result: {expected result}
     priority: high
     tags:
-      - {HTTPメソッド小文字}
-      - {タグ}
+      - {HTTP method lowercase}
+      - {tag}
   ...
 #}
 
@@ -125,20 +125,20 @@ test_cases:
 Total: {{ test_cases | length }} test cases
 ```
 
-### Step 4: レンダリング・検証
+### Step 4: Render & Verify
 
 ```bash
-# レンダリング
+# Render
 gospelo-kata render {source}.kata.md -o outputs/{source}.kata.md
 
-# Lint 検証
+# Lint verification
 gospelo-kata lint outputs/{source}.kata.md
 
-# データ抽出 (ラウンドトリップ確認)
+# Data extraction (round-trip check)
 gospelo-kata extract outputs/{source}.kata.md
 ```
 
-Lint エラーが 0 であることを確認。D016 (HTML in span) が出た場合:
+Verify that lint errors are 0. If D016 (HTML in span) appears:
 
 ```bash
 gospelo-kata fmt outputs/{source}.kata.md
@@ -146,9 +146,9 @@ gospelo-kata fmt outputs/{source}.kata.md
 
 ---
 
-## 変換例
+## Conversion Example
 
-### 入力: swagger.json (抜粋)
+### Input: swagger.json (excerpt)
 
 ```json
 {
@@ -204,17 +204,17 @@ gospelo-kata fmt outputs/{source}.kata.md
 }
 ```
 
-### 出力: テストケース (data セクション)
+### Output: Test Cases (data section)
 
 ```yaml
-test_name: User Management API テスト仕様書
+test_name: User Management API Test Specification
 test_id_prefix: UMA
 version: 2.0.0
 test_cases:
   - test_id: UMA-01
     category: users
-    description: GET /users — ページネーションパラメータなしでユーザー一覧を取得し、200 が返ることを確認
-    expected_result: ステータス 200。ユーザー一覧が JSON 配列で返却される
+    description: GET /users — Retrieve user list without pagination parameters and verify 200 is returned
+    expected_result: Status 200. User list returned as a JSON array
     priority: medium
     tags:
       - get
@@ -222,8 +222,8 @@ test_cases:
       - list
   - test_id: UMA-02
     category: users
-    description: POST /users — 必須フィールド (name, email) を含むリクエストでユーザーを作成し、201 が返ることを確認
-    expected_result: ステータス 201。作成されたユーザー情報が返却される
+    description: POST /users — Create a user with required fields (name, email) and verify 201 is returned
+    expected_result: Status 201. Created user information is returned
     priority: high
     tags:
       - post
@@ -231,8 +231,8 @@ test_cases:
       - create
   - test_id: UMA-03
     category: users
-    description: POST /users — name を欠落させてリクエストし、400 バリデーションエラーが返ることを確認
-    expected_result: ステータス 400。エラーメッセージに欠落フィールド名が含まれる
+    description: POST /users — Omit the name field and verify 400 validation error is returned
+    expected_result: Status 400. Error message includes the missing field name
     priority: high
     tags:
       - post
@@ -240,8 +240,8 @@ test_cases:
       - validation
   - test_id: UMA-04
     category: users
-    description: POST /users — 認証トークンなしでリクエストし、401 が返ることを確認
-    expected_result: ステータス 401。認証エラーメッセージが返却される
+    description: POST /users — Request without authentication token and verify 401 is returned
+    expected_result: Status 401. Authentication error message is returned
     priority: high
     tags:
       - post
@@ -249,8 +249,8 @@ test_cases:
       - authentication
   - test_id: UMA-05
     category: users
-    description: GET /users/{id} — 存在するユーザー ID でリクエストし、200 とユーザー詳細が返ることを確認
-    expected_result: ステータス 200。指定した ID のユーザー情報が返却される
+    description: GET /users/{id} — Request with an existing user ID and verify 200 with user details is returned
+    expected_result: Status 200. User information for the specified ID is returned
     priority: medium
     tags:
       - get
@@ -258,8 +258,8 @@ test_cases:
       - detail
   - test_id: UMA-06
     category: users
-    description: GET /users/{id} — 存在しないユーザー ID でリクエストし、404 が返ることを確認
-    expected_result: ステータス 404。リソース未検出のエラーメッセージが返却される
+    description: GET /users/{id} — Request with a non-existent user ID and verify 404 is returned
+    expected_result: Status 404. Resource not found error message is returned
     priority: medium
     tags:
       - get
@@ -269,19 +269,19 @@ test_cases:
 
 ---
 
-## 注意事項
+## Notes
 
-- description と expected_result は**日本語**で記述する (ユーザーの指示がない限り)
-- HTML タグを含むデータは render 時に自動サニタイズされる
-- テストケースは網羅性より**実用性を優先** — 全組み合わせではなく代表的なケースを選定
-- 生成後、ユーザーにテストケースの追加・削除・修正の要望を確認する
-- `params` フィールドはオプション — 必要に応じてリクエストパラメータの詳細を記録可能
+- Write description and expected_result in **the user's language** (English by default)
+- Data containing HTML tags is automatically sanitized during rendering
+- Prioritize **practicality over exhaustiveness** — select representative cases rather than all combinations
+- After generation, confirm with the user if they want to add, remove, or modify test cases
+- The `params` field is optional — use it to record request parameter details as needed
 
 ---
 
-## 使用例
+## Usage Examples
 
 ```
-/kata-import swagger.json からAPIテスト仕様書を生成して
-/kata-import openapi.yaml のエンドポイントからテストケースを作って
+/kata-import Generate an API test specification from swagger.json
+/kata-import Create test cases from openapi.yaml endpoints
 ```

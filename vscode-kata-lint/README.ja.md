@@ -6,7 +6,7 @@
 [![Linter](https://img.shields.io/badge/Category-Linter-4caf50.svg)](#機能)
 [![Marketplace](https://img.shields.io/badge/VS_Marketplace-gospelo.kata--lint-007ACC.svg?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint)
 
-[gospelo-kata](https://github.com/gospelo-dev/kata) の VSCode 拡張機能です。KATA Markdown テンプレート (`.kata.md`) のリアルタイム lint、シンタックスハイライト、ホバー情報、プレビューを提供します。
+[gospelo-kata](https://github.com/gospelo-dev/kata) の VSCode 拡張機能です。KATA Markdown™ テンプレート (`.kata.md`) のリアルタイム lint、シンタックスハイライト、ホバー情報、プレビューを提供します。
 
 [English](https://github.com/gospelo-dev/kata/blob/main/vscode-kata-lint/README.md)
 
@@ -32,7 +32,7 @@
 
 ### プレビュー CSS
 
-- KATA Markdown 専用のプレビュースタイルを提供
+- KATA Markdown™ 専用のプレビュースタイルを提供
 - `kata-card` テーブルレイアウト、`kata-badge` ステータスバッジの表示
 
 ---
