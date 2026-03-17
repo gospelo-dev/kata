@@ -206,72 +206,77 @@ function parseSchemaShorthandBlock(text: string): Map<string, SchemaInfo> {
     /\*\*Schema\*\*\s*\n\s*```yaml\n([\s\S]*?)```/.exec(text);
   if (!codeMatch) return map;
 
-  const block = codeMatch[1];
-  let currentArray: string | null = null;
+  const lines = codeMatch[1].split("\n");
 
-  for (const line of block.split("\n")) {
-    if (line.trim() === "") continue;
+  function parseLevel(start: number, baseIndent: number, parentPath: string, parentAnchor: string): number {
+    let i = start;
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trimStart();
+      if (trimmed === "") { i++; continue; }
 
-    // Array object: name[]!:
-    const arrMatch = /^(\w+)\[\](!)?:\s*$/.exec(line);
-    if (arrMatch) {
-      const name = arrMatch[1];
-      const anchor = "p-" + name.replace(/_/g, "-");
-      map.set(anchor, {
-        prop: name,
-        type: "array",
-        required: !!arrMatch[2],
-      });
-      currentArray = name;
-      continue;
-    }
+      const indent = line.length - trimmed.length;
+      if (indent < baseIndent) break;
 
-    // Property: name: type! or name: enum(a, b)!
-    const propMatch = /^(\s*)(\w+):\s*(.+)$/.exec(line);
-    if (propMatch) {
-      const indent = propMatch[1];
-      const name = propMatch[2];
-      let typeStr = propMatch[3].trim();
-      const required = typeStr.endsWith("!");
-      if (required) typeStr = typeStr.slice(0, -1);
-
-      const isArrayType = typeStr.endsWith("[]");
-      if (isArrayType) typeStr = typeStr.slice(0, -2);
-
-      let enumValues: string[] | undefined;
-      const enumMatch = /^enum\((.+)\)$/.exec(typeStr);
-      if (enumMatch) {
-        enumValues = enumMatch[1].split(",").map((v) => v.trim());
-        typeStr = "enum";
+      // Array object: name[]!:
+      const arrMatch = /^(\w+)\[\](!)?:\s*$/.exec(trimmed);
+      if (arrMatch) {
+        const name = arrMatch[1];
+        const propPath = parentPath ? `${parentPath}.${name}` : name;
+        const anchorName = parentAnchor
+          ? `${parentAnchor}-${name}`.replace(/_/g, "-")
+          : name.replace(/_/g, "-");
+        const anchor = "p-" + anchorName;
+        map.set(anchor, {
+          prop: propPath,
+          type: "array",
+          required: !!arrMatch[2],
+        });
+        i = parseLevel(i + 1, indent + 2, propPath, anchorName);
+        continue;
       }
 
-      const fullType = isArrayType ? `${typeStr}[]` : typeStr;
-      const isChild = indent.length > 0 && currentArray !== null;
-      const propPath = isChild ? `${currentArray}.${name}` : name;
-      const anchorName = isChild
-        ? `${currentArray}-${name}`.replace(/_/g, "-")
-        : name.replace(/_/g, "-");
-      const anchor = "p-" + anchorName;
+      // Property: name: type! or name: enum(a, b)!
+      const propMatch = /^(\w+):\s*(.+)$/.exec(trimmed);
+      if (propMatch) {
+        const name = propMatch[1];
+        let typeStr = propMatch[2].trim();
+        const required = typeStr.endsWith("!");
+        if (required) typeStr = typeStr.slice(0, -1);
 
-      map.set(anchor, {
-        prop: propPath,
-        type: fullType,
-        required,
-        enumValues,
-      });
+        const isArrayType = typeStr.endsWith("[]");
+        if (isArrayType) typeStr = typeStr.slice(0, -2);
 
-      if (!isChild) {
-        currentArray = null;
+        let enumValues: string[] | undefined;
+        const enumMatch = /^enum\((.+)\)$/.exec(typeStr);
+        if (enumMatch) {
+          enumValues = enumMatch[1].split(",").map((v) => v.trim());
+          typeStr = "enum";
+        }
+
+        const fullType = isArrayType ? `${typeStr}[]` : typeStr;
+        const propPath = parentPath ? `${parentPath}.${name}` : name;
+        const anchorName = parentAnchor
+          ? `${parentAnchor}-${name}`.replace(/_/g, "-")
+          : name.replace(/_/g, "-");
+        const anchor = "p-" + anchorName;
+
+        map.set(anchor, {
+          prop: propPath,
+          type: fullType,
+          required,
+          enumValues,
+        });
+        i++;
+        continue;
       }
-      continue;
-    }
 
-    // Non-indented non-matching line ends array context
-    if (!/^\s/.test(line)) {
-      currentArray = null;
+      i++;
     }
+    return i;
   }
 
+  parseLevel(0, 0, "", "");
   return map;
 }
 
@@ -294,12 +299,17 @@ class KataHoverProvider implements vscode.HoverProvider {
       if (position.character >= start && position.character <= end) {
         const anchor = match[1];
         const schemaMap = parseSchemaReference(document.getText());
+        // Strip array indices (e.g. p-categories-0-items-0-status → p-categories-items-status)
+        const stripIndices = (s: string) =>
+          s.replace(/-\d+/g, "");
         // Normalize: try exact match, then swap _ and - after "p-" prefix
         const normalize = (s: string, ch: string, rep: string) =>
           "p-" + s.slice(2).replace(new RegExp(`\\${ch}`, "g"), rep);
+        const stripped = stripIndices(anchor);
         const info = schemaMap.get(anchor)
-          || schemaMap.get(normalize(anchor, "-", "_"))
-          || schemaMap.get(normalize(anchor, "_", "-"));
+          || schemaMap.get(stripped)
+          || schemaMap.get(normalize(stripped, "-", "_"))
+          || schemaMap.get(normalize(stripped, "_", "-"));
         if (!info) {
           return new vscode.Hover(
             new vscode.MarkdownString(`\`${anchor}\``)
@@ -421,12 +431,33 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const config = vscode.workspace.getConfiguration("kataLint");
 
-  // Lint on save
+  // Sync and lint on save
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
       if (!isTargetDocument(document)) return;
       const cfg = vscode.workspace.getConfiguration("kataLint");
-      if (cfg.get<boolean>("lintOnSave", true)) {
+      if (cfg.get<boolean>("syncOnSave", true)) {
+        const pythonPath = cfg.get<string>("pythonPath", "python");
+        const filePath = document.uri.fsPath;
+        execFile(
+          pythonPath,
+          ["-m", "gospelo_kata.cli", "fmt", filePath],
+          { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, timeout: 10000 },
+          (error, _stdout, stderr) => {
+            if (error && error.code !== 0) {
+              vscode.window.showErrorMessage(
+                `kata-lint: sync failed — ${stderr || error.message}`
+              );
+              lintDocument(document, diagnosticCollection);
+              return;
+            }
+            // Revert the editor to pick up the file changes written by fmt
+            vscode.commands.executeCommand("workbench.action.files.revert").then(() => {
+              lintDocument(document, diagnosticCollection);
+            });
+          }
+        );
+      } else if (cfg.get<boolean>("lintOnSave", true)) {
         lintDocument(document, diagnosticCollection);
       }
     })

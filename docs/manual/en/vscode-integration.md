@@ -15,7 +15,7 @@ npm install && npm run compile
 npx vsce package
 
 # Install
-code --install-extension kata-lint-0.1.0.vsix
+code --install-extension kata-lint-0.2.0.vsix
 ```
 
 ### Prerequisites
@@ -76,9 +76,35 @@ Popup:
 - enum: `high` | `medium` | `low`
 ```
 
-### 3. Preview CSS
+### 3. Data Sync (Sync Data)
 
-Kata-specific styles (`kata-card`, `kata-badge`, etc.) are applied when previewing `.kata.md` files in Markdown preview.
+When you save a `.kata.md` file, the values in `data-kata` spans are automatically synced to the Data YAML block in the Schema Reference section.
+
+**How it works**:
+1. Save file (Cmd+S)
+2. `gospelo-kata fmt` runs automatically, reflecting span values into Data YAML
+3. Editor content is updated
+4. Lint is re-executed
+
+**Manual execution**: Right-click in the editor -> "Kata: Sync Data"
+
+**Settings** (`settings.json`):
+
+```json
+{
+  "kataLint.syncOnSave": true
+}
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `kataLint.syncOnSave` | `true` | Auto-sync data on save |
+
+> **Note**: Data YAML is a read-only snapshot generated from spans. Always edit values in the document body spans, not in the Data YAML block.
+
+### 4. Preview CSS
+
+Kata-specific styles (`kata-card`, etc.) are applied when previewing `.kata.md` files in Markdown preview.
 
 ---
 

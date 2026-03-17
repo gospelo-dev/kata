@@ -33,7 +33,7 @@ A VSCode extension for [gospelo-kata](https://github.com/gospelo-dev/kata). Prov
 ### Preview CSS
 
 - Provides preview styles dedicated to KATA Markdown™
-- `kata-card` table layout, `kata-badge` status badge rendering
+- `kata-card` table layout, status styling
 
 ---
 

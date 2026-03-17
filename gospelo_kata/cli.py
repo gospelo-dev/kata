@@ -1698,6 +1698,148 @@ def _cmd_fmt(args: argparse.Namespace) -> None:
             return f"{open_tag}{safe}{close_tag}"
         return m.group(0)
 
+    # Pattern to extract anchor and value from data-kata spans
+    data_kata_pattern = re.compile(
+        r'<span\s+data-kata="(p-[a-z0-9-]+)">([^<]*)</span>'
+    )
+    # Detect Data block inside Schema Reference
+    data_block_pattern = re.compile(
+        r'(\*\*Data\*\*\s*\n\s*```yaml\n)([\s\S]*?)(```)',
+    )
+    # Detect Schema block inside Schema Reference
+    schema_block_pattern = re.compile(
+        r'\*\*Schema\*\*\s*\n\s*```yaml\n([\s\S]*?)```',
+    )
+
+    def _collect_span_values(body: str) -> dict[str, str]:
+        """Collect {anchor: value} from spans. Anchors are unique (indexed)."""
+        result: dict[str, str] = {}
+        for m in data_kata_pattern.finditer(body):
+            result[m.group(1)] = m.group(2)
+        return result
+
+    def _parse_schema_shorthand(schema_text: str) -> dict:
+        """Parse Schema shorthand into a structure definition."""
+        lines = schema_text.strip().split("\n")
+        return _parse_schema_lines(lines, 0, 0)[0]
+
+    def _parse_schema_lines(
+        lines: list[str], start: int, base_indent: int
+    ) -> tuple[dict, int]:
+        """Parse indented schema lines into structure dict."""
+        result: dict = {"fields": [], "arrays": {}}
+        i = start
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.lstrip()
+            if not stripped:
+                i += 1
+                continue
+            indent = len(line) - len(stripped)
+            if indent < base_indent:
+                break
+
+            arr_match = re.match(r'^([a-z_][a-z0-9_]*)\[\](!)?:\s*$', stripped)
+            if arr_match:
+                key = arr_match.group(1)
+                child, i = _parse_schema_lines(lines, i + 1, indent + 2)
+                result["arrays"][key] = child
+                continue
+
+            field_match = re.match(
+                r'^([a-z_][a-z0-9_]*):\s+(.+)$', stripped
+            )
+            if field_match:
+                key = field_match.group(1)
+                type_str = field_match.group(2)
+                required = type_str.endswith("!")
+                result["fields"].append((key, type_str.rstrip("!"), required))
+                i += 1
+                continue
+
+            i += 1
+        return result, i
+
+    def _build_data_from_spans(
+        schema_struct: dict,
+        span_map: dict[str, str],
+    ) -> dict:
+        """Build data dict from indexed span anchors.
+
+        Anchor format: p-categories-0-items-0-status
+        → categories[0].items[0].status
+        """
+        def _build_object(struct: dict, prefix: str) -> dict:
+            obj: dict = {}
+            for key, type_str, _req in struct["fields"]:
+                anchor = f"p-{prefix}-{key}" if prefix else f"p-{key}"
+                anchor = anchor.replace("_", "-")
+                val = span_map.get(anchor)
+                if val is not None:
+                    if "[]" in type_str:
+                        obj[key] = [v.strip() for v in val.split(",")]
+                    else:
+                        obj[key] = val
+            for arr_key, arr_struct in struct["arrays"].items():
+                arr_prefix = f"{prefix}-{arr_key}" if prefix else arr_key
+                items = []
+                idx = 0
+                while True:
+                    item_prefix = f"{arr_prefix}-{idx}"
+                    # Check if any span exists for this index
+                    has_item = any(
+                        k.startswith(f"p-{item_prefix}-".replace("_", "-"))
+                        for k in span_map
+                    )
+                    if not has_item:
+                        break
+                    item = _build_object(arr_struct, item_prefix)
+                    items.append(item)
+                    idx += 1
+                obj[arr_key] = items
+            return obj
+
+        return _build_object(schema_struct, "")
+
+    def _sync_span_to_data(text: str) -> tuple[str, bool]:
+        """Rebuild Data YAML block from span values."""
+        schema_ref_marker = "<summary>Schema Reference</summary>"
+        schema_ref_pos = text.find(schema_ref_marker)
+        if schema_ref_pos == -1:
+            return text, False
+
+        body = text[:schema_ref_pos]
+        span_map = _collect_span_values(body)
+        if not span_map:
+            return text, False
+
+        schema_match = schema_block_pattern.search(text)
+        if not schema_match:
+            return text, False
+        schema_struct = _parse_schema_shorthand(schema_match.group(1))
+
+        data = _build_data_from_spans(schema_struct, span_map)
+
+        import yaml
+        new_yaml = yaml.dump(
+            data, allow_unicode=True, default_flow_style=False, sort_keys=False
+        ).rstrip()
+
+        data_match = data_block_pattern.search(text)
+        if not data_match:
+            return text, False
+
+        old_yaml = data_match.group(2).rstrip()
+        if new_yaml == old_yaml:
+            return text, False
+
+        new_text = (
+            text[:data_match.start(2)]
+            + new_yaml + "\n"
+            + text[data_match.end(2):]
+        )
+        return new_text, True
+
     needs_fix = False
     for file_path in args.files:
         path = Path(file_path)
@@ -1706,7 +1848,8 @@ def _cmd_fmt(args: argparse.Namespace) -> None:
             sys.exit(1)
 
         text = path.read_text(encoding="utf-8")
-        # Use a more robust approach: process line by line
+
+        # Step 1: Sanitize spans (HTML escape, pipe escape)
         new_lines = []
         changed = False
         for line in text.split("\n"):
@@ -1716,11 +1859,20 @@ def _cmd_fmt(args: argparse.Namespace) -> None:
             new_lines.append(new_line)
 
         if changed:
+            text = "\n".join(new_lines)
+
+        # Step 2: Sync span values → Data YAML block (rendered .kata.md only)
+        if not file_path.endswith("_tpl.kata.md"):
+            text, data_changed = _sync_span_to_data(text)
+            if data_changed:
+                changed = True
+
+        if changed:
             needs_fix = True
             if args.check:
                 print(f"  needs formatting: {file_path}")
             else:
-                path.write_text("\n".join(new_lines), encoding="utf-8")
+                path.write_text(text, encoding="utf-8")
                 print(f"  formatted: {file_path}")
         else:
             print(f"  ok: {file_path}")

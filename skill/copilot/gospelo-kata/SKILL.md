@@ -177,7 +177,7 @@ Embed data in YAML format. Injected into the template during rendering.
 ### Data Attribute `data-kata`
 
 ```html
-<span data-kata="p-categories-items-status">draft</span>
+<span data-kata="p-categories-0-items-0-status">draft</span>
 ```
 
 Represents a reference to a schema property. The template engine adds these automatically, so manual input is not needed.
