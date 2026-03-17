@@ -86,7 +86,7 @@ skill/
 In Copilot Chat, simply describe what you want to generate:
 
 ```
-Create a security checklist for the "Leader Talent Retention Project".
+Create a security checklist for the "Internal Portal Redesign" project.
 Output: docs/output/
 Template: checklist
 Categories: Authentication & Authorization (auth), Data Protection (data), Infrastructure (infra)
