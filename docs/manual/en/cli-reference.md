@@ -195,7 +195,7 @@ gospelo-kata coverage --checklist checklist.json --dir tests/ -f json
 | Option | Required | Description |
 |--------|----------|-------------|
 | `--checklist` | Yes | Checklist JSON file |
-| `--dir` | Yes | Parent of document directories |
+| `--dir` | Yes | Root parent directory for document subdirectories |
 | `--format`, `-f` | No | Output format (human / markdown / json) |
 
 ### `workflow-status` — Workflow progress management
