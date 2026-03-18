@@ -5,20 +5,20 @@
 [![AI Collaborative](https://img.shields.io/badge/AI-Collaborative-ff6f00.svg?logo=openai&logoColor=white)](#why-gospelo-kata)
 [![KATA Markdown](https://img.shields.io/badge/Format-KATA_Markdown-00bcd4.svg)](#kata-markdown-format)
 
-A document format and toolkit designed for **human-AI collaboration**. KATA Markdown™ embeds schema, data, and template in a single file — readable and actionable by both humans and AI without special instructions.
+A document format and toolkit designed for **human-AI collaboration**. KATA Markdown™ embeds schema, data, and template in a single file — readable and actionable by both humans and AI systems without additional instructions.
 
 ## Why gospelo-kata?
 
-KATA Markdown™ is designed so that both humans and AI can read, understand, and work with the same document. The format is self-describing: AI can understand the template structure from the embedded schema and prompt without needing external instructions, while humans can read and edit the same file naturally. It acts as a harness for autonomous AI — schema, validation, and trust management guide AI output along safe, structured paths.
+KATA Markdown™ is designed so that both humans and AI systems can read, understand, and work with the same document. The format is self-describing: AI systems can understand the template structure from the embedded schema and prompt block without needing external instructions, while humans can read and edit the same file naturally. It acts as a harness for autonomous AI — schema, validation, and trust management guide AI system output along safe, structured paths.
 
-When generating documents with AI, you often face these problems:
+When generating documents with AI systems, you often face these problems:
 
-- **No structure** — AI outputs free-form text that's hard to validate or reuse
+- **No structure** — AI outputs free-form text that is hard to validate or reuse
 - **No round-trip** — once rendered, you can't extract the original data back
-- **No validation** — schema violations go unnoticed until review
-- **AI needs coaching** — you have to explain the output format every time
+- **No validation** — schema violations may go unnoticed until review
+- **AI systems require repeated instructions** — you have to explain the output format every time
 
-gospelo-kata solves this with a **single `.kata.md` file** that contains everything: schema definition, structured data, and a Jinja2-compatible template (built-in engine, no external dependency). The embedded `**Schema**` and `**Prompt**` blocks let AI understand the template on its own — no separate instructions needed. Rendered output preserves data bindings via `data-kata` annotations, enabling round-trip extraction and automated validation.
+gospelo-kata solves this with a **single `.kata.md` file** that contains everything: schema definition, structured data, and a Jinja2-compatible template (built-in engine with no external dependency). The embedded `**Schema**` and `**Prompt**` blocks let AI systems understand the template on its own — no separate instructions needed. Rendered output preserves data bindings via `data-kata` annotations, enabling round-trip extraction and automated validation.
 
 ## Features
 
@@ -29,9 +29,9 @@ gospelo-kata solves this with a **single `.kata.md` file** that contains everyth
 - **Round-trip** — extract structured data back from rendered documents
 - **Lint** — validate both templates and rendered output (20+ rules)
 - **AI-friendly** — `assemble` command lets AI generate only YAML data; the toolkit handles the rest
-- **Multi-format output** — Markdown, Excel, and HTML
+- **Multi-format output** — Markdown, Excel and HTML
 - **VSCode extension** — real-time lint, hover info, preview CSS
-- **Zero external dependencies** for core features (built-in Jinja2 3.1.6-compatible engine; PyYAML required, openpyxl optional for Excel)
+- **No external templating dependencies** for core features (built-in Jinja2 3.1.6-compatible engine; PyYAML required, openpyxl optional for Excel)
 
 ## Installation
 
@@ -108,13 +108,13 @@ gospelo-kata init --type checklist -o ./my-project/
 
 ### 3. AI workflow (recommended)
 
-AI generates only the YAML data; `assemble` combines it with a built-in template:
+AI systems generate only the YAML data; `assemble` combines it with a built-in template:
 
 ```bash
 # 1. Check schema
 gospelo-kata show-schema checklist --format yaml
 
-# 2. AI creates data.yml following the schema
+# 2. AI systems creates data.yml following the schema
 
 # 3. Assemble template + data
 gospelo-kata assemble --type checklist --data data.yml
