@@ -6,30 +6,54 @@ Reference for `.kata.md` file syntax.
 
 ## Source File Structure
 
-A source `.kata.md` consists of 3 blocks:
+A source `.kata.md` consists of 4 blocks:
 
-```markdown
-{#schema
-(Schema definition in YAML shorthand)
-#}
+````markdown
+**Prompt**
 
-{#data
-(Data in YAML)
-#}
-
-(Jinja2 template body)
+```yaml
+(AI instructions)
 ```
 
-An optional `{#prompt}` block (AI instructions) can also be included.
+(Jinja2 template body)
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+(Schema definition in YAML shorthand)
+```
+
+**Data**
+
+```yaml
+(Data in YAML)
+```
+
+</details>
+````
+
+The Prompt block is **required** in template files. User confirmation is required on first use.
+
+Recommended layout:
+1. `**Prompt**` + `` ```yaml `` at the top
+2. Jinja2 template body
+3. `**Schema**` and `**Data**` inside a `<details>` block
+
+> **Note:** The legacy `{#schema ... #}` / `{#prompt ... #}` / `{#data ... #}` inline syntax is still accepted for backward compatibility but is deprecated. New templates should use the Bold heading + code block format shown above.
 
 ---
 
-## Schema Block `{#schema ... #}`
+## Schema Block
 
 Defines data types using YAML shorthand notation.
 
+````markdown
+**Schema**
+
 ```yaml
-{#schema
 title: string!
 version: string
 categories[]!:
@@ -39,8 +63,8 @@ categories[]!:
     id: string!
     status: enum(draft, pending, approve, reject)
     tags: string[]
-#}
 ```
+````
 
 ### Type Notation
 
@@ -70,12 +94,14 @@ categories[]!:
 
 ---
 
-## Data Block `{#data ... #}`
+## Data Block
 
 Defines data to pass to the template in YAML format.
 
+````markdown
+**Data**
+
 ```yaml
-{#data
 title: Security Check
 categories:
   - id: CAT-01
@@ -87,22 +113,24 @@ categories:
         tags:
           - web
           - database
-#}
 ```
+````
 
 ---
 
-## Prompt Block `{#prompt ... #}`
+## Prompt Block
 
 Descriptive text for AI to reference when generating data. Automatically removed during rendering.
 
-```markdown
-{#prompt
+````markdown
+**Prompt**
+
+```yaml
 This template generates a security test specification.
 Describe each test case in the test_cases array.
 priority must be one of high/medium/low.
-#}
 ```
+````
 
 ---
 
@@ -186,13 +214,28 @@ HTML tags in data values are automatically escaped:
 
 ### Schema Reference Section
 
-A `<details>` block with Schema and Data is appended at the end of the output:
+A `<details>` block is appended at the end of the output. It contains the Prompt, template body, Schema, and Data — everything needed to reconstruct or re-render the document from a single file:
 
-```html
+````html
 ---
 
 <details>
 <summary>Schema Reference</summary>
+
+**Prompt**
+
+```yaml
+This template generates a security test specification.
+priority must be one of high/medium/low.
+```
+
+```kata:template
+# {{ title }}
+
+{% for item in items %}
+- {{ item.name }}
+{% endfor %}
+```
 
 **Schema**
 
@@ -213,11 +256,13 @@ items:
 ```
 
 </details>
-```
+````
 
 This structure enables reconstruction from a single `.kata.md` file:
 - `data-kata` spans -> Variable bindings
 - `data-kata-each` divs -> Loop structure
+- Prompt -> AI instructions
+- Template body -> Jinja2 source
 - Schema -> Type definitions
 - Data -> Original data
 
@@ -227,11 +272,11 @@ This structure enables reconstruction from a single `.kata.md` file:
 
 ```
 Source (.kata.md)
-  +-- {#schema} + {#data} + Jinja template
+  +-- **Prompt** + **Schema** + **Data** + Jinja template
   | render
 Output (.kata.md)
   +-- data-kata spans + data-kata-each divs
-  +-- <details> Schema + Data
+  +-- <details> Prompt + Template + Schema + Data
   | extract
 JSON data (equivalent to original)
 ```

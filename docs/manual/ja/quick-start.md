@@ -20,28 +20,15 @@ pip install gospelo-kata
 
 ### 1. ソースファイルを作成
 
-```bash
+````bash
 cat > my_checklist.kata.md << 'EOF'
-{#schema
-title: string!
-version: string
-items[]!:
-  id: string!
-  name: string!
-  status: enum(todo, done)
-#}
+**Prompt**
 
-{#data
-title: セキュリティチェックリスト
-version: 1.0
-items:
-  - id: SEC-01
-    name: 入力バリデーション
-    status: todo
-  - id: SEC-02
-    name: SQLインジェクション対策
-    status: done
-#}
+```yaml
+このテンプレートはタスクチェックリストを生成します。
+items 配列に id, name, status を記述してください。
+status は todo/done のいずれかを指定してください。
+```
 
 # {{ title }}
 
@@ -53,8 +40,38 @@ items:
 {% endfor %}
 
 Total: {{ items | length }} items
-EOF
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+title: string!
+version: string
+items[]!:
+  id: string!
+  name: string!
+  status: enum(todo, done)
 ```
+
+**Data**
+
+```yaml
+title: セキュリティチェックリスト
+version: 1.0
+items:
+  - id: SEC-01
+    name: 入力バリデーション
+    status: todo
+  - id: SEC-02
+    name: SQLインジェクション対策
+    status: done
+```
+
+</details>
+EOF
+````
 
 ### 2. レンダリング
 

@@ -46,7 +46,7 @@ The file `.github/copilot-instructions.md` is automatically loaded by Copilot wh
 Key directives in this file:
 - Execute all 3 steps continuously without asking for confirmation
 - Never create `.kata.md` files by hand
-- Never write `{#schema}`, `{#data}`, or `{#prompt}` blocks manually
+- Never write `**Schema**`, `**Data**`, or `**Prompt**` blocks manually
 
 ### 4. Custom skills (optional)
 

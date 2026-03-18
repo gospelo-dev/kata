@@ -33,7 +33,7 @@ gospelo-kata init --type checklist -o ./docs/
 gospelo-kata show-prompt checklist
 ```
 
-テンプレートの `{#prompt}` ブロックを表示。テンプレート名またはファイルパスを指定。
+テンプレートの `**Prompt**` ブロックを表示。テンプレート名またはファイルパスを指定。
 
 ### `show-schema` — スキーマの表示
 
@@ -42,7 +42,7 @@ gospelo-kata show-schema checklist              # JSON (デフォルト)
 gospelo-kata show-schema checklist --format yaml # YAML
 ```
 
-`{#schema}` から JSON Schema を生成して表示。
+`**Schema**` ブロックから JSON Schema を生成して表示。
 
 ### `schemas` — バリデーションスキーマ一覧
 
@@ -92,7 +92,7 @@ gospelo-kata generate data.json -f html -o output.html
 
 ### `render` — セルフコンテインド .kata.md のレンダリング
 
-`{#schema}` + `{#data}` を含む `.kata.md` ファイルを解釈し、data-kata アノテーション付きの出力を生成。
+`**Schema**` + `**Data**` ブロックを含む `.kata.md` ファイルを解釈し、data-kata アノテーション付きの出力を生成。
 
 ```bash
 gospelo-kata render source.kata.md -o outputs/result.kata.md
@@ -129,7 +129,7 @@ gospelo-kata lint rendered.kata.md --schema checklist # ドキュメントモー
 
 **モード自動判定:**
 - `data-kata` span があり Jinja 構文がない → ドキュメントモード
-- `{#schema}` / `{{ }}` / `{% %}` がある → テンプレートモード
+- スキーマブロック / `{{ }}` / `{% %}` がある → テンプレートモード
 - `<!-- kata: {...} -->` メタデータあり → ドキュメントモード
 
 エラーがある場合、終了コード 1 で終了。
