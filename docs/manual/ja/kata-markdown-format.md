@@ -6,30 +6,54 @@
 
 ## ソースファイル構造
 
-ソース `.kata.md` は 3 つのブロックで構成されます:
+ソース `.kata.md` は 4 つのブロックで構成されます:
 
-```markdown
-{#schema
-(YAML shorthand によるスキーマ定義)
-#}
+````markdown
+**Prompt**
 
-{#data
-(YAML によるデータ)
-#}
-
-(Jinja2 テンプレート本文)
+```yaml
+(AI 向け説明)
 ```
 
-オプションで `{#prompt}` ブロック (AI 向け説明) も記述可能です。
+(Jinja2 テンプレート本文)
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+(YAML shorthand によるスキーマ定義)
+```
+
+**Data**
+
+```yaml
+(YAML によるデータ)
+```
+
+</details>
+````
+
+Prompt ブロックはテンプレートファイルでは **必須** です。初回利用時にはユーザー確認が求められます。
+
+推奨レイアウト:
+1. `**Prompt**` + `` ```yaml `` を先頭に配置
+2. Jinja2 テンプレート本文
+3. `**Schema**` と `**Data**` を `<details>` ブロック内に配置
+
+> **注意:** レガシー形式 `{#schema ... #}` / `{#prompt ... #}` / `{#data ... #}` は後方互換のため引き続き認識されますが、非推奨です。新規テンプレートでは上記の Bold 見出し + コードブロック形式を使用してください。
 
 ---
 
-## スキーマブロック `{#schema ... #}`
+## スキーマブロック
 
 YAML shorthand 記法でデータ型を定義します。
 
+````markdown
+**Schema**
+
 ```yaml
-{#schema
 title: string!
 version: string
 categories[]!:
@@ -39,8 +63,8 @@ categories[]!:
     id: string!
     status: enum(draft, pending, approve, reject)
     tags: string[]
-#}
 ```
+````
 
 ### 型記法
 
@@ -70,12 +94,14 @@ categories[]!:
 
 ---
 
-## データブロック `{#data ... #}`
+## データブロック
 
 テンプレートに渡すデータを YAML で定義します。
 
+````markdown
+**Data**
+
 ```yaml
-{#data
 title: セキュリティチェック
 categories:
   - id: CAT-01
@@ -87,22 +113,24 @@ categories:
         tags:
           - web
           - database
-#}
 ```
+````
 
 ---
 
-## プロンプトブロック `{#prompt ... #}`
+## プロンプトブロック
 
 AI がデータ生成時に参照する説明文。レンダリング時に自動除去されます。
 
-```markdown
-{#prompt
+````markdown
+**Prompt**
+
+```yaml
 このテンプレートはセキュリティテスト仕様書を生成します。
 test_cases 配列に各テストケースの詳細を記述してください。
 priority は high/medium/low のいずれかです。
-#}
 ```
+````
 
 ---
 
@@ -186,13 +214,28 @@ priority は high/medium/low のいずれかです。
 
 ### Schema Reference セクション
 
-出力末尾に `<details>` で Schema と Data が付与されます:
+出力末尾に `<details>` ブロックが付与されます。Prompt、テンプレート本体、Schema、Data を含み、単一ファイルからドキュメントの再構築・再レンダリングが可能です:
 
-```html
+````html
 ---
 
 <details>
 <summary>Schema Reference</summary>
+
+**Prompt**
+
+```yaml
+このテンプレートはセキュリティテスト仕様書を生成します。
+priority は high/medium/low のいずれかです。
+```
+
+```kata:template
+# {{ title }}
+
+{% for item in items %}
+- {{ item.name }}
+{% endfor %}
+```
 
 **Schema**
 
@@ -213,11 +256,13 @@ items:
 ```
 
 </details>
-```
+````
 
 この構造により、単一の `.kata.md` ファイルからテンプレートの再構築が可能です:
 - `data-kata` span → 変数バインディング
 - `data-kata-each` div → ループ構造
+- Prompt → AI 向け指示
+- テンプレート本体 → Jinja2 ソース
 - Schema → 型定義
 - Data → 元データ
 
@@ -227,11 +272,11 @@ items:
 
 ```
 ソース (.kata.md)
-  ├── {#schema} + {#data} + Jinja テンプレート
+  ├── **Prompt** + **Schema** + **Data** + Jinja テンプレート
   ↓ render
 出力 (.kata.md)
   ├── data-kata span + data-kata-each div
-  ├── <details> Schema + Data
+  ├── <details> Prompt + Template + Schema + Data
   ↓ extract
 JSON データ (元データと同等)
 ```

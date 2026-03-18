@@ -14,6 +14,7 @@ import pytest
 
 from gospelo_kata.template import (
     Template,
+    extract_data,
     extract_schema,
     generate_schema_reference,
     render_file,
@@ -546,8 +547,8 @@ class TestAnnotation:
         }
         tpl = self._make_template(schema, "{% for x in items %}{{ x.name }}{% endfor %}")
         result = tpl.render_annotated({"items": [{"name": "A"}, {"name": "B"}]})
-        assert '<span data-kata="p-items-name">A</span>' in result
-        assert '<span data-kata="p-items-name">B</span>' in result
+        assert '<span data-kata="p-items-0-name">A</span>' in result
+        assert '<span data-kata="p-items-1-name">B</span>' in result
 
     def test_filter_does_not_break_annotation(self):
         schema = {"type": "object", "properties": {"title": {"type": "string"}}}
@@ -663,3 +664,205 @@ class TestStripAnnotations:
     def test_no_annotations_unchanged(self):
         text = "# Hello\n\nSome content"
         assert strip_annotations(text) == text
+
+
+# ---------------------------------------------------------------------------
+# Unified block format: **Schema** / **Data** / **Prompt** + ```yaml
+# ---------------------------------------------------------------------------
+
+class TestBoldCodeblockSchema:
+    """extract_schema supports **Schema** + ```yaml code block form."""
+
+    def test_bold_codeblock_schema_yaml(self):
+        source = '**Schema**\n\n```yaml\ntype: object\nproperties:\n  title:\n    type: string\n```\n\n# {{ title }}'
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert schema["type"] == "object"
+        assert "title" in schema["properties"]
+        assert "**Schema**" not in cleaned
+        assert "# {{ title }}" in cleaned
+
+    def test_bold_codeblock_schema_json(self):
+        source = '**Schema**\n\n```json\n{"type": "object", "properties": {"x": {"type": "string"}}}\n```\n\n{{ x }}'
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert schema["type"] == "object"
+        assert "**Schema**" not in cleaned
+
+    def test_bold_codeblock_schema_in_details(self):
+        source = (
+            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '**Schema**\n\n```yaml\ntype: object\nproperties:\n  name:\n    type: string\n```\n\n'
+            '</details>\n\n# {{ name }}'
+        )
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert schema["properties"]["name"]["type"] == "string"
+        assert "<details>" not in cleaned
+        assert "# {{ name }}" in cleaned
+
+    def test_bold_codeblock_schema_in_details_with_data(self):
+        """When <details> has both **Schema** and **Data**, only schema is removed."""
+        source = (
+            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '**Schema**\n\n```yaml\ntype: object\nproperties:\n  x:\n    type: string\n```\n\n'
+            '**Data**\n\n```yaml\nx: hello\n```\n\n'
+            '</details>\n\n# {{ x }}'
+        )
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert "**Data**" in cleaned
+
+    def test_template_parses_bold_codeblock_schema(self):
+        source = '**Schema**\n\n```yaml\ntype: object\nproperties:\n  title:\n    type: string\n```\n\n# {{ title }}'
+        t = Template(source)
+        assert t.schema is not None
+        assert t.schema["type"] == "object"
+        result = t.render(title="Hello")
+        assert "Hello" in result
+
+
+class TestBoldCodeblockData:
+    """extract_data supports **Data** + ```yaml code block form."""
+
+    def test_bold_codeblock_data_yaml(self):
+        source = '**Data**\n\n```yaml\ntitle: Hello World\nauthor: Alice\n```\n'
+        data = extract_data(source)
+        assert data is not None
+        assert data["title"] == "Hello World"
+        assert data["author"] == "Alice"
+
+    def test_bold_codeblock_data_json(self):
+        source = '**Data**\n\n```json\n{"title": "Hello"}\n```\n'
+        data = extract_data(source)
+        assert data is not None
+        assert data["title"] == "Hello"
+
+    def test_fallback_to_bold_codeblock(self):
+        """When {#data} is absent, falls back to **Data** + code block."""
+        source = 'Some text\n\n**Data**\n\n```yaml\nkey: value\n```\n'
+        data = extract_data(source)
+        assert data is not None
+        assert data["key"] == "value"
+
+    def test_inline_data_takes_priority(self):
+        """When both {#data} and **Data** exist, {#data} is used."""
+        source = '{#data\ntitle: from inline\n#}\n\n**Data**\n\n```yaml\ntitle: from bold\n```\n'
+        data = extract_data(source)
+        assert data is not None
+        assert data["title"] == "from inline"
+
+    def test_template_strips_bold_data(self):
+        source = (
+            '{#schema\n{"type":"object","properties":{"x":{"type":"string"}}}\n#}\n'
+            '**Data**\n\n```yaml\nx: hello\n```\n\n# {{ x }}'
+        )
+        t = Template(source)
+        assert t.data is not None
+        assert t.data["x"] == "hello"
+        assert "**Data**" not in t.template_body
+
+
+class TestBoldCodeblockPrompt:
+    """Template class supports **Prompt** + ```yaml code block form."""
+
+    def test_prompt_codeblock_extracted(self):
+        source = (
+            '**Prompt**\n\n```yaml\nrole: You are a report generator\nformat: markdown\n```\n\n'
+            '# {{ title }}'
+        )
+        t = Template(source)
+        assert t.prompt is not None
+        assert "role:" in t.prompt
+        assert "**Prompt**" not in t.template_body
+
+    def test_inline_prompt_still_works(self):
+        source = '{#prompt\nrole: You are a helper\n#}\n\n# {{ title }}'
+        t = Template(source)
+        assert t.prompt is not None
+        assert "role:" in t.prompt
+
+    def test_prompt_included_in_schema_reference(self):
+        source = (
+            '**Prompt**\n\n```yaml\nrole: report generator\n```\n\n'
+            '{#schema\n{"type":"object","required":["title"],"properties":{"title":{"type":"string"}}}\n#}\n'
+            '# {{ title }}'
+        )
+        t = Template(source)
+        result = t.render_annotated({"title": "Hello"})
+        assert "Schema Reference" in result
+        assert "report generator" in result
+
+
+class TestStripDetailsMultiBlock:
+    """_strip_details_wrapper preserves sibling blocks when removing schema."""
+
+    def test_details_with_schema_only_removes_all(self):
+        source = (
+            '<details>\n<summary>Schema</summary>\n\n'
+            '{#schema\n{"type":"object"}\n#}\n\n'
+            '</details>\n\n# Content'
+        )
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert "<details>" not in cleaned
+        assert "# Content" in cleaned
+
+    def test_details_with_schema_and_data_preserves_data(self):
+        source = (
+            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '{#schema\n{"type":"object","properties":{"x":{"type":"string"}}}\n#}\n\n'
+            '{#data\nx: hello\n#}\n\n'
+            '</details>\n\n# {{ x }}'
+        )
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert "{#data" in cleaned
+
+    def test_details_with_bold_schema_and_bold_data_preserves_data(self):
+        source = (
+            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '**Schema**\n\n```yaml\ntype: object\nproperties:\n  x:\n    type: string\n```\n\n'
+            '**Data**\n\n```yaml\nx: hello\n```\n\n'
+            '</details>\n\n# {{ x }}'
+        )
+        schema, cleaned = extract_schema(source)
+        assert schema is not None
+        assert "**Data**" in cleaned
+
+
+class TestGenerateSchemaReferenceBlocks:
+    """generate_schema_reference includes prompt, template_body, and data."""
+
+    def test_includes_prompt(self):
+        schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+        ref = generate_schema_reference(schema, prompt="role: assistant")
+        assert "**Prompt**" in ref
+        assert "role: assistant" in ref
+
+    def test_includes_template_body(self):
+        schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+        ref = generate_schema_reference(schema, template_body="# {{ x }}")
+        assert "```kata:template" in ref
+        assert "# {{ x }}" in ref
+
+    def test_includes_data(self):
+        schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+        ref = generate_schema_reference(schema, data={"x": "hello"})
+        assert "**Data**" in ref
+        assert "hello" in ref
+
+    def test_no_prompt_when_none(self):
+        schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+        ref = generate_schema_reference(schema)
+        assert "**Prompt**" not in ref
+
+    def test_full_output_structure(self):
+        schema = {"type": "object", "properties": {"title": {"type": "string"}}}
+        ref = generate_schema_reference(
+            schema, prompt="role: test", template_body="# {{ title }}", data={"title": "Hi"},
+        )
+        assert "**Prompt**" in ref
+        assert "```kata:template" in ref
+        assert "**Schema**" in ref
+        assert "**Data**" in ref

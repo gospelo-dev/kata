@@ -114,26 +114,16 @@ my_template/
 
 ## テンプレート本体 (`_tpl.kata.md`)
 
-`{#schema}`、`{#prompt}`、Jinja2 互換テンプレートを含むファイル。ファイル名は `manifest.json` の `template` フィールドで指定します。
+`**Prompt**`、`**Schema**`、`**Data**` ブロックと Jinja2 互換テンプレートを含むファイル。ファイル名は `manifest.json` の `template` フィールドで指定します。
 
-```markdown
-{#schema
-title: string!
-version: string
-items[]!:
-  id: string!
-  name: string!
-  status: enum(draft, done)
-#}
+````markdown
+**Prompt**
 
-{#prompt
+```yaml
 このテンプレートはタスクリストを生成します。
 items 配列に各タスクの詳細を記述してください。
 status は draft または done を指定してください。
-#}
-
-{#data
-#}
+```
 
 # {{ title }}
 
@@ -143,13 +133,34 @@ status は draft または done を指定してください。
 |----|--------|:----------:|
 {% for item in items %}| {{ item.id }} | {{ item.name }} | {{ item.status }} |
 {% endfor %}
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+title: string!
+version: string
+items[]!:
+  id: string!
+  name: string!
+  status: enum(draft, done)
 ```
+
+**Data**
+
+```yaml
+```
+
+</details>
+````
 
 **ポイント:**
 
-- `{#schema}` — AI がデータ構造を理解するためのスキーマ定義
-- `{#prompt}` — AI がデータ生成時に参照する説明文
-- `{#data ... #}` — `assemble` コマンドがデータを挿入する位置（空でも記述推奨）
+- `**Prompt**` + `` ```yaml `` — AI がデータ生成時に参照する説明文
+- `**Schema**` + `` ```yaml `` — AI がデータ構造を理解するためのスキーマ定義
+- `**Data**` + `` ```yaml `` — `assemble` コマンドがデータを挿入する位置（空でも記述推奨）
 - テンプレート本文 — Jinja2 互換構文で記述
 
 ---
@@ -165,7 +176,7 @@ status は draft または done を指定してください。
 gospelo-kata pack-init ./my_template/
 
 # 2. テンプレート本体を編集
-#    my_template/my_template_tpl.kata.md に {#schema}, {#prompt}, テンプレートを記述
+#    my_template/my_template_tpl.kata.md に **Prompt**, **Schema**, テンプレートを記述
 
 # 3. manifest.json を編集
 #    author, url, license 等を記入
@@ -309,9 +320,9 @@ Claude Code や GitHub Copilot で `/gospelo-kata-pack` スキルを使うと、
 
 ### テンプレートの信頼管理
 
-- 初めて使用するテンプレートは、`{#prompt}` の内容が表示され、ユーザーの確認が求められます
+- 初めて使用するテンプレートは、`**Prompt**` ブロックの内容が表示され、ユーザーの確認が求められます
 - 許可すると `.template_trust.json` に記録され、以降は確認なしで利用できます
-- テンプレートの `{#prompt}` が変更された場合、再度確認が必要になります
+- テンプレートの `**Prompt**` が変更された場合、再度確認が必要になります
 
 ```bash
 # プロンプト内容と信頼状態を確認

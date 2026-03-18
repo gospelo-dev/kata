@@ -20,28 +20,15 @@ Write template, schema, and data in a single file. The simplest approach.
 
 ### 1. Create a source file
 
-```bash
+````bash
 cat > my_checklist.kata.md << 'EOF'
-{#schema
-title: string!
-version: string
-items[]!:
-  id: string!
-  name: string!
-  status: enum(todo, done)
-#}
+**Prompt**
 
-{#data
-title: Security Checklist
-version: 1.0
-items:
-  - id: SEC-01
-    name: Input validation
-    status: todo
-  - id: SEC-02
-    name: SQL injection prevention
-    status: done
-#}
+```yaml
+This template generates a task checklist with status tracking.
+Describe items in the items array with id, name, and status.
+status must be one of todo/done.
+```
 
 # {{ title }}
 
@@ -53,8 +40,38 @@ items:
 {% endfor %}
 
 Total: {{ items | length }} items
-EOF
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+title: string!
+version: string
+items[]!:
+  id: string!
+  name: string!
+  status: enum(todo, done)
 ```
+
+**Data**
+
+```yaml
+title: Security Checklist
+version: 1.0
+items:
+  - id: SEC-01
+    name: Input validation
+    status: todo
+  - id: SEC-02
+    name: SQL injection prevention
+    status: done
+```
+
+</details>
+EOF
+````
 
 ### 2. Render
 

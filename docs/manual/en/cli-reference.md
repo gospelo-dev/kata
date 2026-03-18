@@ -33,7 +33,7 @@ Output: `templates/`, `outputs/`, `.workflow_status.json`
 gospelo-kata show-prompt checklist
 ```
 
-Displays the `{#prompt}` block from the template. Accepts a template name or file path.
+Displays the `**Prompt**` block from the template. Accepts a template name or file path.
 
 ### `show-schema` — Display schema
 
@@ -42,7 +42,7 @@ gospelo-kata show-schema checklist              # JSON (default)
 gospelo-kata show-schema checklist --format yaml # YAML
 ```
 
-Generates and displays JSON Schema from `{#schema}`.
+Generates and displays JSON Schema from the `**Schema**` block.
 
 ### `schemas` — List validation schemas
 
@@ -92,7 +92,7 @@ gospelo-kata generate data.json -f html -o output.html
 
 ### `render` — Render self-contained .kata.md
 
-Interprets a `.kata.md` file containing `{#schema}` + `{#data}` and produces data-kata annotated output.
+Interprets a `.kata.md` file containing `**Schema**` + `**Data**` blocks and produces data-kata annotated output.
 
 ```bash
 gospelo-kata render source.kata.md -o outputs/result.kata.md
@@ -115,7 +115,7 @@ gospelo-kata assemble --type checklist --data data.yaml -o custom_output_tpl.kat
 | Option | Required | Description |
 |--------|----------|-------------|
 | `--type` | Yes | Template type (checklist, test_spec, agenda) |
-| `--data` | Yes | Data file (YAML or JSON) to embed as `{#data}` block |
+| `--data` | Yes | Data file (YAML or JSON) to embed as `**Data**` block |
 | `--output`, `-o` | No | Output path (default: `{data dir}/{type}_tpl.kata.md`) |
 
 ### `edit` — Browser editor
@@ -144,7 +144,7 @@ gospelo-kata lint rendered.kata.md --schema checklist # Document mode
 
 **Mode auto-detection:**
 - Has `data-kata` spans and no Jinja syntax -> Document mode
-- Has `{#schema}` / `{{ }}` / `{% %}` -> Template mode
+- Has schema blocks / `{{ }}` / `{% %}` -> Template mode
 - Has `<!-- kata: {...} -->` metadata -> Document mode
 
 Exits with code 1 if errors are found.

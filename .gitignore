@@ -23,3 +23,4 @@ node_modules/
 vscode-kata-lint/out/
 vscode-kata-lint/*.vsix
 .template_trust.json
+skill/*.zip

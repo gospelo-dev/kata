@@ -468,6 +468,85 @@ class TestAnnotationLinkChecks:
         codes = [m.code for m in result.messages]
         assert "D016" not in codes
 
+    def test_no_html_in_data_kata_span_with_entities(self):
+        """Escaped HTML entities should not trigger D016."""
+        from gospelo_kata.linter import lint_document
+        text = (
+            '# <span data-kata="p-title">&lt;b&gt;Safe&lt;/b&gt;</span>\n\n'
+            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '**Schema**\n\n```yaml\ntitle: string\n```\n\n'
+            '</details>\n'
+        )
+        result = lint_document(text, "test")
+        codes = [m.code for m in result.messages]
+        assert "D016" not in codes
+
+
+# ---------------------------------------------------------------------------
+# Unified block format: linter support
+# ---------------------------------------------------------------------------
+
+class TestUnifiedBlockFormatLinter:
+    """Linter recognizes **Schema**/**Prompt** + ```yaml code block form."""
+
+    def test_bold_codeblock_schema_detected(self):
+        source = (
+            '**Schema**\n\n```yaml\ntype: object\nproperties:\n  title:\n    type: string\n```\n\n'
+            '{{ title }}'
+        )
+        result = lint(source)
+        codes = [m.code for m in result.messages]
+        assert "S000" not in codes  # schema IS detected
+
+    def test_bold_codeblock_schema_invalid_yaml(self):
+        source = (
+            '**Schema**\n\n```yaml\n{invalid: [yaml\n```\n\n'
+            '{{ x }}'
+        )
+        result = lint(source)
+        codes = [m.code for m in result.messages]
+        assert "S001" in codes  # parse error
+
+    def test_bold_codeblock_prompt_detected(self):
+        source = (
+            '**Prompt**\n\n```yaml\nrole: test\n```\n\n'
+            '{#schema\n{"type":"object","properties":{"x":{"type":"string"}}}\n#}\n'
+            '{{ x }}'
+        )
+        result = lint(source)
+        codes = [m.code for m in result.messages]
+        assert "P001" not in codes  # prompt IS detected
+
+    def test_no_prompt_warns(self):
+        source = '{#schema\n{"type":"object","properties":{"x":{"type":"string"}}}\n#}\n{{ x }}'
+        result = lint(source)
+        codes = [m.code for m in result.messages]
+        assert "P001" in codes  # no prompt
+
+    def test_codeblock_template_syntax_not_triggers_template_mode(self):
+        """Template syntax inside code blocks should not trigger template mode."""
+        md = (
+            '# Report\n\nContent here.\n\n'
+            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '```kata:template\n# {{ title }}\n{% for item in items %}{{ item }}{% endfor %}\n```\n\n'
+            '**Schema**\n\n```yaml\ntitle: string\nitems: string[]\n```\n\n'
+            '</details>\n'
+        )
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".md", delete=False, dir="/tmp"
+        ) as f:
+            f.write(md)
+            path = f.name
+
+        try:
+            result = lint_file(path)
+            # Should NOT be template mode (no T/V/F errors)
+            template_codes = [m.code for m in result.messages if m.code.startswith(("T", "F"))]
+            assert len(template_codes) == 0
+        finally:
+            os.unlink(path)
+
+
     def test_orphan_anchor_info(self):
         from gospelo_kata.linter import lint_document
         text = (

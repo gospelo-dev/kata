@@ -6,7 +6,7 @@ All rule codes detected by `gospelo-kata lint` and their remedies.
 
 ## Template Mode (Source .kata.md)
 
-Template syntax validation. Applied to files containing `{#schema}` / `{{ }}` / `{% %}`.
+Template syntax validation. Applied to files containing schema blocks, `{{ }}`, or `{% %}` (code block contents are excluded from detection).
 
 ### S — Schema Validation
 
@@ -18,7 +18,7 @@ Template syntax validation. Applied to files containing `{#schema}` / `{{ }}` / 
 | S003 | warning | Schema has no `type` field |
 | S004 | error | Schema file not found |
 
-**Remedy**: Check the YAML syntax of the `{#schema ... #}` block.
+**Remedy**: Check the YAML syntax of the `**Schema**` + `` ```yaml `` block.
 
 ### T — Template Block Structure
 
@@ -32,6 +32,14 @@ Template syntax validation. Applied to files containing `{#schema}` / `{{ }}` / 
 | T006 | warning | Unknown block tag (not standard Jinja2) |
 
 **Remedy**: Verify `{% for %}...{% endfor %}` and `{% if %}...{% endif %}` pairing.
+
+### P — Prompt Block
+
+| Code | Level | Description |
+|------|-------|-------------|
+| P001 | warning | No prompt block found |
+
+**Remedy**: Add a `**Prompt**` + `` ```yaml `` block to the template. This provides AI guidance for data generation. User confirmation is required on first use.
 
 ### F — Filter Validation
 
