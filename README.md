@@ -18,12 +18,12 @@ When generating documents with AI, you often face these problems:
 - **No validation** — schema violations go unnoticed until review
 - **AI needs coaching** — you have to explain the output format every time
 
-gospelo-kata solves this with a **single `.kata.md` file** that contains everything: schema definition, structured data, and a Jinja2-compatible template (built-in engine, no external dependency). The embedded `{#schema}` and `{#prompt}` blocks let AI understand the template on its own — no separate instructions needed. Rendered output preserves data bindings via `data-kata` annotations, enabling round-trip extraction and automated validation.
+gospelo-kata solves this with a **single `.kata.md` file** that contains everything: schema definition, structured data, and a Jinja2-compatible template (built-in engine, no external dependency). The embedded `**Schema**` and `**Prompt**` blocks let AI understand the template on its own — no separate instructions needed. Rendered output preserves data bindings via `data-kata` annotations, enabling round-trip extraction and automated validation.
 
 ## Features
 
 - **Human-AI collaborative format** — both humans and AI can read, edit, and generate from the same file
-- **Self-describing templates** — embedded `{#schema}` and `{#prompt}` let AI understand the template without external instructions
+- **Self-describing templates** — embedded `**Schema**` and `**Prompt**` blocks let AI understand the template without external instructions
 - **Single-file format** — schema, data, and template in one `.kata.md` file
 - **YAML shorthand schemas** — define types concisely (`string!`, `enum(a,b,c)`, `items[]!:`)
 - **Round-trip** — extract structured data back from rendered documents
@@ -48,16 +48,37 @@ Requires Python 3.11+.
 
 ### 1. Create a document from scratch
 
-```bash
+````bash
 cat > todo_tpl.kata.md << 'EOF'
-{#schema
+**Prompt**
+
+```yaml
+This template generates a task checklist.
+Describe items in the items array with task and done fields.
+```
+
+# {{ title }}
+
+| Task | Done |
+|------|:----:|
+{% for item in items %}| {{ item.task }} | {{ item.done }} |
+{% endfor %}
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
 title: string!
 items[]!:
   task: string!
   done: boolean
-#}
+```
 
-{#data
+**Data**
+
+```yaml
 title: Sprint Tasks
 items:
   - task: Set up CI pipeline
@@ -66,19 +87,14 @@ items:
     done: false
   - task: Deploy to staging
     done: false
-#}
+```
 
-# {{ title }}
-
-| Task | Done |
-|------|:----:|
-{% for item in items %}| {{ item.task }} | {{ item.done }} |
-{% endfor %}
+</details>
 EOF
 
 gospelo-kata render todo_tpl.kata.md -o outputs/todo.kata.md
 gospelo-kata lint outputs/todo.kata.md
-```
+````
 
 ### 2. Use a built-in template
 
@@ -118,51 +134,60 @@ Reconstructs the original structured data from the rendered document.
 
 ## KATA Markdown™ Format
 
-A `_tpl.kata.md` file has three blocks:
+A `_tpl.kata.md` file has four blocks:
 
-```markdown
-{#schema
-title: string!
-version: string
-categories[]!:
-id: string!
-name: string!
-items[]!:
-id: string!
-status: enum(draft, pending, approve, reject)
-tags: string[]
-#}
+````markdown
+**Prompt**
 
-{#data
-title: Security Checklist
-version: "1.0"
-categories:
-
-- id: auth
-  name: Authentication
-  items: - id: auth-01
-  status: draft
-  tags: [web, api]
-  #}
-
-{#prompt
+```yaml
 Generate a security checklist with categories and items.
 Each item needs an id, status (draft/pending/approve/reject), and tags.
-#}
+```
 
 # {{ title }}
 
 {% for cat in categories %}
-
 ## {{ cat.name }}
 
-| ID                          | Status        | Tags              |
-| --------------------------- | ------------- | ----------------- | ------------ | ------------- |
-| {% for item in cat.items %} | {{ item.id }} | {{ item.status }} | {{ item.tags | join(", ") }} |
+| ID | Status | Tags |
+|----|--------|------|
+{% for item in cat.items %}| {{ item.id }} | {{ item.status }} | {{ item.tags | join(", ") }} |
+{% endfor %}
+{% endfor %}
 
-{% endfor %}
-{% endfor %}
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+title: string!
+version: string
+categories[]!:
+  id: string!
+  name: string!
+  items[]!:
+    id: string!
+    status: enum(draft, pending, approve, reject)
+    tags: string[]
 ```
+
+**Data**
+
+```yaml
+title: Security Checklist
+version: "1.0"
+categories:
+  - id: auth
+    name: Authentication
+    items:
+      - id: auth-01
+        status: draft
+        tags: [web, api]
+```
+
+</details>
+````
 
 ### Schema Shorthand
 

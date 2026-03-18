@@ -18,12 +18,12 @@ AI でドキュメントを生成する際、よくある問題:
 - **バリデーションがない** — スキーマ違反がレビューまで気づかれない
 - **AI への指示が毎回必要** — 出力形式を毎回説明しなければならない
 
-gospelo-kata は **単一の `.kata.md` ファイル** にすべてを含めることで解決します。スキーマ定義・構造化データ・Jinja2 互換テンプレート（組み込みエンジン、外部依存なし）を1ファイルに統合。埋め込みの `{#schema}` と `{#prompt}` ブロックにより、AI は外部の指示なしでテンプレートを理解できます。レンダリング出力は `data-kata` アノテーションでデータバインディングを保持し、ラウンドトリップ抽出と自動バリデーションを実現します。
+gospelo-kata は **単一の `.kata.md` ファイル** にすべてを含めることで解決します。スキーマ定義・構造化データ・Jinja2 互換テンプレート（組み込みエンジン、外部依存なし）を1ファイルに統合。埋め込みの `**Schema**` と `**Prompt**` ブロックにより、AI は外部の指示なしでテンプレートを理解できます。レンダリング出力は `data-kata` アノテーションでデータバインディングを保持し、ラウンドトリップ抽出と自動バリデーションを実現します。
 
 ## 特徴
 
 - **人間と AI の協同フォーマット** — 人間にも AI にも同じファイルを読み書き・生成できる
-- **自己記述的テンプレート** — 埋め込みの `{#schema}` と `{#prompt}` で AI が外部指示なしにテンプレートを理解
+- **自己記述的テンプレート** — 埋め込みの `**Schema**` と `**Prompt**` ブロックで AI が外部指示なしにテンプレートを理解
 - **シングルファイル** — スキーマ、データ、テンプレートを1つの `.kata.md` に
 - **YAML ショートハンドスキーマ** — 簡潔な型定義 (`string!`, `enum(a,b,c)`, `items[]!:`)
 - **ラウンドトリップ** — レンダリング済みドキュメントから構造化データを抽出
@@ -48,16 +48,37 @@ Python 3.11+ が必要です。
 
 ### 1. ゼロからドキュメントを作成
 
-```bash
+````bash
 cat > todo_tpl.kata.md << 'EOF'
-{#schema
+**Prompt**
+
+```yaml
+このテンプレートはタスクチェックリストを生成します。
+items 配列に task と done フィールドを記述してください。
+```
+
+# {{ title }}
+
+| タスク | 完了 |
+|--------|:----:|
+{% for item in items %}| {{ item.task }} | {{ item.done }} |
+{% endfor %}
+
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
 title: string!
 items[]!:
   task: string!
   done: boolean
-#}
+```
 
-{#data
+**Data**
+
+```yaml
 title: スプリントタスク
 items:
   - task: CI パイプライン構築
@@ -66,19 +87,14 @@ items:
     done: false
   - task: ステージングデプロイ
     done: false
-#}
+```
 
-# {{ title }}
-
-| タスク | 完了 |
-|--------|:----:|
-{% for item in items %}| {{ item.task }} | {{ item.done }} |
-{% endfor %}
+</details>
 EOF
 
 gospelo-kata render todo_tpl.kata.md -o outputs/todo.kata.md
 gospelo-kata lint outputs/todo.kata.md
-```
+````
 
 ### 2. 組み込みテンプレートを使う
 
@@ -118,51 +134,60 @@ gospelo-kata extract outputs/checklist.kata.md -o extracted.json
 
 ## KATA Markdown™ フォーマット
 
-`_tpl.kata.md` テンプレートファイルは3つのブロックで構成されます:
+`_tpl.kata.md` テンプレートファイルは4つのブロックで構成されます:
 
-```markdown
-{#schema
-title: string!
-version: string
-categories[]!:
-id: string!
-name: string!
-items[]!:
-id: string!
-status: enum(draft, pending, approve, reject)
-tags: string[]
-#}
+````markdown
+**Prompt**
 
-{#data
-title: セキュリティチェックリスト
-version: "1.0"
-categories:
-
-- id: auth
-  name: 認証・認可
-  items: - id: auth-01
-  status: draft
-  tags: [web, api]
-  #}
-
-{#prompt
+```yaml
 カテゴリと項目を含むセキュリティチェックリストを生成してください。
 各項目には id、status (draft/pending/approve/reject)、tags が必要です。
-#}
+```
 
 # {{ title }}
 
 {% for cat in categories %}
-
 ## {{ cat.name }}
 
-| ID                          | ステータス    | タグ              |
-| --------------------------- | ------------- | ----------------- | ------------ | ------------- |
-| {% for item in cat.items %} | {{ item.id }} | {{ item.status }} | {{ item.tags | join(", ") }} |
+| ID | ステータス | タグ |
+|----|-----------|------|
+{% for item in cat.items %}| {{ item.id }} | {{ item.status }} | {{ item.tags | join(", ") }} |
+{% endfor %}
+{% endfor %}
 
-{% endfor %}
-{% endfor %}
+<details>
+<summary>Schema Reference</summary>
+
+**Schema**
+
+```yaml
+title: string!
+version: string
+categories[]!:
+  id: string!
+  name: string!
+  items[]!:
+    id: string!
+    status: enum(draft, pending, approve, reject)
+    tags: string[]
 ```
+
+**Data**
+
+```yaml
+title: セキュリティチェックリスト
+version: "1.0"
+categories:
+  - id: auth
+    name: 認証・認可
+    items:
+      - id: auth-01
+        status: draft
+        tags: [web, api]
+```
+
+</details>
+````
 
 ### スキーマショートハンド
 
