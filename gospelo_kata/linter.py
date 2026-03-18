@@ -6,6 +6,7 @@
 
 Checks:
 - Schema syntax: {#schema ... #} JSON validity, file reference existence
+- Prompt block: {#prompt ... #} presence (required for templates)
 - Template syntax: unclosed {% for %} / {% if %} blocks, nesting errors
 - Variable references: {{ var }} existence in schema properties
 - Filter validity: {{ x | filter }} references a known built-in filter
@@ -108,6 +109,7 @@ def _check_schema(text: str, file_path: str | None, messages: list[LintMessage])
     from .template import (
         _SCHEMA_INLINE_PATTERN, _SCHEMA_REF_PATTERN,
         _SCHEMA_LINK_PATTERN, _SCHEMA_CODEBLOCK_PATTERN,
+        _SCHEMA_BOLD_CODEBLOCK_PATTERN,
         _parse_schema_content,
     )
 
@@ -155,6 +157,12 @@ def _check_schema(text: str, file_path: str | None, messages: list[LintMessage])
 
     # Code block form: ```yaml:schema ... ``` or ```json:schema ... ```
     match = _SCHEMA_CODEBLOCK_PATTERN.search(text)
+    if match:
+        line, col = _line_col(text, match.start())
+        return _try_parse_content(match.group(1), line, col)
+
+    # Bold-heading code block form: **Schema**\n```yaml\n...\n```
+    match = _SCHEMA_BOLD_CODEBLOCK_PATTERN.search(text)
     if match:
         line, col = _line_col(text, match.start())
         return _try_parse_content(match.group(1), line, col)
@@ -369,6 +377,17 @@ def _check_unused_properties(
         ))
 
 
+def _check_prompt_block(text: str, messages: list[LintMessage]) -> None:
+    """Check that a {#prompt} block is present in the template."""
+    from .template import _PROMPT_PATTERN, _PROMPT_CODEBLOCK_PATTERN
+
+    if not _PROMPT_PATTERN.search(text) and not _PROMPT_CODEBLOCK_PATTERN.search(text):
+        messages.append(LintMessage(
+            level="warning", line=1, column=1,
+            code="P001", message="No {#prompt} block found — templates must include a prompt block for AI guidance",
+        ))
+
+
 def _check_filters(text: str, messages: list[LintMessage]) -> None:
     """Check that filters referenced in {{ ... | filter }} are known."""
     from .template import _BUILTIN_FILTERS
@@ -436,10 +455,13 @@ def lint(text: str, file_path: str | None = None) -> LintResult:
     # 3. Filter check
     _check_filters(text, messages)
 
-    # 4. Variable reference check (requires schema)
+    # 4. Prompt block check
+    _check_prompt_block(text, messages)
+
+    # 5. Variable reference check (requires schema)
     _check_var_references(text, schema, messages)
 
-    # 5. Unused properties check (requires schema)
+    # 6. Unused properties check (requires schema)
     _check_unused_properties(text, schema, messages)
 
     # Filter out disabled rules
@@ -481,10 +503,13 @@ def lint_file(file_path: str, schema_name: str | None = None) -> LintResult:
     text = path.read_text(encoding="utf-8")
 
     # Detect mode: template has Jinja2-like syntax, document does not
+    # Strip code blocks before checking — template syntax inside ``` blocks
+    # (e.g. kata:template in Schema Reference) should not trigger template mode
+    text_no_codeblocks = re.sub(r"```[^\n]*\n.*?```", "", text, flags=re.DOTALL)
     has_template_syntax = (
-        "{#" in text
-        or "{{" in text
-        or "{%" in text
+        "{#" in text_no_codeblocks
+        or "{{" in text_no_codeblocks
+        or "{%" in text_no_codeblocks
     )
 
     if schema_name:

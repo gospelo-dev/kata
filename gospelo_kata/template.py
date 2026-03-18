@@ -58,9 +58,17 @@ _SCHEMA_INLINE_PATTERN = re.compile(
 _PROMPT_PATTERN = re.compile(
     r"\{#\s*prompt\s*\n(.*?)\n\s*#\}", re.DOTALL
 )
+# Prompt block (code-block form): **Prompt**\n```yaml\n...\n```
+_PROMPT_CODEBLOCK_PATTERN = re.compile(
+    r"\*\*Prompt\*\*\s*\n\s*```yaml\n(.*?)```", re.DOTALL
+)
 # Data block: {#data ... #} — embedded YAML data, stripped at render time
 _DATA_PATTERN = re.compile(
     r"\{#\s*data\s*\n(.*?)\n\s*#\}", re.DOTALL
+)
+# Bold-heading code block form: **Data**\n```yaml\n...\n```
+_DATA_BOLD_CODEBLOCK_PATTERN = re.compile(
+    r"\*\*Data\*\*\s*\n\s*```(?:yaml|json)\n(.*?)\n```", re.DOTALL
 )
 _SCHEMA_REF_PATTERN = re.compile(
     r"\{#\s*schema\s*:\s*(.+?)\s*#\}"
@@ -73,6 +81,10 @@ _SCHEMA_LINK_PATTERN = re.compile(
 _SCHEMA_CODEBLOCK_PATTERN = re.compile(
     r"```(?:yaml|json):schema\s*\n(.*?)\n```", re.DOTALL
 )
+# Bold-heading code block form: **Schema**\n```yaml\n...\n```
+_SCHEMA_BOLD_CODEBLOCK_PATTERN = re.compile(
+    r"\*\*Schema\*\*\s*\n\s*```(?:yaml|json)\n(.*?)\n```", re.DOTALL
+)
 # Matches <details>...<summary>...</summary>...{#schema...#}...</details>
 _DETAILS_WRAPPER_PATTERN = re.compile(
     r"<details>\s*\n\s*<summary>.*?</summary>\s*\n(.*?)</details>",
@@ -81,11 +93,22 @@ _DETAILS_WRAPPER_PATTERN = re.compile(
 
 
 def _strip_details_wrapper(text: str, schema_start: int, schema_end: int) -> str:
-    """If the schema block is wrapped in <details>, remove the entire wrapper."""
+    """Remove the schema block from the text.
+
+    If the schema block is inside a <details> wrapper and the wrapper contains
+    no other {# ... #} blocks, remove the entire wrapper.  Otherwise remove
+    only the schema block itself so that sibling blocks like {#data} survive.
+    """
     for m in _DETAILS_WRAPPER_PATTERN.finditer(text):
-        # Check if the schema block is inside this <details> wrapper
         if m.start() <= schema_start and schema_end <= m.end():
-            return text[: m.start()] + text[m.end() :]
+            # Check if the <details> wrapper contains other blocks
+            # ({# ... #} inline blocks or **Bold** + ```yaml code blocks)
+            inner = text[m.start():schema_start] + text[schema_end:m.end()]
+            if re.search(r"\{#\s*\w+", inner) or re.search(r"\*\*(?:Data|Prompt)\*\*", inner):
+                # Other blocks present — only remove the schema block
+                return text[:schema_start] + text[schema_end:]
+            # Schema is the only block — remove entire wrapper
+            return text[:m.start()] + text[m.end():]
     # No wrapper — just remove the schema block itself
     return text[:schema_start] + text[schema_end:]
 
@@ -378,6 +401,11 @@ def extract_schema(
     if match is not None:
         return _parse_and_clean(match, match.group(1))
 
+    # Try bold-heading code block form: **Schema**\n```yaml\n...\n```
+    match = _SCHEMA_BOLD_CODEBLOCK_PATTERN.search(template_text)
+    if match is not None:
+        return _parse_and_clean(match, match.group(1))
+
     # Try inline schema: {#schema ... #} (JSON or YAML auto-detected)
     match = _SCHEMA_INLINE_PATTERN.search(template_text)
     if match is not None:
@@ -417,6 +445,8 @@ def extract_data(template_text: str) -> dict[str, Any] | None:
         Parsed data dict, or None if no {#data} block is found.
     """
     match = _DATA_PATTERN.search(template_text)
+    if match is None:
+        match = _DATA_BOLD_CODEBLOCK_PATTERN.search(template_text)
     if match is None:
         return None
 
@@ -1531,17 +1561,21 @@ _ANNOTATION_LINK_PATTERN = re.compile(r"\[([^\]]*)\]\(#p-[a-z0-9-]+\)")
 def generate_schema_reference(
     schema: dict[str, Any],
     data: dict[str, Any] | None = None,
+    prompt: str | None = None,
+    template_body: str | None = None,
 ) -> str:
     """Generate a Schema Reference section from a JSON Schema.
 
     The generated Markdown is wrapped in a ``<details>`` tag and contains
-    **Schema** and **Data** code blocks — everything needed to reconstruct
-    or re-render the document from a single file (combined with ``data-kata``
-    span attributes in the body and array structure from the Schema section).
+    ``{#prompt}``, ``{#schema}``, ``{#data}`` blocks, and the template body —
+    everything needed to reconstruct or re-render the document from a single
+    file.
 
     Args:
         schema: JSON Schema dict.
         data: Optional data dict to include as a Data section.
+        prompt: Optional prompt text to include.
+        template_body: Optional template source to include.
 
     Returns:
         Markdown string for the Schema Reference section.
@@ -1562,6 +1596,20 @@ def generate_schema_reference(
     lines.append("<details>")
     lines.append("<summary>Schema Reference</summary>")
     lines.append("")
+
+    if prompt is not None:
+        lines.append("**Prompt**")
+        lines.append("")
+        lines.append("```yaml")
+        lines.append(prompt)
+        lines.append("```")
+        lines.append("")
+
+    if template_body is not None:
+        lines.append("```kata:template")
+        lines.append(template_body.rstrip("\n"))
+        lines.append("```")
+        lines.append("")
 
     lines.append("**Schema**")
     lines.append("")
@@ -1840,11 +1888,21 @@ class Template:
         self.schema, cleaned = extract_schema(source, template_path)
         # Extract prompt block (for AI assistants) and strip from template
         prompt_match = _PROMPT_PATTERN.search(cleaned)
+        if not prompt_match:
+            prompt_match = _PROMPT_CODEBLOCK_PATTERN.search(cleaned)
         self.prompt = prompt_match.group(1) if prompt_match else None
-        cleaned = _PROMPT_PATTERN.sub("", cleaned).lstrip("\n")
+        cleaned = _PROMPT_PATTERN.sub("", cleaned)
+        cleaned = _PROMPT_CODEBLOCK_PATTERN.sub("", cleaned).lstrip("\n")
         # Extract data block (embedded YAML data) and strip from template
         self.data = extract_data(cleaned)
-        cleaned = _DATA_PATTERN.sub("", cleaned).lstrip("\n")
+        cleaned = _DATA_PATTERN.sub("", cleaned)
+        cleaned = _DATA_BOLD_CODEBLOCK_PATTERN.sub("", cleaned).lstrip("\n")
+        # Strip <details> wrapper (used in template files) before tokenizing
+        cleaned = re.sub(
+            r"<details>\s*<summary>Schema Reference</summary>.*?</details>\s*",
+            "", cleaned, flags=re.DOTALL,
+        ).rstrip("\n")
+        self.template_body = cleaned
         tokens = _tokenize(cleaned)
         self._ast = _parse(tokens)
 
@@ -1852,7 +1910,11 @@ class Template:
         """Render the template with given variables."""
         body = _render_nodes(self._ast, kwargs)
         if self.schema is not None and "#p-" in body:
-            body += generate_schema_reference(self.schema)
+            body += generate_schema_reference(
+                self.schema,
+                prompt=self.prompt,
+                template_body=self.template_body,
+            )
         return body
 
     def render_dict(self, data: dict[str, Any]) -> str:
@@ -1866,6 +1928,8 @@ class Template:
             body += generate_schema_reference(
                 self.schema,
                 data=self.data,
+                prompt=self.prompt,
+                template_body=self.template_body,
             )
         return body
 
@@ -1883,6 +1947,8 @@ class Template:
             body += generate_schema_reference(
                 self.schema,
                 data=self.data,
+                prompt=self.prompt,
+                template_body=self.template_body,
             )
         return body
 
