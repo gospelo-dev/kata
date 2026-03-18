@@ -131,15 +131,16 @@ EOF
 )"
 ```
 
-### 3. ドキュメント全面更新
+### 3. ドキュメント全面更新 + バージョンアップ + skill ZIP
 
 ```bash
-git add docs/manual/en/kata-markdown-format.md docs/manual/en/lint-rules.md docs/manual/en/quick-start.md docs/manual/en/cli-reference.md docs/manual/en/copilot-setup.md docs/manual/ja/kata-markdown-format.md docs/manual/ja/lint-rules.md docs/manual/ja/quick-start.md docs/manual/ja/cli-reference.md docs/manual/ja/copilot-setup.md docs/manual/ja/template-package.md && git commit -m "$(cat <<'EOF'
-docs: deprecate legacy {#...#} format across all manual pages
+git add docs/manual/en/kata-markdown-format.md docs/manual/en/lint-rules.md docs/manual/en/quick-start.md docs/manual/en/cli-reference.md docs/manual/en/copilot-setup.md docs/manual/ja/kata-markdown-format.md docs/manual/ja/lint-rules.md docs/manual/ja/quick-start.md docs/manual/ja/cli-reference.md docs/manual/ja/copilot-setup.md docs/manual/ja/template-package.md pyproject.toml gospelo_kata/__init__.py vscode-kata-lint/package.json skill/gospelo-kata-skill-claude-code-v0.2.1.zip skill/gospelo-kata-skill-copilot-v0.2.1.zip && git commit -m "$(cat <<'EOF'
+release: v0.2.1 — unified block format, deprecate legacy {#...#} syntax
 
-- Rewrite quick-start examples to use Bold+codeblock format
-- Update cli-reference, copilot-setup, template-package references
-- Mark {#schema}/{#data}/{#prompt} as deprecated in format spec
+- Bump version to 0.2.1
+- Rewrite all manual pages to use Bold+codeblock format
+- Mark {#schema}/{#data}/{#prompt} as deprecated
+- Rebuild skill ZIPs for v0.2.1
 
 EOF
 )"
