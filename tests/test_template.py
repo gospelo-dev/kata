@@ -14,6 +14,7 @@ import pytest
 
 from gospelo_kata.template import (
     Template,
+    _compute_structure_hash,
     extract_data,
     extract_schema,
     generate_schema_reference,
@@ -866,3 +867,88 @@ class TestGenerateSchemaReferenceBlocks:
         assert "```kata:template" in ref
         assert "**Schema**" in ref
         assert "**Data**" in ref
+
+
+# ---------------------------------------------------------------------------
+# Structure integrity hash
+# ---------------------------------------------------------------------------
+
+class TestStructureIntegrity:
+    """Tests for _compute_structure_hash and integrity embedding."""
+
+    _SCHEMA = {
+        "type": "object",
+        "properties": {"title": {"type": "string"}},
+        "required": ["title"],
+    }
+
+    def test_hash_present_in_output(self):
+        ref = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="p", template_body="# {{ title }}"
+        )
+        assert "<!-- kata-structure-integrity: sha256:" in ref
+
+    def test_hash_deterministic(self):
+        ref1 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="p", template_body="# {{ title }}"
+        )
+        ref2 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="p", template_body="# {{ title }}"
+        )
+        import re
+        h1 = re.search(r"sha256:([0-9a-f]{64})", ref1).group(1)
+        h2 = re.search(r"sha256:([0-9a-f]{64})", ref2).group(1)
+        assert h1 == h2
+
+    def test_data_change_does_not_affect_hash(self):
+        ref1 = generate_schema_reference(
+            self._SCHEMA, data={"title": "aaa"}, prompt="p", template_body="t"
+        )
+        ref2 = generate_schema_reference(
+            self._SCHEMA, data={"title": "zzz"}, prompt="p", template_body="t"
+        )
+        import re
+        h1 = re.search(r"sha256:([0-9a-f]{64})", ref1).group(1)
+        h2 = re.search(r"sha256:([0-9a-f]{64})", ref2).group(1)
+        assert h1 == h2
+
+    def test_prompt_change_affects_hash(self):
+        ref1 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="original", template_body="t"
+        )
+        ref2 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="changed", template_body="t"
+        )
+        import re
+        h1 = re.search(r"sha256:([0-9a-f]{64})", ref1).group(1)
+        h2 = re.search(r"sha256:([0-9a-f]{64})", ref2).group(1)
+        assert h1 != h2
+
+    def test_schema_change_affects_hash(self):
+        schema2 = {
+            "type": "object",
+            "properties": {"title": {"type": "integer"}},
+            "required": ["title"],
+        }
+        ref1 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="p", template_body="t"
+        )
+        ref2 = generate_schema_reference(
+            schema2, data={"title": "x"}, prompt="p", template_body="t"
+        )
+        import re
+        h1 = re.search(r"sha256:([0-9a-f]{64})", ref1).group(1)
+        h2 = re.search(r"sha256:([0-9a-f]{64})", ref2).group(1)
+        assert h1 != h2
+
+    def test_template_body_change_affects_hash(self):
+        ref1 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="p", template_body="# {{ title }}"
+        )
+        ref2 = generate_schema_reference(
+            self._SCHEMA, data={"title": "x"}, prompt="p", template_body="## {{ title }}"
+        )
+        import re
+        h1 = re.search(r"sha256:([0-9a-f]{64})", ref1).group(1)
+        h2 = re.search(r"sha256:([0-9a-f]{64})", ref2).group(1)
+        assert h1 != h2

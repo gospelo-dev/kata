@@ -193,4 +193,5 @@ categories:
     requirements: 'Normal: Data can be downloaded in CSV format'
 ```
 
+<!-- kata-structure-integrity: sha256:0b657a98b271dea60df282efc4527c4a8ced7e860fbde978f69a77145b24fb44 -->
 </details>

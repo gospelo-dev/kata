@@ -434,4 +434,5 @@ categories:
     requirements: 'npm audit: high/critical の脆弱性が0件であること'
 ```
 
+<!-- kata-structure-integrity: sha256:2b480b9e5b2266904b811f062283ff4826fe906520f927c5831e4c4261a4974b -->
 </details>

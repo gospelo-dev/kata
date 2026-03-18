@@ -296,4 +296,5 @@ categories:
     requirements: 'admin: 管理者トークンで管理者向けAPI(ユーザー管理等)にアクセスし200が返ること'
 ```
 
+<!-- kata-structure-integrity: sha256:51a65cce2fba024795a83101fa6458bf5f50c8d5952b38106c78f7e571af2767 -->
 </details>

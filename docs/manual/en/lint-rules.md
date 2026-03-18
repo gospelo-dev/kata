@@ -83,6 +83,7 @@ Structural validation of rendered documents. Auto-applied to files with `data-ka
 | D014 | warning | Missing `<details>` or `<style>` section |
 | D015 | warning | Enum value in table lacks data-kata annotation |
 | D016 | error | HTML tag found inside data-kata span |
+| D017 | warning | Structure integrity hash mismatch |
 
 ### D016 Details
 
@@ -100,6 +101,19 @@ gospelo-kata render source.kata.md -o output.kata.md
 ```
 
 `render` automatically sanitizes with `html.escape()` on new output.
+
+### D017 Details
+
+The structure integrity hash protects the template structure (Prompt, template body, Schema) inside the `<details>` Schema Reference section against accidental or malicious modification. Data changes are excluded from the hash.
+
+- **warning**: Hash mismatch — Prompt, template body, or Schema has been modified since rendering
+- Documents without an integrity hash (older files) do not trigger this rule
+
+**Remedy**:
+```bash
+# Re-render from source to regenerate the hash
+gospelo-kata render source.kata.md -o output.kata.md
+```
 
 ---
 

@@ -562,3 +562,84 @@ class TestUnifiedBlockFormatLinter:
         codes = [m.code for m in result.messages]
         # p-title and p-attendees defined but not referenced by any link
         assert "D006" in codes
+
+
+# ---------------------------------------------------------------------------
+# D017: Structure integrity hash
+# ---------------------------------------------------------------------------
+
+class TestStructureIntegrityLint:
+    """D017: structure integrity hash verification."""
+
+    def _make_doc(self, **overrides):
+        """Build a rendered document with integrity hash."""
+        from gospelo_kata.template import generate_schema_reference
+        schema = {"type": "object", "properties": {"title": {"type": "string"}}, "required": ["title"]}
+        ref = generate_schema_reference(
+            schema,
+            data=overrides.get("data", {"title": "Hello"}),
+            prompt=overrides.get("prompt", "Test prompt"),
+            template_body=overrides.get("template_body", "# {{ title }}"),
+        )
+        return '# <span data-kata="p-title">Hello</span>\n\n' + ref
+
+    def test_valid_hash_no_warning(self):
+        from gospelo_kata.linter import lint_document
+        doc = self._make_doc()
+        result = lint_document(doc, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" not in codes
+
+    def test_tampered_schema_triggers_d017(self):
+        from gospelo_kata.linter import lint_document
+        doc = self._make_doc()
+        tampered = doc.replace("title: string!", "title: integer!")
+        result = lint_document(tampered, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" in codes
+
+    def test_tampered_prompt_triggers_d017(self):
+        from gospelo_kata.linter import lint_document
+        doc = self._make_doc()
+        tampered = doc.replace("Test prompt", "Malicious prompt")
+        result = lint_document(tampered, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" in codes
+
+    def test_tampered_template_triggers_d017(self):
+        from gospelo_kata.linter import lint_document
+        doc = self._make_doc()
+        tampered = doc.replace("# {{ title }}", "## {{ title }}")
+        result = lint_document(tampered, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" in codes
+
+    def test_data_change_no_warning(self):
+        from gospelo_kata.linter import lint_document
+        doc = self._make_doc()
+        changed = doc.replace("title: Hello", "title: Changed")
+        result = lint_document(changed, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" not in codes
+
+    def test_no_hash_no_warning(self):
+        """Documents without integrity hash should not trigger D017."""
+        from gospelo_kata.linter import lint_document
+        doc = (
+            '# <span data-kata="p-title">Hi</span>\n\n'
+            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '**Schema**\n\n```yaml\ntitle: string!\n```\n\n'
+            '</details>\n'
+        )
+        result = lint_document(doc, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" not in codes
+
+    def test_disable_d017(self):
+        from gospelo_kata.linter import lint_document
+        doc = self._make_doc()
+        tampered = doc.replace("Test prompt", "Bad prompt")
+        tampered = "<!-- kata-lint-disable D017 -->\n" + tampered
+        result = lint_document(tampered, "test")
+        codes = [m.code for m in result.messages]
+        assert "D017" not in codes

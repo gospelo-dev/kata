@@ -193,4 +193,5 @@ categories:
     requirements: '正常系: CSV形式でデータがダウンロードできる'
 ```
 
+<!-- kata-structure-integrity: sha256:8dd99c1b7ed579f383adf2bf38308d7243ebc8c9fa8f3f0d05b8e4982437a83a -->
 </details>
