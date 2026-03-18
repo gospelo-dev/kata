@@ -62,7 +62,7 @@
 **<span data-kata="p-categories-0-items-2-id">3</span>. <span data-kata="p-categories-0-items-2-name">Data Export</span>**
 
 <table class="kata-props">
-<tr><td colspan="2"><b><span data-kata="p-categories-0-items-2-name-ja">データエクスポート2</span></b></td></tr>
+<tr><td colspan="2"><b><span data-kata="p-categories-0-items-2-name-ja">データエクスポート</span></b></td></tr>
 <tr><td>target</td><td><span data-kata="p-categories-0-items-2-target">/api/export</span></td></tr>
 <tr><td>auto</td><td><span data-kata="p-categories-0-items-2-auto">full</span></td></tr>
 <tr><td>status</td><td><span class="kata-status-draft"><span data-kata="p-categories-0-items-2-status">draft</span></span></td></tr>
@@ -167,30 +167,30 @@ categories:
   - id: '1'
     name: Login Function
     name_ja: ログイン機能
-    target: /api/auth/login
-    auto: full
     status: approve
-    requirements: '正常系: 有効なメール+パスワードで200とJWTトークンが返る'
+    auto: full
+    target: /api/auth/login
     tags:
     - auth
+    requirements: '正常系: 有効なメール+パスワードで200とJWTトークンが返る'
   - id: '2'
     name: User Registration
     name_ja: ユーザー登録
-    target: /api/auth/register
-    auto: full
     status: reject
-    requirements: '正常系: 必須フィールド入力で201とユーザーオブジェクトが返る'
+    auto: full
+    target: /api/auth/register
     tags:
     - auth
+    requirements: '正常系: 必須フィールド入力で201とユーザーオブジェクトが返る'
   - id: '3'
     name: Data Export
-    name_ja: データエクスポート2
-    target: /api/export
-    auto: full
+    name_ja: データエクスポート
     status: draft
-    requirements: '正常系: CSV形式でデータがダウンロードできる'
+    auto: full
+    target: /api/export
     tags:
     - data
+    requirements: '正常系: CSV形式でデータがダウンロードできる'
 ```
 
 </details>
