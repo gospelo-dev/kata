@@ -441,4 +441,5 @@ categories:
     requirements: 'npm audit: Zero high/critical vulnerabilities'
 ```
 
+<!-- kata-structure-integrity: sha256:a6edf575d5148de2bb6cb46e3392ee96ef3d423f40621035062ab900d1bdfdc0 -->
 </details>

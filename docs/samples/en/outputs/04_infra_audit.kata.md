@@ -269,4 +269,5 @@ categories:
     requirements: Verify enabled in all regions via describe-trails + get-trail-status
 ```
 
+<!-- kata-structure-integrity: sha256:0f86b4f666b184597d4ec28ec5933bb13339346013885dbc39b8ee7b35be3c2f -->
 </details>

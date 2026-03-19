@@ -1558,6 +1558,37 @@ _ANNOTATION_PROP_PATTERN = re.compile(r'<span\s+data-kata="p-[a-z0-9-]+">([^<]*)
 _ANNOTATION_LINK_PATTERN = re.compile(r"\[([^\]]*)\]\(#p-[a-z0-9-]+\)")
 
 
+_STRUCTURE_INTEGRITY_PATTERN = re.compile(
+    r"<!-- kata-structure-integrity: sha256:([0-9a-f]{64}) -->"
+)
+
+
+def _compute_structure_hash(details_text: str) -> str:
+    """Compute SHA-256 hash of the structure portion of a <details> section.
+
+    The hash covers Prompt, kata:template, and Schema blocks but excludes
+    the Data block entirely.  This allows data to change freely while
+    detecting any tampering of the template structure.
+
+    Args:
+        details_text: The content between ``<details>`` and ``</details>`` tags.
+
+    Returns:
+        Hex-encoded SHA-256 hash string.
+    """
+    import hashlib
+    # Remove the **Data** block (from "**Data**" to end of its code block)
+    cleaned = re.sub(
+        r"\*\*Data\*\*\s*\n\s*```(?:yaml|json)\n.*?\n```",
+        "",
+        details_text,
+        flags=re.DOTALL,
+    )
+    # Normalize whitespace for stable hashing
+    cleaned = "\n".join(line.rstrip() for line in cleaned.strip().splitlines())
+    return hashlib.sha256(cleaned.encode("utf-8")).hexdigest()
+
+
 def generate_schema_reference(
     schema: dict[str, Any],
     data: dict[str, Any] | None = None,
@@ -1567,9 +1598,13 @@ def generate_schema_reference(
     """Generate a Schema Reference section from a JSON Schema.
 
     The generated Markdown is wrapped in a ``<details>`` tag and contains
-    ``{#prompt}``, ``{#schema}``, ``{#data}`` blocks, and the template body —
-    everything needed to reconstruct or re-render the document from a single
-    file.
+    Prompt, template body, Schema, and Data blocks — everything needed to
+    reconstruct or re-render the document from a single file.
+
+    A structure integrity hash is embedded as an HTML comment before
+    ``</details>``.  The hash covers Prompt, kata:template, and Schema
+    blocks but excludes the Data block, allowing data changes without
+    invalidating the hash.
 
     Args:
         schema: JSON Schema dict.
@@ -1630,6 +1665,11 @@ def generate_schema_reference(
         lines.append("```")
         lines.append("")
 
+    # Compute structure integrity hash (excludes Data block)
+    # Build the inner content of <details> for hashing
+    details_inner = "\n".join(lines[lines.index("<details>") + 2 :])  # after <summary> line
+    integrity_hash = _compute_structure_hash(details_inner)
+    lines.append(f"<!-- kata-structure-integrity: sha256:{integrity_hash} -->")
     lines.append("</details>")
     lines.append("")
     return "\n".join(lines)

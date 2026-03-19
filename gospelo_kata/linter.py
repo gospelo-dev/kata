@@ -650,6 +650,9 @@ def lint_document(
         _check_required_sections_present(text, messages)
         _check_unlinked_values(text, schema, messages)
 
+    # Check structure integrity hash
+    _check_structure_integrity(text, messages)
+
     # Filter out disabled rules
     disabled = _parse_disable_comments(text)
     if disabled:
@@ -1087,6 +1090,47 @@ def _check_duplicate_anchors(text: str, messages: list[LintMessage]) -> None:
 _RAW_SPAN_PATTERN = re.compile(
     r'<span\s+data-kata="(p-[a-z0-9-]+)">(.*?)</span>'
 )
+def _check_structure_integrity(text: str, messages: list[LintMessage]) -> None:
+    """D017: Verify structure integrity hash in the Schema Reference section.
+
+    The hash covers Prompt, kata:template, and Schema blocks but excludes
+    the Data block — so data changes are allowed without invalidating the
+    hash.  A mismatch indicates the template structure has been modified
+    after rendering.
+    """
+    from .template import _STRUCTURE_INTEGRITY_PATTERN, _compute_structure_hash
+
+    # Extract <details> section content
+    details_match = re.search(
+        r"<details>\s*\n\s*<summary>.*?</summary>\s*\n(.*?)<!-- kata-structure-integrity:",
+        text,
+        re.DOTALL,
+    )
+    hash_match = _STRUCTURE_INTEGRITY_PATTERN.search(text)
+
+    if hash_match is None:
+        # No hash present — skip (backward compat with older documents)
+        return
+
+    if details_match is None:
+        return
+
+    stored_hash = hash_match.group(1)
+    details_inner = details_match.group(1)
+    computed_hash = _compute_structure_hash(details_inner)
+
+    if computed_hash != stored_hash:
+        line = text[:hash_match.start()].count("\n") + 1
+        messages.append(LintMessage(
+            level="warning", line=line, column=1,
+            code="D017",
+            message=(
+                "Structure integrity hash mismatch — "
+                "Prompt, template body, or Schema may have been modified after rendering"
+            ),
+        ))
+
+
 _HTML_TAG_PATTERN = re.compile(r"<[a-zA-Z/][^>]*>")
 
 

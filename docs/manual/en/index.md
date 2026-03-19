@@ -15,3 +15,4 @@ gospelo-kata is a toolkit for generating and validating structured documents fro
 | [Workflow Guide](workflow-guide.md) | Pipeline management, retries, AI integration | Project managers |
 | [VSCode Integration](vscode-integration.md) | Extension setup, hover, lint integration | Developers |
 | [Copilot Setup](copilot-setup.md) | GitHub Copilot Chat integration | Developers |
+| [Template Package](template-package.md) | KATA ARchive™ (.katar) creation and distribution | Template authors |

@@ -1,4 +1,4 @@
-# テンプレートパッケージ (.katatpl)
+# テンプレートパッケージ — KATA ARchive™ (.katar)
 
 カスタムテンプレートの作成・パッケージ化・配布方法。
 
@@ -6,13 +6,15 @@
 
 ## 概要
 
-`.katatpl` は gospelo-kata のテンプレートパッケージフォーマットです。中身は標準的な ZIP 形式で、テンプレートに必要なファイル一式を1つのファイルにまとめます。
+KATA ARchive™ (`.katar`) は gospelo-kata のテンプレートパッケージフォーマットです。中身は標準的な ZIP 形式で、テンプレートに必要なファイル一式を1つのファイルにまとめます。
 
 展開せずそのまま `./templates/` に配置するだけで、`assemble`、`show-schema`、`show-prompt` などすべてのコマンドから利用できます。
 
 **設計原則: 1パッケージ = 1テンプレート = 1スキーマ**
 
 AI がスキーマを1つ読めばデータを生成できるよう、パッケージには1つのテンプレート（`_tpl.kata.md`）のみ含めます。複数テンプレートのデータを結合して Excel 等を生成する場合は、`generate` コマンドのオプション（`--prereq` 等）で対応します。
+
+![KATA ARchive™ セキュリティアーキテクチャ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/images/katar-security-architecture.jpg?raw=true)
 
 ---
 
@@ -167,7 +169,7 @@ items[]!:
 
 ## パッケージ化
 
-`.katatpl` の作成は `gospelo-kata pack` コマンドのみで行います。手動で ZIP ファイルを作成・リネームしないでください。
+`.katar` の作成は `gospelo-kata pack` コマンドのみで行います。手動で ZIP ファイルを作成・リネームしないでください。
 
 ### 手順
 
@@ -185,12 +187,12 @@ gospelo-kata pack-init ./my_template/
 gospelo-kata pack ./my_template/
 ```
 
-`my_template.katatpl` が生成されます。
+`my_template.katar` が生成されます。
 
 出力先を指定する場合:
 
 ```bash
-gospelo-kata pack ./my_template/ -o ./dist/my_template.katatpl
+gospelo-kata pack ./my_template/ -o ./dist/my_template.katar
 ```
 
 ### バリデーション
@@ -208,17 +210,17 @@ gospelo-kata pack ./my_template/ -o ./dist/my_template.katatpl
 ### `init --from-package` でインストール
 
 ```bash
-gospelo-kata init --from-package my_template.katatpl
+gospelo-kata init --from-package my_template.katar
 ```
 
-`./templates/my_template.katatpl` にコピーされます（展開されません）。
+`./templates/my_template.katar` にコピーされます（展開されません）。
 
 ### 手動配置
 
-`.katatpl` ファイルを直接 `./templates/` にコピーしても動作します:
+`.katar` ファイルを直接 `./templates/` にコピーしても動作します:
 
 ```bash
-cp my_template.katatpl ./templates/
+cp my_template.katar ./templates/
 ```
 
 ---
@@ -250,9 +252,9 @@ gospelo-kata lint outputs/my_template.kata.md
 コマンド実行時のテンプレート検索順序:
 
 1. **ローカル** `./templates/{name}/` (ディレクトリ)
-2. **ローカル** `./templates/{name}.katatpl` (パッケージ)
+2. **ローカル** `./templates/{name}.katar` (パッケージ)
 3. **ビルトイン** `gospelo_kata/templates/{name}/` (ディレクトリ)
-4. **ビルトイン** `gospelo_kata/templates/{name}.katatpl` (パッケージ)
+4. **ビルトイン** `gospelo_kata/templates/{name}.katar` (パッケージ)
 
 ローカルに同名のテンプレートがあれば、ビルトインより優先されます。
 
@@ -304,13 +306,13 @@ Claude Code や GitHub Copilot で `/gospelo-kata-pack` スキルを使うと、
 
 ## 配布
 
-`.katatpl` ファイルは以下の方法で配布できます:
+`.katar` ファイルは以下の方法で配布できます:
 
 - **Git リポジトリ** — プロジェクトの `templates/` に含める
 - **ファイル共有** — Slack、メール等で直接送付
 - **社内パッケージレジストリ** — Artifactory 等に保管
 
-`.katatpl` は単一ファイルなので、どの方法でも簡単に配布できます。
+`.katar` は単一ファイルなので、どの方法でも簡単に配布できます。
 
 ---
 
@@ -353,3 +355,60 @@ gospelo-kata assemble --type my_template --data data.yml
 | 合計展開サイズ | 50 MB |
 
 制限を超えるパッケージはエラーとなり、読み込まれません。
+
+### パッケージの整合性検証
+
+`.katar` パッケージには**改ざん検出**の仕組みが組み込まれています。
+
+**仕組み:**
+
+1. `gospelo-kata pack` でパッケージを作成する際、全ファイルの内容から SHA-256 ハッシュ値を計算します
+2. 計算したハッシュ値を `manifest.json` の `_integrity` フィールドに記録します
+3. パッケージを読み込む際、ファイル内容から再度ハッシュ値を計算し、`_integrity` と一致するか確認します
+4. 一致しなければ「パッケージが改ざんされた」と判断し、読み込みを拒否します
+
+これは「封筒の封印」のようなものです。封印が破られていれば中身が改ざんされた可能性があるとわかります。
+
+### レンダリング済みドキュメントの構造整合性
+
+レンダリング済み `.kata.md` ファイルにも改ざん検出の仕組みがあります。
+
+**仕組み:**
+
+1. `gospelo-kata render` 実行時、`<details>` セクション内の Prompt・テンプレート本体・Schema からハッシュ値を計算します（Data ブロックは除外）
+2. 計算したハッシュ値を HTML コメント `<!-- kata-structure-integrity: sha256:... -->` として埋め込みます
+3. `gospelo-kata lint` 実行時、同じ計算を再度行い、埋め込みハッシュと照合します
+4. 不一致の場合、`D017` warning を報告します
+
+Data ブロックを除外しているのは、ユーザーがデータを編集するのは正常な操作だからです。検出したいのは、テンプレート構造（Prompt・Schema・テンプレート本体）の意図しない変更です。
+
+### なぜこの仕組みを公開しても安全なのか
+
+暗号学には**ケルクホフスの原則**という考え方があります。「セキュリティはアルゴリズムを秘密にすることではなく、鍵を秘密にすることで保つべき」という原則です。
+
+gospelo-kata のハッシュ検証は、世界中で広く使われている SHA-256 アルゴリズムに基づいています。仕組みを知っていても、ハッシュ値が一致するようにファイル内容を改ざんすることは計算上不可能です。つまり、アルゴリズムを公開しても安全性は変わりません。
+
+### 整合性検証の限界と補完
+
+ここで重要な注意点があります。
+
+**整合性検証は「改ざん検出」であり、「作成者の証明」ではありません。**
+
+たとえば、攻撃者が `gospelo-kata pack` コマンドを使って悪意あるテンプレートを作成した場合、そのパッケージのハッシュ値は正しく計算されます。整合性検証だけでは「誰が作ったか」は判断できません。
+
+この限界を補うのが**信頼管理（Trust）**の仕組みです:
+
+- 未知のテンプレートを初めて使う際、`**Prompt**` の内容が表示され、ユーザーの明示的な承認が必要です
+- 承認なしにテンプレートが自動実行されることはありません
+- テンプレートの `**Prompt**` が変更された場合、再度確認が求められます
+
+整合性検証と信頼管理の2層構造により、「改ざんされていないこと」と「ユーザーが意図的に許可したこと」の両方を確認できます。
+
+### 既知の懸念事項
+
+| 懸念 | 対策状況 |
+|------|---------|
+| 悪意ある第三者が正規の `.katar` を作成できる | 信頼管理（Prompt 承認）で補完。初回利用時にユーザー確認が必須 |
+| `.katar` の作成者を暗号学的に証明できない | 現時点ではデジタル署名に未対応。配布元の信頼性はユーザーが判断する必要がある |
+| AI が Prompt の安全性を正しく評価できない | Prompt の内容はユーザーに表示される。最終判断はユーザーが行う |
+| レンダリング後に Data ブロックが改ざんされる可能性 | Data は構造ハッシュの対象外。Data の正確性はスキーマバリデーション（lint）で検証 |

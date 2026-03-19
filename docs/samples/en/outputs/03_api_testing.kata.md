@@ -298,4 +298,5 @@ categories:
       returns 200'
 ```
 
+<!-- kata-structure-integrity: sha256:5e19910a3772d9d674da382e473ca3fc6d7b4ea1066533f401f357f05193ff6c -->
 </details>

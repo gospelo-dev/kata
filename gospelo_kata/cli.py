@@ -12,26 +12,26 @@ import sys
 from pathlib import Path
 
 
-KATATPL_EXT = ".katatpl"
+KATAR_EXT = ".katar"
 
 
 MANIFEST_FILE = "manifest.json"
 
 TRUST_FILE = ".template_trust.json"
 
-# Allowed file extensions in .katatpl (besides manifest.json and _tpl.kata.md)
-KATATPL_ALLOWED_EXTENSIONS = frozenset({
+# Allowed file extensions in .katar (besides manifest.json and _tpl.kata.md)
+KATAR_ALLOWED_EXTENSIONS = frozenset({
     ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".bmp",
 })
 
-# Maximum limits for .katatpl packages
-KATATPL_MAX_TOTAL_SIZE = 50 * 1024 * 1024  # 50 MB
-KATATPL_MAX_FILE_COUNT = 100
-KATATPL_MAX_SINGLE_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+# Maximum limits for .katar packages
+KATAR_MAX_TOTAL_SIZE = 50 * 1024 * 1024  # 50 MB
+KATAR_MAX_FILE_COUNT = 100
+KATAR_MAX_SINGLE_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-def _is_allowed_katatpl_file(filename: str) -> bool:
-    """Check if a file is allowed in a .katatpl package.
+def _is_allowed_katar_file(filename: str) -> bool:
+    """Check if a file is allowed in a .katar package.
 
     Allowed: manifest.json, *_tpl.kata.md, and image files.
     """
@@ -41,32 +41,32 @@ def _is_allowed_katatpl_file(filename: str) -> bool:
     if basename.endswith("_tpl.kata.md"):
         return True
     ext = "." + basename.rsplit(".", 1)[-1].lower() if "." in basename else ""
-    return ext in KATATPL_ALLOWED_EXTENSIONS
+    return ext in KATAR_ALLOWED_EXTENSIONS
 
 
-def _validate_katatpl_safety(zip_path: Path) -> None:
-    """Validate a .katatpl file against size limits and integrity hash."""
+def _validate_katar_safety(zip_path: Path) -> None:
+    """Validate a .katar file against size limits and integrity hash."""
     import hashlib
     import zipfile
     with zipfile.ZipFile(zip_path, "r") as zf:
         infos = zf.infolist()
-        if len(infos) > KATATPL_MAX_FILE_COUNT:
+        if len(infos) > KATAR_MAX_FILE_COUNT:
             raise ValueError(
                 f"Too many files in {zip_path.name}: {len(infos)} "
-                f"(max {KATATPL_MAX_FILE_COUNT})"
+                f"(max {KATAR_MAX_FILE_COUNT})"
             )
         total_size = 0
         for info in infos:
-            if info.file_size > KATATPL_MAX_SINGLE_FILE_SIZE:
+            if info.file_size > KATAR_MAX_SINGLE_FILE_SIZE:
                 raise ValueError(
                     f"File too large in {zip_path.name}: {info.filename} "
-                    f"({info.file_size:,} bytes, max {KATATPL_MAX_SINGLE_FILE_SIZE:,})"
+                    f"({info.file_size:,} bytes, max {KATAR_MAX_SINGLE_FILE_SIZE:,})"
                 )
             total_size += info.file_size
-        if total_size > KATATPL_MAX_TOTAL_SIZE:
+        if total_size > KATAR_MAX_TOTAL_SIZE:
             raise ValueError(
                 f"Total uncompressed size too large in {zip_path.name}: "
-                f"{total_size:,} bytes (max {KATATPL_MAX_TOTAL_SIZE:,})"
+                f"{total_size:,} bytes (max {KATAR_MAX_TOTAL_SIZE:,})"
             )
 
         # Integrity check
@@ -169,7 +169,7 @@ def _check_template_trust(template_name: str, prompt_text: str, *, interactive: 
 
 
 class TemplateSource:
-    """Abstraction over a template stored as a directory or a .katatpl file."""
+    """Abstraction over a template stored as a directory or a .katar file."""
 
     def __init__(self, name: str, path: Path, is_zip: bool = False):
         self.name = name
@@ -185,13 +185,13 @@ class TemplateSource:
     def _ensure_validated(self) -> None:
         """Run safety validation once on first access."""
         if self.is_zip and not self._validated:
-            _validate_katatpl_safety(self.path)
+            _validate_katar_safety(self.path)
             self._validated = True
 
     def read_bytes(self, filename: str) -> bytes:
         """Read a file as bytes from the template source."""
-        if self.is_zip and not _is_allowed_katatpl_file(filename):
-            raise PermissionError(f"disallowed file type in katatpl: {filename}")
+        if self.is_zip and not _is_allowed_katar_file(filename):
+            raise PermissionError(f"disallowed file type in katar: {filename}")
         if self.is_zip:
             self._ensure_validated()
             import zipfile
@@ -224,7 +224,7 @@ class TemplateSource:
                     if n.endswith("/"):
                         continue
                     rel = n[len(prefix):] if n.startswith(prefix) else n
-                    if _is_allowed_katatpl_file(rel):
+                    if _is_allowed_katar_file(rel):
                         files.append(rel)
                 return files
         return [
@@ -318,15 +318,15 @@ def _local_templates_dir() -> Path:
 
 
 def _list_template_sources(base_dir: Path) -> list[TemplateSource]:
-    """List all template sources (directories and .katatpl files) in a base directory."""
+    """List all template sources (directories and .katar files) in a base directory."""
     sources: list[TemplateSource] = []
     if not base_dir.exists():
         return sources
     for entry in sorted(base_dir.iterdir()):
         if entry.is_dir():
             sources.append(TemplateSource(entry.name, entry, is_zip=False))
-        elif entry.name.endswith(KATATPL_EXT):
-            name = entry.name[: -len(KATATPL_EXT)]
+        elif entry.name.endswith(KATAR_EXT):
+            name = entry.name[: -len(KATAR_EXT)]
             sources.append(TemplateSource(name, entry, is_zip=True))
     return sources
 
@@ -334,7 +334,7 @@ def _list_template_sources(base_dir: Path) -> list[TemplateSource]:
 def _resolve_template(type_name: str) -> TemplateSource:
     """Resolve a template type name to a TemplateSource.
 
-    Search order: local ./templates/{type} or {type}.katatpl -> built-in package templates.
+    Search order: local ./templates/{type} or {type}.katar -> built-in package templates.
     """
     for base in (_local_templates_dir(), _builtin_templates_dir()):
         if not base.exists():
@@ -343,8 +343,8 @@ def _resolve_template(type_name: str) -> TemplateSource:
         d = base / type_name
         if d.is_dir():
             return TemplateSource(type_name, d, is_zip=False)
-        # Check .katatpl
-        z = base / f"{type_name}{KATATPL_EXT}"
+        # Check .katar
+        z = base / f"{type_name}{KATAR_EXT}"
         if z.is_file():
             return TemplateSource(type_name, z, is_zip=True)
 
@@ -423,10 +423,10 @@ def build_parser() -> argparse.ArgumentParser:
         "init", help="Initialize a document from a template",
     )
     init_parser.add_argument(
-        "--type", help="Document type (e.g., checklist, test_spec) or path to .katatpl",
+        "--type", help="Document type (e.g., checklist, test_spec) or path to .katar",
     )
     init_parser.add_argument(
-        "--from-package", help="Path to .katatpl package file to install",
+        "--from-package", help="Path to .katar package file to install",
     )
     init_parser.add_argument(
         "--output", "-o", help="Output directory or file path",
@@ -437,7 +437,7 @@ def build_parser() -> argparse.ArgumentParser:
         "render", help="Render a self-contained .kata.md file using its {#data} block",
     )
     render_parser.add_argument(
-        "file", help=".kata.md file containing {#schema}, {#data}, and template",
+        "file", help=".kata.md file to render (_tpl.kata.md files are not allowed)",
     )
     render_parser.add_argument(
         "--output", "-o", help="Output file path (default: stdout)",
@@ -606,14 +606,14 @@ def build_parser() -> argparse.ArgumentParser:
     # --- pack ---
     pack_parser = subparsers.add_parser(
         "pack",
-        help="Pack a template directory into a .katatpl package",
+        help="Pack a template directory into a .katar package",
     )
     pack_parser.add_argument(
         "template_dir", help="Template directory to pack (e.g., ./templates/checklist)",
     )
     pack_parser.add_argument(
         "--output", "-o",
-        help="Output .katatpl file path (default: {name}.katatpl)",
+        help="Output .katar file path (default: {name}.katar)",
     )
 
     # --- pack-init ---
@@ -831,6 +831,14 @@ def _cmd_render(args: argparse.Namespace) -> None:
         print(f"Error: file not found: {file_path}", file=sys.stderr)
         sys.exit(1)
 
+    if file_path.name.endswith("_tpl.kata.md"):
+        print(
+            "Error: _tpl.kata.md files cannot be rendered directly. "
+            "Use 'gospelo-kata assemble' with a .katar package to create a renderable file.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     try:
         result = render_kata(
             str(file_path),
@@ -889,7 +897,7 @@ def _cmd_templates(args: argparse.Namespace) -> None:
             pass  # no _tpl.kata.md — still list it
         ver = src.version()
         ver_str = f" v{ver}" if ver else ""
-        pkg = " (.katatpl)" if src.is_zip else ""
+        pkg = " (.katar)" if src.is_zip else ""
         reqs = src.requires()
         req_str = f" requires: {', '.join(reqs)}" if reqs else ""
         tag = f" [{', '.join(flags)}]" if flags else ""
@@ -917,13 +925,13 @@ def _cmd_init(args: argparse.Namespace) -> None:
     output_dir = Path(args.output) if args.output else Path(".")
 
     if args.from_package:
-        # Install .katatpl to local templates directory (no extraction)
+        # Install .katar to local templates directory (no extraction)
         pkg_path = Path(args.from_package)
         if not pkg_path.exists():
             print(f"Error: package not found: {pkg_path}", file=sys.stderr)
             sys.exit(1)
-        if not pkg_path.name.endswith(KATATPL_EXT):
-            print(f"Error: expected {KATATPL_EXT} file, got: {pkg_path.name}", file=sys.stderr)
+        if not pkg_path.name.endswith(KATAR_EXT):
+            print(f"Error: expected {KATAR_EXT} file, got: {pkg_path.name}", file=sys.stderr)
             sys.exit(1)
 
         tpl_dest = output_dir / "templates"
@@ -933,7 +941,7 @@ def _cmd_init(args: argparse.Namespace) -> None:
             print(f"  skip (exists): {dst}")
             return
         shutil.copy2(pkg_path, dst)
-        tpl_name = pkg_path.name[: -len(KATATPL_EXT)]
+        tpl_name = pkg_path.name[: -len(KATAR_EXT)]
         print(f"  created: {dst}")
         print(f"  Installed template '{tpl_name}' from {pkg_path.name}")
         return
@@ -947,7 +955,7 @@ def _cmd_init(args: argparse.Namespace) -> None:
     outputs_dest = output_dir / "outputs"
 
     if tpl_source.is_zip:
-        # Copy .katatpl as-is
+        # Copy .katar as-is
         tpl_dest.mkdir(parents=True, exist_ok=True)
         dst = tpl_dest / tpl_source.path.name
         if dst.exists():
@@ -1230,12 +1238,12 @@ def _print_yaml_shorthand(schema: dict, indent: int = 0) -> None:
 def _resolve_template_source(name_or_path: str) -> str:
     """Resolve a template name or path to its source text.
 
-    Search order: file path -> local ./templates/{name} or .katatpl -> built-in templates.
+    Search order: file path -> local ./templates/{name} or .katar -> built-in templates.
     """
     path = Path(name_or_path)
     if path.exists():
         return path.read_text(encoding="utf-8")
-    # Try as template name via _resolve_template (handles dirs and .katatpl)
+    # Try as template name via _resolve_template (handles dirs and .katar)
     try:
         src = _resolve_template(name_or_path)
         return src.find_tpl_kata_md()
@@ -1512,7 +1520,7 @@ def _cmd_assemble(args: argparse.Namespace) -> None:
 
 
 def _cmd_pack(args: argparse.Namespace) -> None:
-    """Pack a template directory into a .katatpl package."""
+    """Pack a template directory into a .katar package."""
     import zipfile
 
     src_dir = Path(args.template_dir)
@@ -1545,14 +1553,14 @@ def _cmd_pack(args: argparse.Namespace) -> None:
     if args.output:
         out_path = Path(args.output)
     else:
-        out_path = Path(f"{tpl_name}{KATATPL_EXT}")
+        out_path = Path(f"{tpl_name}{KATAR_EXT}")
 
     # Validate all files are allowed types
     rejected = []
     for file in sorted(src_dir.rglob("*")):
         if file.is_file():
             rel = str(file.relative_to(src_dir))
-            if not _is_allowed_katatpl_file(rel):
+            if not _is_allowed_katar_file(rel):
                 rejected.append(rel)
     if rejected:
         print("Error: disallowed file types found (only template, manifest, and image files are allowed):", file=sys.stderr)

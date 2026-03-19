@@ -74,12 +74,31 @@ pip install gospelo-kata
 
 | Code | Level | Description |
 |------|-------|-------------|
-| D001 | error | Schema not found |
+| D001 | info | External schema not found (using inline anchors) |
 | D002 | error | Required section (`## Heading`) missing |
 | D003 | warning | Table column count mismatch |
-| D004 | warning | Empty section |
-| D005 | warning | Annotation link target not in schema |
-| D006 | info | Schema properties with no links |
+| D004 | warning | Empty section (heading only, no content) |
+| D005 | warning | `data-kata` anchor not found in schema properties |
+| D006 | info | Schema property not referenced by any annotation |
+| D007 | warning | Enum value not in allowed values list |
+| D008 | warning | String shorter than minLength |
+| D009 | warning | String exceeds maxLength |
+| D010 | warning | Array element count outside minItems/maxItems range |
+| D011 | warning | Duplicate `data-kata` anchor ID |
+| D012 | error/warning | kata-card structure issue |
+| D014 | warning | Missing `<details>` or `<style>` section |
+| D015 | warning | Enum value in table lacks data-kata annotation |
+| D016 | error | HTML tag found inside data-kata span |
+| D017 | warning | Structure integrity hash mismatch |
+
+### Security
+
+| Code | Description |
+|------|-------------|
+| D016 | Detects HTML injection inside `data-kata` spans (XSS prevention) |
+| D017 | Verifies structure integrity hash — detects post-render tampering of Prompt, Schema, or template body |
+
+D017 is part of the [KATA ARchive™ security architecture](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md#why-publishing-this-process-is-safe). See the [Template Package Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md) for details on integrity verification and trust management.
 
 ---
 

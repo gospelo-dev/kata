@@ -83,6 +83,7 @@
 | D014 | warning | `<details>` または `<style>` セクションが欠落 |
 | D015 | warning | テーブル内の enum 値に data-kata アノテーションがない |
 | D016 | error | data-kata span 内に HTML タグが含まれている |
+| D017 | warning | 構造整合性ハッシュの不一致 |
 
 ### D016 の詳細
 
@@ -100,6 +101,19 @@ gospelo-kata render source.kata.md -o output.kata.md
 ```
 
 `render` は新規出力時に `html.escape()` で自動サニタイズします。
+
+### D017 の詳細
+
+構造整合性ハッシュは `<details>` Schema Reference セクション内のテンプレート構造（Prompt、テンプレート本体、Schema）を改ざんから保護します。Data ブロックはハッシュ対象外のため、データの変更では検出されません。
+
+- **warning**: ハッシュ不一致 — Prompt、テンプレート本体、Schema がレンダリング後に変更されている
+- 整合性ハッシュのないドキュメント（旧ファイル）ではこのルールは発動しない
+
+**対処**:
+```bash
+# ソースから再レンダリングしてハッシュを再生成
+gospelo-kata render source.kata.md -o output.kata.md
+```
 
 ---
 

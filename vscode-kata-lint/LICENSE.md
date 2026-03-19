@@ -24,7 +24,7 @@ SOFTWARE.
 
 ## User-Created Templates
 
-Templates (`.katatpl` packages) created by users using this software are the
+Templates (`.katar` packages) created by users using this software are the
 intellectual property of their respective creators. This license applies only
 to the gospelo-kata software itself, not to the content produced by or for it.
 

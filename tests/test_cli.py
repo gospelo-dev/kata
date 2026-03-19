@@ -67,20 +67,20 @@ class TestInitCommand:
     def test_init_agenda(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             output = _run(["init", "--type", "agenda", "--output", tmpdir])
-            # .katatpl is copied as-is to templates/
-            assert os.path.exists(os.path.join(tmpdir, "templates", "agenda.katatpl"))
+            # .katar is copied as-is to templates/
+            assert os.path.exists(os.path.join(tmpdir, "templates", "agenda.katar"))
             assert os.path.exists(os.path.join(tmpdir, "outputs"))
             assert os.path.exists(os.path.join(tmpdir, ".workflow_status.json"))
 
     def test_init_checklist(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             output = _run(["init", "--type", "checklist", "--output", tmpdir])
-            assert os.path.exists(os.path.join(tmpdir, "templates", "checklist.katatpl"))
+            assert os.path.exists(os.path.join(tmpdir, "templates", "checklist.katar"))
 
     def test_init_test_spec(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             output = _run(["init", "--type", "test_spec", "--output", tmpdir])
-            assert os.path.exists(os.path.join(tmpdir, "templates", "test_spec.katatpl"))
+            assert os.path.exists(os.path.join(tmpdir, "templates", "test_spec.katar"))
 
     def test_init_nonexistent_type(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -349,3 +349,32 @@ class TestInitVscodeCommand:
             for task in data["tasks"]:
                 assert "problemMatcher" in task
                 assert task["problemMatcher"]["owner"] == "kata"
+
+
+# ---------------------------------------------------------------------------
+# render — _tpl.kata.md rejection
+# ---------------------------------------------------------------------------
+
+class TestRenderTplRejection:
+    def test_render_rejects_tpl_kata_md(self, tmp_path):
+        tpl = tmp_path / "sample_tpl.kata.md"
+        tpl.write_text("# Test\n")
+        import io, sys
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            _run(["render", str(tpl)], expect_exit=1)
+        finally:
+            err = sys.stderr.getvalue()
+            sys.stderr = old_stderr
+        assert "_tpl.kata.md files cannot be rendered directly" in err
+
+    def test_render_allows_regular_kata_md(self, tmp_path):
+        md = tmp_path / "sample.kata.md"
+        md.write_text(
+            "**Schema**\n```yaml\ntype: object\nproperties:\n  name:\n    type: string\n```\n\n"
+            "**Data**\n```yaml\nname: test\n```\n\n"
+            "# Hello {{ name }}\n"
+        )
+        output = _run(["render", str(md)])
+        assert "Hello" in output and "test" in output

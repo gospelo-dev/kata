@@ -2,7 +2,7 @@
   "name": "kata-lint",
   "displayName": "KATA Markdown™ Language Support",
   "description": "Linter for .kata.md template files — powered by gospelo-kata CLI",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "gospelo",
   "author": {
     "name": "gorosun",

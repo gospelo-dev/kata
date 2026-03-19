@@ -269,4 +269,5 @@ categories:
     requirements: describe-trails + get-trail-status で全リージョン有効化を確認
 ```
 
+<!-- kata-structure-integrity: sha256:d35327e9370b304689de549cda459f48a3c68cb00f40eb2350b6eff0d9334c80 -->
 </details>
