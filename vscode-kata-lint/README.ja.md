@@ -74,12 +74,31 @@ pip install gospelo-kata
 
 | Code | Level | 説明 |
 |------|-------|------|
-| D001 | error | 指定されたスキーマが見つからない |
+| D001 | info | 外部スキーマが見つからない（インラインアンカーを使用） |
 | D002 | error | 必須セクション (`## Heading`) が欠落 |
 | D003 | warning | テーブルのカラム数が不一致 |
-| D004 | warning | 空のセクション |
-| D005 | warning | アノテーションリンクのリンク先がスキーマに存在しない |
-| D006 | info | スキーマプロパティにリンクがない |
+| D004 | warning | 空のセクション（見出しのみ、内容なし） |
+| D005 | warning | `data-kata` アンカーがスキーマプロパティに存在しない |
+| D006 | info | スキーマプロパティがアノテーションで参照されていない |
+| D007 | warning | enum 値が許可値リストにない |
+| D008 | warning | 文字列が minLength より短い |
+| D009 | warning | 文字列が maxLength を超過 |
+| D010 | warning | 配列要素数が minItems/maxItems の範囲外 |
+| D011 | warning | `data-kata` アンカー ID が重複 |
+| D012 | error/warning | kata-card 構造の問題 |
+| D014 | warning | `<details>` または `<style>` セクションが欠落 |
+| D015 | warning | テーブル内の enum 値に data-kata アノテーションがない |
+| D016 | error | data-kata span 内に HTML タグが検出された |
+| D017 | warning | 構造整合性ハッシュの不一致 |
+
+### セキュリティ
+
+| Code | 説明 |
+|------|------|
+| D016 | `data-kata` span 内の HTML インジェクションを検出（XSS 防止） |
+| D017 | 構造整合性ハッシュを検証 — レンダリング後の Prompt・Schema・テンプレート本体の改ざんを検出 |
+
+D017 は [KATA ARchive™ セキュリティアーキテクチャ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md#なぜこの仕組みを公開しても安全なのか)の一部です。整合性検証と信頼管理の詳細は[テンプレートパッケージガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md)を参照してください。
 
 ---
 

@@ -29,9 +29,29 @@ gospelo-kata solves this with a **single `.kata.md` file** that contains everyth
 - **Round-trip** — extract structured data back from rendered documents
 - **Lint** — validate both templates and rendered output (20+ rules)
 - **AI-friendly** — `assemble` command lets AI generate only YAML data; the toolkit handles the rest
+- **Secure packaging** — KATA ARchive™ (`.katar`) bundles templates with integrity verification and trust management
 - **Multi-format output** — Markdown, Excel, and HTML
 - **VSCode extension** — real-time lint, hover info, preview CSS
 - **Zero external dependencies** for core features (built-in Jinja2 3.1.6-compatible engine; PyYAML required, openpyxl optional for Excel)
+
+## KATA ARchive™ (.katar) — Secure Template Packages
+
+KATA ARchive™ is a secure, single-file template package format. A `.katar` file bundles template, schema, prompt, manifest, and optional images into a ZIP archive that AI can autonomously discover, understand, and use — no manual instructions needed.
+
+- **Self-contained** — everything AI needs is in one file
+- **Integrity-verified** — `pack` computes a hash stored in `manifest.json`; tampered packages are rejected on load
+- **Sandboxed** — only `manifest.json`, `_tpl.kata.md`, and image files are allowed; all other file types are blocked
+- **Trust-managed** — AI prompt execution requires explicit user approval; changes to prompts trigger re-confirmation
+- **Structure integrity** — rendered `.kata.md` output embeds a hash to detect post-render tampering of template structure
+
+```bash
+# Create, pack, and use a template
+gospelo-kata pack-init ./my_template/
+gospelo-kata pack ./my_template/ -o my_template.katar
+gospelo-kata init --from-package my_template.katar
+```
+
+See the [Template Package Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md) for details.
 
 ## Installation
 
@@ -228,6 +248,8 @@ categories:
 | `extract`         | Extract structured data from rendered output              |
 | `validate`        | Validate JSON/YAML data against a schema                  |
 | `generate`        | Generate Markdown/Excel/HTML from JSON data               |
+| `pack`            | Pack a template directory into a `.katar` archive         |
+| `pack-init`       | Scaffold a new template directory                         |
 | `show-schema`     | Display template schema                                   |
 | `show-prompt`     | Display AI prompt                                         |
 | `fmt`             | Auto-format `data-kata` spans                             |
@@ -267,6 +289,7 @@ See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main
 - [Workflow Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/workflow-guide.md)
 - [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md)
 - [Copilot Setup](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/copilot-setup.md)
+- [Template Package](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md)
 
 ## License
 

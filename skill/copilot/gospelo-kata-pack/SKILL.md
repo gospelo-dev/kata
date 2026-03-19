@@ -1,11 +1,11 @@
 ---
 name: gospelo-kata-pack
-description: Manage .katatpl template packages (unpack, edit, repack, test)
+description: Manage KATA ARchive™ (.katar) template packages (unpack, edit, repack, test)
 ---
 
 # KATA Markdown™ Template Package Management
 
-Manage `.katatpl` template packages: unpack, edit, repack, and verify.
+Manage `.katar` template packages: unpack, edit, repack, and verify.
 
 ## Prerequisites
 
@@ -27,12 +27,12 @@ python -m gospelo_kata.cli templates
 
 ### 2. Unpack a template for editing
 
-`.katatpl` files are ZIP archives. Extract to a temporary directory:
+`.katar` files are ZIP archives. Extract to a temporary directory:
 
 ```bash
 python -c "
 import zipfile
-with zipfile.ZipFile('gospelo_kata/templates/{name}.katatpl', 'r') as zf:
+with zipfile.ZipFile('gospelo_kata/templates/{name}.katar', 'r') as zf:
     zf.extractall('/tmp/{name}_rebuild')
 "
 ```
@@ -57,7 +57,7 @@ Edit `{name}_tpl.kata.md`. The template contains:
 ### 4. Repack
 
 ```bash
-python -m gospelo_kata.cli pack /tmp/{name}_rebuild/{name} -o gospelo_kata/templates/{name}.katatpl
+python -m gospelo_kata.cli pack /tmp/{name}_rebuild/{name} -o gospelo_kata/templates/{name}.katar
 ```
 
 This regenerates the integrity hash in `manifest.json`.
@@ -91,7 +91,7 @@ If lint errors exist, fix the template and repeat from Step 4.
 | Command | Description |
 |---------|-------------|
 | `templates` | List available templates |
-| `pack {dir}` | Pack a directory into `.katatpl` |
+| `pack {dir}` | Pack a directory into `.katar` |
 | `pack-init {name}` | Create a new template scaffold |
 | `assemble --type {name} --data {file}` | Combine template + data into `_tpl.kata.md` |
 | `render {file}` | Render a `_tpl.kata.md` to final output |
