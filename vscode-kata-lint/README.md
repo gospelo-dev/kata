@@ -66,6 +66,8 @@ pip install gospelo-kata
 | T004 | error | `{% endif %}` without matching `{% if %}` |
 | T005 | error | `{% endfor %}` without matching `{% for %}` |
 | T006 | warning | Unknown block tag |
+| P001 | warning | No prompt block found |
+| P002 | warning | Suspicious prompt content detected (prompt injection pattern) |
 | F001 | error | Unknown filter name |
 | V001 | warning | Variable not found in schema properties |
 | V002 | info | Unused schema properties |
@@ -95,8 +97,11 @@ pip install gospelo-kata
 
 | Code | Description |
 |------|-------------|
+| P002 | Pattern-based prompt injection detection — role override, instruction override, command execution, credential access, chat-ML delimiters |
 | D016 | Detects HTML injection inside `data-kata` spans (XSS prevention) |
 | D017 | Verifies structure integrity hash — detects post-render tampering of Prompt, Schema, or template body |
+
+P002 checks are also performed during `assemble` via `_check_template_trust()`. See the [Prompt Design Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/prompt-design-guide.md) for details.
 
 D017 is part of the [KATA ARchive™ security architecture](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md#why-publishing-this-process-is-safe). See the [Template Package Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md) for details on integrity verification and trust management.
 

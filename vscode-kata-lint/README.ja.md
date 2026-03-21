@@ -66,6 +66,8 @@ pip install gospelo-kata
 | T004 | error | `{% endif %}` に対応する `{% if %}` がない |
 | T005 | error | `{% endfor %}` に対応する `{% for %}` がない |
 | T006 | warning | 不明なブロックタグ |
+| P001 | warning | プロンプトブロックが見つからない |
+| P002 | warning | 疑わしいプロンプト内容を検出（プロンプトインジェクションパターン） |
 | F001 | error | 不明なフィルター名 |
 | V001 | warning | スキーマプロパティに存在しない変数参照 |
 | V002 | info | テンプレートで使用されていないスキーマプロパティ |
@@ -95,8 +97,11 @@ pip install gospelo-kata
 
 | Code | 説明 |
 |------|------|
+| P002 | パターンベースのプロンプトインジェクション検出 — ロール上書き、命令上書き、コマンド実行、資格情報アクセス、Chat-ML デリミタ |
 | D016 | `data-kata` span 内の HTML インジェクションを検出（XSS 防止） |
 | D017 | 構造整合性ハッシュを検証 — レンダリング後の Prompt・Schema・テンプレート本体の改ざんを検出 |
+
+P002 のチェックは `assemble` 時の `_check_template_trust()` でも実行されます。詳細は[プロンプト設計ガイドライン](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/prompt-design-guide.md)を参照。
 
 D017 は [KATA ARchive™ セキュリティアーキテクチャ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md#なぜこの仕組みを公開しても安全なのか)の一部です。整合性検証と信頼管理の詳細は[テンプレートパッケージガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md)を参照してください。
 
