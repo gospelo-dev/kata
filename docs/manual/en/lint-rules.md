@@ -38,8 +38,11 @@ Template syntax validation. Applied to files containing schema blocks, `{{ }}`, 
 | Code | Level | Description |
 |------|-------|-------------|
 | P001 | warning | No prompt block found |
+| P002 | warning | Suspicious prompt content detected |
 
-**Remedy**: Add a `**Prompt**` + `` ```yaml `` block to the template. This provides AI guidance for data generation. User confirmation is required on first use.
+**P001 Remedy**: Add a `**Prompt**` + `` ```yaml `` block to the template. This provides AI guidance for data generation. User confirmation is required on first use.
+
+**P002 Remedy**: The prompt contains patterns commonly associated with prompt injection (e.g., role override, instruction override, command execution, credential access). Review the prompt content and remove any suspicious instructions. Prompts should only describe **what data to generate** and **what each field means** — see [Prompt Design Guide](prompt-design-guide.md).
 
 ### F — Filter Validation
 

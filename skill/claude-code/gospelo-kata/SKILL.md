@@ -122,9 +122,13 @@ categories[]!:
 ```
 
 - `string!` — Required string
+- `integer` — Integer
+- `number` — Number
+- `boolean` — Boolean
 - `enum(a, b)` — Enumeration of permitted values
 - `items[]!` — Required array (children are objects)
 - `string[]` — Array of strings
+- Type aliases: `int` → `integer`, `float` → `number`, `bool` → `boolean`, `str` → `string`
 
 ### Prompt Block
 

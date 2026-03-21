@@ -24,3 +24,4 @@ vscode-kata-lint/out/
 vscode-kata-lint/*.vsix
 .template_trust.json
 skill/*.zip
+gospelo_kata/templates/_work/

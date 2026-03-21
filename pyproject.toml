@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gospelo-kata"
-version = "0.2.2"
+version = "0.3.0"
 description = "KATA Markdown™ toolkit for human-AI collaboration: schema, validation, and template in a single file"
 readme = "README.md"
 license = "MIT"
@@ -47,9 +47,15 @@ include = [
     "LICENSE.md",
     "README.md",
 ]
+exclude = [
+    "gospelo_kata/templates/_work/",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["gospelo_kata"]
+exclude = [
+    "gospelo_kata/templates/_work/",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,33 @@
+version: "1.0"
+description: 最小構成のチェックリスト
+categories:
+- id: basic
+  name: 基本テスト
+  items:
+    - id: "1"
+      name: Login Function
+      name_ja: ログイン機能
+      status: approve
+      auto: full
+      target: /api/auth/login
+      tags:
+        - auth
+      requirements: "正常系: 有効なメール+パスワードで200とJWTトークンが返る"
+    - id: "2"
+      name: User Registration
+      name_ja: ユーザー登録
+      status: reject
+      auto: full
+      target: /api/auth/register
+      tags:
+        - auth
+      requirements: "正常系: 必須フィールド入力で201とユーザーオブジェクトが返る"
+    - id: "3"
+      name: Data Export
+      name_ja: データエクスポート
+      status: draft
+      auto: full
+      target: /api/export
+      tags:
+        - data
+      requirements: "正常系: CSV形式でデータがダウンロードできる"

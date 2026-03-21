@@ -140,6 +140,10 @@ def _check_template_trust(template_name: str, prompt_text: str, *, interactive: 
     if not interactive:
         return False
 
+    # Check for prompt injection patterns
+    from .linter import detect_prompt_injection
+    injection_hits = detect_prompt_injection(prompt_text)
+
     # Show prompt for review
     print("=" * 60, file=sys.stderr)
     print(f"Template '{template_name}' — prompt review required", file=sys.stderr)
@@ -148,6 +152,13 @@ def _check_template_trust(template_name: str, prompt_text: str, *, interactive: 
     print(prompt_text, file=sys.stderr)
     print(file=sys.stderr)
     print("=" * 60, file=sys.stderr)
+
+    if injection_hits:
+        print(file=sys.stderr)
+        print("⚠ SECURITY WARNING: suspicious patterns detected in prompt:", file=sys.stderr)
+        for hit in injection_hits:
+            print(f"  - {hit['description']} (matched: '{hit['match']}')", file=sys.stderr)
+        print(file=sys.stderr)
 
     if store.get(template_name):
         print("WARNING: prompt content has changed since last approval.", file=sys.stderr)

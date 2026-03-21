@@ -72,13 +72,24 @@ categories[]!:
 |------|------|-----------------|
 | `string` | 任意文字列 | `{"type": "string"}` |
 | `string!` | 必須文字列 | `{"type": "string"}` + required |
-| `int` | 整数 | `{"type": "integer"}` |
+| `integer` | 整数 | `{"type": "integer"}` |
 | `number` | 数値 | `{"type": "number"}` |
 | `boolean` | 真偽値 | `{"type": "boolean"}` |
 | `enum(a, b, c)` | 列挙型 | `{"type": "string", "enum": ["a","b","c"]}` |
 | `string[]` | 文字列配列 | `{"type": "array", "items": {"type": "string"}}` |
 | `items[]!:` | 必須オブジェクト配列 | `{"type": "array", "items": {"type": "object", ...}}` + required |
 | `items[]:` | 任意オブジェクト配列 | 同上 (required なし) |
+
+#### 型エイリアス
+
+Python/PyYAML の型名に合わせた短縮形も使用可能です。パース時に正規型名に正規化されます。
+
+| エイリアス | 正規化先 |
+|-----------|---------|
+| `int` | `integer` |
+| `float` | `number` |
+| `bool` | `boolean` |
+| `str` | `string` |
 
 ### ネスト
 

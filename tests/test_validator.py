@@ -290,7 +290,7 @@ class TestValidateFile:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False, dir="/tmp"
         ) as f:
-            f.write("{invalid}")
+            f.write("{invalid: [}")
             path = f.name
 
         try:

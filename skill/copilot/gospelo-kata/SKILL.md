@@ -165,6 +165,7 @@ categories[]!:
 - `enum(a, b)` — Enumeration of permitted values
 - `items[]!` — Required object array
 - `string[]` — String array
+- Type aliases: `int` → `integer`, `float` → `number`, `bool` → `boolean`, `str` → `string`
 
 ### Prompt Block `{#prompt ... #}`
 
