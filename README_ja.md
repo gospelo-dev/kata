@@ -213,12 +213,13 @@ categories:
 
 | 記法                       | 意味                                        |
 | -------------------------- | ------------------------------------------- |
-| `string`                   | 任意文字列                                  |
-| `string!`                  | 必須文字列                                  |
-| `int`, `number`, `boolean` | 型付き値                                    |
-| `enum(a, b, c)`            | 列挙型                                      |
-| `string[]`                 | 文字列配列                                  |
-| `items[]!:`                | 必須オブジェクト配列 (子をインデントで記述) |
+| `string`                         | 任意文字列                                           |
+| `string!`                        | 必須文字列                                           |
+| `integer`, `number`, `boolean`   | 型付き値                                             |
+| `int`, `float`, `bool`, `str`    | エイリアス (→ integer, number, boolean, string)       |
+| `enum(a, b, c)`                  | 列挙型                                               |
+| `string[]`                       | 文字列配列                                           |
+| `items[]!:`                      | 必須オブジェクト配列 (子をインデントで記述)           |
 
 ### レンダリング出力
 
@@ -290,6 +291,8 @@ gospelo-kata は AI アシスタントとの連携を前提に設計されてい
 - [VSCode 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md)
 - [Copilot セットアップ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/copilot-setup.md)
 - [テンプレートパッケージ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md)
+- [プロンプト設計ガイドライン](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/prompt-design-guide.md)
+- [型変換リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/type-conversion.md)
 
 ## ライセンス
 

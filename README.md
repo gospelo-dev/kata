@@ -213,12 +213,13 @@ categories:
 
 | Notation                   | Meaning                                     |
 | -------------------------- | ------------------------------------------- |
-| `string`                   | Optional string                             |
-| `string!`                  | Required string                             |
-| `int`, `number`, `boolean` | Typed values                                |
-| `enum(a, b, c)`            | Enumeration                                 |
-| `string[]`                 | String array                                |
-| `items[]!:`                | Required array of objects (indent children) |
+| `string`                         | Optional string                             |
+| `string!`                        | Required string                             |
+| `integer`, `number`, `boolean`   | Typed values                                |
+| `int`, `float`, `bool`, `str`    | Aliases (→ integer, number, boolean, string) |
+| `enum(a, b, c)`                  | Enumeration                                 |
+| `string[]`                       | String array                                |
+| `items[]!:`                      | Required array of objects (indent children) |
 
 ### Rendered Output
 
@@ -290,6 +291,8 @@ See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main
 - [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md)
 - [Copilot Setup](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/copilot-setup.md)
 - [Template Package](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md)
+- [Prompt Design Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/prompt-design-guide.md)
+- [Type Conversion](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/type-conversion.md)
 
 ## License
 

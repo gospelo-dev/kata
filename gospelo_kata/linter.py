@@ -377,14 +377,95 @@ def _check_unused_properties(
         ))
 
 
+# ---------------------------------------------------------------------------
+# Prompt injection detection
+# ---------------------------------------------------------------------------
+
+_PROMPT_INJECTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    # Role/identity override
+    (re.compile(r"you\s+are\s+(now|a|an)\b", re.IGNORECASE),
+     "role override attempt ('you are now/a/an ...')"),
+    (re.compile(r"act\s+as\s+(a|an|if)\b", re.IGNORECASE),
+     "role override attempt ('act as ...')"),
+    (re.compile(r"pretend\s+(to\s+be|you\s+are)\b", re.IGNORECASE),
+     "role override attempt ('pretend to be ...')"),
+    # Instruction override
+    (re.compile(r"ignore\s+(all\s+)?(previous|above|prior|earlier)\s+(instructions?|rules?|prompts?)", re.IGNORECASE),
+     "instruction override attempt ('ignore previous instructions')"),
+    (re.compile(r"disregard\s+(all\s+)?(previous|above|prior|earlier)", re.IGNORECASE),
+     "instruction override attempt ('disregard previous ...')"),
+    (re.compile(r"forget\s+(all\s+)?(previous|above|prior|earlier)", re.IGNORECASE),
+     "instruction override attempt ('forget previous ...')"),
+    (re.compile(r"override\s+(the\s+)?(system|instructions?|rules?)", re.IGNORECASE),
+     "instruction override attempt ('override system/instructions')"),
+    # System prompt extraction
+    (re.compile(r"(show|reveal|print|output|display|repeat)\s+(your\s+)?(system\s+prompt|instructions|rules)", re.IGNORECASE),
+     "system prompt extraction attempt"),
+    (re.compile(r"what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions|rules)", re.IGNORECASE),
+     "system prompt extraction attempt"),
+    # Command execution
+    (re.compile(r"(execute|run|eval)\s+(this\s+)?(command|shell|script|code|bash|python)", re.IGNORECASE),
+     "command execution attempt"),
+    (re.compile(r"(os\.system|subprocess|exec|eval)\s*\(", re.IGNORECASE),
+     "code execution pattern"),
+    # Special tokens / delimiters
+    (re.compile(r"<\|im_start\|>|<\|im_end\|>|<\|endoftext\|>"),
+     "chat-ML delimiter injection"),
+    (re.compile(r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>"),
+     "Llama-style delimiter injection"),
+    # Data exfiltration
+    (re.compile(r"(send|post|upload|transmit|exfiltrate)\s+(to|data|the|all)", re.IGNORECASE),
+     "potential data exfiltration instruction"),
+    # Credential / secret access
+    (re.compile(r"(access|read|show|print|display|reveal)\s+(the\s+|your\s+|my\s+)?(api[_\s]?key|secret|password|credential|token|env)", re.IGNORECASE),
+     "credential access attempt"),
+]
+
+
+def detect_prompt_injection(prompt_content: str) -> list[dict]:
+    """Scan prompt content for injection patterns.
+
+    Returns a list of dicts with keys: 'pattern', 'description', 'line_offset', 'match'.
+    """
+    hits: list[dict] = []
+    lines = prompt_content.split("\n")
+    for line_idx, line in enumerate(lines):
+        for pattern, description in _PROMPT_INJECTION_PATTERNS:
+            m = pattern.search(line)
+            if m:
+                hits.append({
+                    "pattern": pattern.pattern,
+                    "description": description,
+                    "line_offset": line_idx,
+                    "match": m.group(0),
+                })
+    return hits
+
+
 def _check_prompt_block(text: str, messages: list[LintMessage]) -> None:
     """Check that a {#prompt} block is present in the template."""
     from .template import _PROMPT_PATTERN, _PROMPT_CODEBLOCK_PATTERN
 
-    if not _PROMPT_PATTERN.search(text) and not _PROMPT_CODEBLOCK_PATTERN.search(text):
+    prompt_match = _PROMPT_PATTERN.search(text)
+    if not prompt_match:
+        prompt_match = _PROMPT_CODEBLOCK_PATTERN.search(text)
+
+    if not prompt_match:
         messages.append(LintMessage(
             level="warning", line=1, column=1,
             code="P001", message="No {#prompt} block found — templates must include a prompt block for AI guidance",
+        ))
+        return
+
+    # P002: Check for prompt injection patterns
+    prompt_content = prompt_match.group(1)
+    prompt_start_line, _ = _line_col(text, prompt_match.start(1))
+    for hit in detect_prompt_injection(prompt_content):
+        line = prompt_start_line + hit["line_offset"]
+        messages.append(LintMessage(
+            level="warning", line=line, column=1,
+            code="P002",
+            message=f"Suspicious prompt content detected: {hit['description']}",
         ))
 
 

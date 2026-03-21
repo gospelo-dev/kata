@@ -177,11 +177,19 @@ def validate_file(file_path: str | Path, schema: dict[str, Any], schema_name: st
         )
 
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
+        import yaml
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except ImportError:
         return ValidationResult(
             valid=False,
-            errors=[ValidationError(path="$", message=f"invalid JSON: {e}")],
+            errors=[ValidationError(path="$", message="PyYAML is required: pip install PyYAML")],
+            schema_name=schema_name,
+            file_path=str(path),
+        )
+    except yaml.YAMLError as e:
+        return ValidationResult(
+            valid=False,
+            errors=[ValidationError(path="$", message=f"invalid YAML: {e}")],
             schema_name=schema_name,
             file_path=str(path),
         )

@@ -72,13 +72,24 @@ categories[]!:
 |----------|---------|----------------------|
 | `string` | Optional string | `{"type": "string"}` |
 | `string!` | Required string | `{"type": "string"}` + required |
-| `int` | Integer | `{"type": "integer"}` |
+| `integer` | Integer | `{"type": "integer"}` |
 | `number` | Number | `{"type": "number"}` |
 | `boolean` | Boolean | `{"type": "boolean"}` |
 | `enum(a, b, c)` | Enumeration | `{"type": "string", "enum": ["a","b","c"]}` |
 | `string[]` | String array | `{"type": "array", "items": {"type": "string"}}` |
 | `items[]!:` | Required object array | `{"type": "array", "items": {"type": "object", ...}}` + required |
 | `items[]:` | Optional object array | Same as above (without required) |
+
+#### Type Aliases
+
+Short forms matching Python/PyYAML type names are also supported. They are normalized to canonical names at parse time.
+
+| Alias | Normalized To |
+|-------|--------------|
+| `int` | `integer` |
+| `float` | `number` |
+| `bool` | `boolean` |
+| `str` | `string` |
 
 ### Nesting
 

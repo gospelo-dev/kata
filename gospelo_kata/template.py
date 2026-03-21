@@ -159,9 +159,17 @@ def _parse_schema_content(content: str) -> Any:
 # Shorthand type annotation expansion
 # ---------------------------------------------------------------------------
 
+_TYPE_ALIASES: dict[str, str] = {
+    "int": "integer",
+    "float": "number",
+    "bool": "boolean",
+    "str": "string",
+}
+
 _SHORTHAND_PATTERN = re.compile(
     r"^"
-    r"(?P<type>string|integer|number|boolean|object|any)"  # base type
+    r"(?P<type>string|integer|number|boolean|object|any"
+    r"|int|float|bool|str)"                                # base type + aliases
     r"(?P<array>\[\])?"                                    # array suffix
     r"(?P<required>!)?"                                    # required marker
     r"(?:\((?P<constraint>[^)]*)\))?"                      # constraint (min..max)
@@ -214,7 +222,7 @@ def _expand_type_string(type_str: str) -> tuple[dict[str, Any], bool]:
     # Try standard type pattern
     tm = _SHORTHAND_PATTERN.match(type_str)
     if tm:
-        base_type = tm.group("type")
+        base_type = _TYPE_ALIASES.get(tm.group("type"), tm.group("type"))
         if base_type == "any":
             schema = {}
         else:
@@ -230,8 +238,8 @@ def _expand_type_string(type_str: str) -> tuple[dict[str, Any], bool]:
             schema = {"type": "array", "items": schema}
         return schema, is_required
 
-    # Not a shorthand — return as-is
-    return {"type": "string", "description": type_str}, False
+    # Unknown type — raise immediately instead of silent fallback
+    raise ValueError(f"Unknown schema type: '{type_str}'")
 
 
 def _apply_constraint(
