@@ -200,11 +200,19 @@ def _is_shorthand(value: str) -> bool:
     return bool(_SHORTHAND_PATTERN.match(value) or _ENUM_PATTERN.match(value))
 
 
+_UNION_PATTERN = re.compile(
+    r"^(?P<types>[a-zA-Z\[\]|]+)"
+    r"(?P<required>!)?"
+    r"$"
+)
+
+
 def _expand_type_string(type_str: str) -> tuple[dict[str, Any], bool]:
     """Expand a shorthand type string to a JSON Schema fragment.
 
     Args:
-        type_str: Shorthand like "string!", "enum(a,b,c)", "object[]!(1..)"
+        type_str: Shorthand like "string!", "enum(a,b,c)", "object[]!(1..)",
+                  "integer|integer[]!"
 
     Returns:
         Tuple of (schema_fragment, is_required).
@@ -236,6 +244,24 @@ def _expand_type_string(type_str: str) -> tuple[dict[str, Any], bool]:
 
         if tm.group("array"):
             schema = {"type": "array", "items": schema}
+        return schema, is_required
+
+    # Try union type pattern (e.g., "integer|integer[]!", "string|string[]")
+    um = _UNION_PATTERN.match(type_str)
+    if um and "|" in um.group("types"):
+        parts = um.group("types").split("|")
+        is_required = um.group("required") is not None
+        one_of = []
+        for part in parts:
+            part = part.strip()
+            if part.endswith("[]"):
+                base = part[:-2]
+                base = _TYPE_ALIASES.get(base, base)
+                one_of.append({"type": "array", "items": {"type": base}})
+            else:
+                base = _TYPE_ALIASES.get(part, part)
+                one_of.append({"type": base})
+        schema = {"oneOf": one_of}
         return schema, is_required
 
     # Unknown type — raise immediately instead of silent fallback
