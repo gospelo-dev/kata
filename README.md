@@ -32,7 +32,7 @@ gospelo-kata solves this with a **single `.kata.md` file** that contains everyth
 - **Secure packaging** — KATA ARchive™ (`.katar`) bundles templates with integrity verification and trust management
 - **Multi-format output** — Markdown, Excel, and HTML
 - **VSCode extension** — real-time lint, hover info, preview CSS
-- **Zero external dependencies** for core features (built-in Jinja2 3.1.6-compatible engine; PyYAML required, openpyxl optional for Excel)
+- **No external templating dependencies** for core features (built-in Jinja2 3.1.6-compatible engine; PyYAML required, openpyxl optional for Excel)
 
 ## KATA ARchive™ (.katar) — Secure Template Packages
 
