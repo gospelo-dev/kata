@@ -39,9 +39,9 @@ If Copilot keeps asking for permission to run terminal commands like `mkdir`, ad
 
 The file `.github/copilot-instructions.md` is automatically loaded by Copilot when `useInstructionFiles` is enabled. It defines the 3-step workflow rules:
 
-1. Generate `data.yaml` (YAML data only)
-2. Run `gospelo-kata assemble` (builds `_tpl.kata.md`)
-3. Run `gospelo-kata render` + `gospelo-kata lint` (produces final output)
+1. Generate `data.yml` (YAML data only)
+2. Run `gospelo-kata build` (template + data → final output)
+3. Run `gospelo-kata lint` (validation)
 
 Key directives in this file:
 - Execute all 3 steps continuously without asking for confirmation
@@ -100,7 +100,7 @@ Copilot will automatically follow the 3-step workflow defined in `copilot-instru
 |-------|-------|----------|
 | Copilot creates `.kata.md` directly | Instructions not loaded | Verify `useInstructionFiles: true` in settings.json |
 | Copilot stops after Step 1 asking permission | Missing "no confirmation" directive | Check `copilot-instructions.md` has continuous execution instructions |
-| YAML structure broken (wrong indentation) | Model context limitation | Use `assemble` command to minimize AI's template responsibility |
+| YAML structure broken (wrong indentation) | Model context limitation | Use `build` command to minimize AI's template responsibility |
 | Skills not recognized via `@workspace /skill-name` | Copilot version limitation | Use `copilot-instructions.md` instead of custom skills directory |
 
 ## Differences from Claude Code Setup

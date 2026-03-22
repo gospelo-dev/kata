@@ -2,6 +2,11 @@
 
 Full list of `gospelo-kata` commands and their options.
 
+```bash
+gospelo-kata -V    # Show version
+gospelo-kata -h    # Show help
+```
+
 ---
 
 ## Template Operations
@@ -14,7 +19,39 @@ gospelo-kata templates
 
 `[schema, prompt]` tags indicate AI-generation-capable templates.
 
-### `init` — Initialize template
+### `prepare` — Show template info + generate skeleton data.yml
+
+```bash
+gospelo-kata prepare checklist                # Show info only
+gospelo-kata prepare checklist -o data.yml    # Also generate empty data.yml
+```
+
+Displays the template's Prompt and Schema, and generates a skeleton `data.yml` from the schema.
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `template` | Yes | Template name (checklist, test_spec, api_test, etc.) |
+| `--output`, `-o` | No | Output path for data.yml |
+
+### `build` — Template + data → final output
+
+Runs `assemble` + `render` in one step.
+
+```bash
+gospelo-kata build checklist data.yml -o outputs/
+gospelo-kata build api_test data.yml -o outputs/ --no-annotate
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `template` | Yes | Template name |
+| `data` | Yes | data.yml file path |
+| `--output`, `-o` | No | Output directory |
+| `--no-annotate` | No | Skip data-kata annotations |
+
+On first use, a trust confirmation prompt is shown for the template's Prompt content.
+
+### `init` — Initialize template (legacy)
 
 ```bash
 gospelo-kata init --type checklist -o ./docs/
@@ -26,6 +63,8 @@ gospelo-kata init --type checklist -o ./docs/
 | `--output`, `-o` | No | Output directory |
 
 Output: `templates/`, `outputs/`, `.workflow_status.json`
+
+> **Note:** For new workflows, use `prepare` + `build` instead.
 
 ### `show-prompt` — Display AI instructions
 
@@ -71,7 +110,7 @@ gospelo-kata validate data.json --schema checklist # Specify schema
 gospelo-kata validate data.json --schema ./schema.json
 ```
 
-### `generate` — Document generation
+### `generate` — Document generation (JSON-based)
 
 Generate Markdown / Excel / HTML from JSON data.
 
@@ -103,20 +142,17 @@ The output automatically includes:
 - `<div data-kata-each="collection">` — Loop markers
 - `<details>` Schema + Data section
 
+> **Note:** When using the template + data.yml workflow, `build` runs `assemble` + `render` automatically, so you don't need to call `render` directly.
+
 ### `assemble` — Assemble template with external data
 
 Combines a built-in template with an external YAML/JSON data file to produce a `_tpl.kata.md`.
 
 ```bash
 gospelo-kata assemble --type checklist --data data.yaml
-gospelo-kata assemble --type checklist --data data.yaml -o custom_output_tpl.kata.md
 ```
 
-| Option | Required | Description |
-|--------|----------|-------------|
-| `--type` | Yes | Template type (checklist, test_spec, agenda) |
-| `--data` | Yes | Data file (YAML or JSON) to embed as `**Data**` block |
-| `--output`, `-o` | No | Output path (default: `{data dir}/{type}_tpl.kata.md`) |
+> **Note:** `build` runs `assemble` + `render` automatically, so use `build` instead in most cases.
 
 ### `edit` — Browser editor
 
@@ -217,7 +253,23 @@ gospelo-kata workflow-status --suite-dir ./docs/ --reset
 | `--retry-reason TEXT` | Used with `--retry`. Records the reason |
 | `--reset` | Reset all steps |
 
-See [Workflow Guide](workflow-guide.md) for details.
+---
+
+## Package Management
+
+### `pack` — Package a template
+
+```bash
+gospelo-kata pack ./my_template/ -o my_template.katar
+```
+
+### `pack-init` — Create a template scaffold
+
+```bash
+gospelo-kata pack-init ./my_template/
+```
+
+See [Template Package](template-package.md) for details.
 
 ---
 

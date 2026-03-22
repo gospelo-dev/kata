@@ -2,6 +2,11 @@
 
 `gospelo-kata` の全コマンド一覧と詳細オプション。
 
+```bash
+gospelo-kata -V    # バージョン表示
+gospelo-kata -h    # ヘルプ表示
+```
+
 ---
 
 ## テンプレート操作
@@ -14,7 +19,39 @@ gospelo-kata templates
 
 `[schema, prompt]` タグは AI 生成対応テンプレートを示します。
 
-### `init` — テンプレート初期化
+### `prepare` — テンプレート情報表示 + スケルトン data.yml 生成
+
+```bash
+gospelo-kata prepare checklist                # 情報表示のみ
+gospelo-kata prepare checklist -o data.yml    # 空の data.yml も生成
+```
+
+テンプレートの Prompt・Schema を表示し、スキーマからスケルトン `data.yml` を生成します。
+
+| オプション | 必須 | 説明 |
+|-----------|------|------|
+| `template` | Yes | テンプレート名 (checklist, test_spec, api_test 等) |
+| `--output`, `-o` | No | data.yml の出力先パス |
+
+### `build` — テンプレート + データ → 最終出力
+
+`assemble` + `render` をワンステップで実行します。
+
+```bash
+gospelo-kata build checklist data.yml -o outputs/
+gospelo-kata build api_test data.yml -o outputs/ --no-annotate
+```
+
+| オプション | 必須 | 説明 |
+|-----------|------|------|
+| `template` | Yes | テンプレート名 |
+| `data` | Yes | data.yml ファイルパス |
+| `--output`, `-o` | No | 出力ディレクトリ |
+| `--no-annotate` | No | data-kata アノテーションを付与しない |
+
+初回実行時、テンプレートの Prompt 内容を確認する信頼確認が表示されます。
+
+### `init` — テンプレート初期化 (レガシー)
 
 ```bash
 gospelo-kata init --type checklist -o ./docs/
@@ -26,6 +63,8 @@ gospelo-kata init --type checklist -o ./docs/
 | `--output`, `-o` | No | 出力先ディレクトリ |
 
 生成物: `templates/`、`outputs/`、`.workflow_status.json`
+
+> **注意:** 新しいワークフローでは `prepare` + `build` の使用を推奨します。
 
 ### `show-prompt` — AI 向け説明の表示
 
@@ -71,7 +110,7 @@ gospelo-kata validate data.json --schema checklist # スキーマ指定
 gospelo-kata validate data.json --schema ./schema.json
 ```
 
-### `generate` — ドキュメント生成
+### `generate` — ドキュメント生成 (JSON ベース)
 
 JSON データから Markdown / Excel / HTML を生成。
 
@@ -102,6 +141,18 @@ gospelo-kata render source.kata.md -o outputs/result.kata.md
 - `<span data-kata="p-xxx">` — スキーマプロパティ参照
 - `<div data-kata-each="collection">` — ループマーカー
 - `<details>` Schema + Data セクション
+
+> **注意:** テンプレート + data.yml のワークフローでは `build` コマンドが `assemble` + `render` を自動実行するため、`render` を直接使う必要はありません。
+
+### `assemble` — テンプレート + データの結合
+
+組み込みテンプレートと YAML/JSON データを結合し、`_tpl.kata.md` を生成。
+
+```bash
+gospelo-kata assemble --type checklist --data data.yml
+```
+
+> **注意:** `build` コマンドが `assemble` + `render` を自動実行するため、通常は `build` を使用してください。
 
 ### `edit` — ブラウザエディター
 
@@ -202,7 +253,23 @@ gospelo-kata workflow-status --suite-dir ./docs/ --reset
 | `--retry-reason TEXT` | `--retry` と併用。理由を記録 |
 | `--reset` | 全ステップをリセット |
 
-詳細は [ワークフローガイド](workflow-guide.md) を参照。
+---
+
+## パッケージ管理
+
+### `pack` — テンプレートのパッケージ化
+
+```bash
+gospelo-kata pack ./my_template/ -o my_template.katar
+```
+
+### `pack-init` — テンプレートの雛形作成
+
+```bash
+gospelo-kata pack-init ./my_template/
+```
+
+詳細は [テンプレートパッケージ](template-package.md) を参照。
 
 ---
 

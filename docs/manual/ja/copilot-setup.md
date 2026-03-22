@@ -39,9 +39,9 @@ Copilot が `mkdir` などのターミナルコマンド実行時に毎回許可
 
 `.github/copilot-instructions.md` は `useInstructionFiles` が有効な場合に Copilot が自動読み込みする。このファイルで3ステップのワークフロールールを定義:
 
-1. `data.yaml` を生成 (YAML データのみ)
-2. `gospelo-kata assemble` を実行 (`_tpl.kata.md` を構築)
-3. `gospelo-kata render` + `gospelo-kata lint` を実行 (最終出力を生成)
+1. `data.yml` を生成 (YAML データのみ)
+2. `gospelo-kata build` を実行 (テンプレート + データ → 最終出力)
+3. `gospelo-kata lint` を実行 (検証)
 
 主要な指示:
 

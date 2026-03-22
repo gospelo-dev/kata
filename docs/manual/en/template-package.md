@@ -8,7 +8,7 @@ How to create, package, and distribute custom templates.
 
 KATA ARchive™ (`.katar`) is the template package format for gospelo-kata. It is a standard ZIP archive that bundles all files needed for a template into a single file.
 
-Place it directly in `./templates/` without extracting — all commands (`assemble`, `show-schema`, `show-prompt`, etc.) work with it as-is.
+Place it directly in `./templates/` without extracting — all commands (`prepare`, `build`, etc.) work with it as-is.
 
 **Design principle: 1 package = 1 template = 1 schema**
 
@@ -85,13 +85,13 @@ When combining data from multiple templates into a single deliverable (e.g., Exc
 }
 ```
 
-Dependency information is displayed when running `show-schema` or `show-prompt`, so AI can generate data for all required templates:
+Dependency information is displayed when running `prepare`, so AI can generate data for all required templates:
 
 ```
-$ gospelo-kata show-schema test_spec
+$ gospelo-kata prepare test_spec
 ...
 Requires: test_prereq
-  → gospelo-kata show-schema test_prereq
+  → gospelo-kata prepare test_prereq
 ```
 
 ### Creating a New Template with `pack-init`
@@ -162,7 +162,7 @@ items[]!:
 
 - `**Prompt**` + `` ```yaml `` — instructions AI references when generating data
 - `**Schema**` + `` ```yaml `` — schema definition for AI to understand data structure
-- `**Data**` + `` ```yaml `` — insertion point for `assemble` command data (recommended even if empty)
+- `**Data**` + `` ```yaml `` — insertion point for `build` command data (recommended even if empty)
 - Template body — written in Jinja2-compatible syntax
 
 ---
@@ -233,15 +233,11 @@ After installation, use it just like built-in templates:
 # Verify in template list (version is also displayed)
 gospelo-kata templates
 
-# Check schema
-gospelo-kata show-schema my_template --format yaml
+# View Prompt + Schema, generate skeleton data.yml
+gospelo-kata prepare my_template -o data.yml
 
-# Check AI prompt
-gospelo-kata show-prompt my_template
-
-# Create data → assemble → render
-gospelo-kata assemble --type my_template --data data.yml
-gospelo-kata render my_template_tpl.kata.md -o outputs/my_template.kata.md
+# Edit data.yml, then build + validate
+gospelo-kata build my_template data.yml -o outputs/
 gospelo-kata lint outputs/my_template.kata.md
 ```
 
@@ -279,15 +275,12 @@ Local templates with the same name take priority over built-in templates.
 Verify that the template works correctly before packaging:
 
 ```bash
-# Assemble with test data
-gospelo-kata assemble --type my_template --data test_data.yml
-
-# Render + lint
-gospelo-kata render my_template_tpl.kata.md -o outputs/test.kata.md
-gospelo-kata lint outputs/test.kata.md
+# Build with test data + lint
+gospelo-kata build my_template test_data.yml -o outputs/
+gospelo-kata lint outputs/my_template.kata.md
 
 # Round-trip verification
-gospelo-kata extract outputs/test.kata.md
+gospelo-kata extract outputs/my_template.kata.md
 ```
 
 ---
@@ -318,7 +311,7 @@ Since `.katar` is a single file, distribution is straightforward regardless of m
 
 ## Security
 
-As a safety measure, only templates **explicitly approved by the user** can be used in AI workflows (e.g., the `assemble` command).
+As a safety measure, only templates **explicitly approved by the user** can be used in AI workflows (e.g., the `build` command).
 
 ### Template Trust Management
 
@@ -327,11 +320,11 @@ As a safety measure, only templates **explicitly approved by the user** can be u
 - If the template's `**Prompt**` is modified, re-confirmation is required
 
 ```bash
-# Check prompt contents and trust status
-gospelo-kata show-prompt my_template
+# View Prompt + Schema
+gospelo-kata prepare my_template
 
-# assemble prompts for confirmation on untrusted templates
-gospelo-kata assemble --type my_template --data data.yml
+# build prompts for confirmation on untrusted templates
+gospelo-kata build my_template data.yml -o outputs/
 ```
 
 ### Package File Restrictions
@@ -375,7 +368,7 @@ Rendered `.kata.md` files also have tamper detection.
 
 **How it works:**
 
-1. During `gospelo-kata render`, a hash is computed from the Prompt, template body, and Schema inside the `<details>` section (the Data block is excluded)
+1. During `gospelo-kata build` (or `render`), a hash is computed from the Prompt, template body, and Schema inside the `<details>` section (the Data block is excluded)
 2. The hash is embedded as an HTML comment: `<!-- kata-structure-integrity: sha256:... -->`
 3. During `gospelo-kata lint`, the same computation is performed and compared against the embedded hash
 4. If they don't match, a `D017` warning is reported

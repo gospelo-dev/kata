@@ -14,9 +14,47 @@ Dependencies: **PyYAML** (required), **openpyxl** (Excel output only)
 
 ---
 
-## Method A: Generate from a self-contained .kata.md
+## Method A: Generate with template + data.yml (recommended)
 
-Write template, schema, and data in a single file. The simplest approach.
+Use a built-in template with YAML data. The most practical approach.
+
+### 1. Explore templates
+
+```bash
+gospelo-kata templates              # List available templates
+gospelo-kata prepare checklist      # View Prompt + Schema
+```
+
+### 2. Create data.yml
+
+```bash
+gospelo-kata prepare checklist -o data.yml   # Generate skeleton
+```
+
+Edit the generated `data.yml` to fill in your data. You can also use AI skills (`/kata-gen`, etc.) to auto-generate it.
+
+### 3. Build + validate
+
+```bash
+gospelo-kata build checklist data.yml -o outputs/
+gospelo-kata lint outputs/checklist.kata.md
+```
+
+`build` combines template assembly and rendering in one step.
+
+### 4. Extract data (round-trip)
+
+```bash
+gospelo-kata extract outputs/checklist.kata.md
+```
+
+Reconstructs the original data from the rendered output.
+
+---
+
+## Method B: Generate from a self-contained .kata.md
+
+Write template, schema, and data in a single file.
 
 ### 1. Create a source file
 
@@ -87,52 +125,22 @@ The output `.kata.md` will have `data-kata` attributes and a Schema/Data section
 gospelo-kata lint outputs/my_checklist.kata.md
 ```
 
-### 4. Extract data (round-trip)
-
-```bash
-gospelo-kata extract outputs/my_checklist.kata.md
-```
-
-Reconstructs the original JSON data from the rendered output.
-
----
-
-## Method B: Generate with template + JSON
-
-Separate the built-in template from the JSON data.
-
-### 1. Initialize template
-
-```bash
-gospelo-kata init --type test_spec -o ./my_project/
-```
-
-Creates `templates/`, `outputs/`, and `.workflow_status.json`.
-
-### 2. Create and validate JSON data
-
-```bash
-gospelo-kata validate my_data.json --schema test_spec
-```
-
-### 3. Generate document
-
-```bash
-gospelo-kata generate my_data.json -f markdown -o output.kata.md
-```
-
 ---
 
 ## Workflow Overview
 
 ```
-Source (.kata.md)
-  | render
+prepare → create data.yml → build → lint → (fix loop)
+```
+
+```
+Template + data.yml
+  | build (assemble + render)
 Rendered (.kata.md)  <- data-kata attributes + Schema/Data
   | lint
 Validation (0 errors)
   | extract
-JSON data recovery (round-trip)
+Data recovery (round-trip)
 ```
 
 ---
@@ -142,5 +150,5 @@ JSON data recovery (round-trip)
 - [CLI Reference](cli-reference.md) — Full command details
 - [KATA Markdown™ Format](kata-markdown-format.md) — Template syntax
 - [Lint Rules](lint-rules.md) — Error code reference
-- [Workflow Guide](workflow-guide.md) — Pipeline management
+- [Skill Guide](skill-guide.md) — AI skill usage guide
 - [VSCode Integration](vscode-integration.md) — Extension setup

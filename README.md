@@ -287,7 +287,7 @@ See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main
 - [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md)
 - [KATA Markdown™ Format](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/kata-markdown-format.md)
 - [Lint Rules](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/lint-rules.md)
-- [Workflow Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/workflow-guide.md)
+- [Skill Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/skill-guide.md)
 - [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md)
 - [Copilot Setup](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/copilot-setup.md)
 - [Template Package](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md)
