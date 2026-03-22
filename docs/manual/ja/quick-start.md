@@ -14,9 +14,47 @@ pip install gospelo-kata
 
 ---
 
-## 方法 A: セルフコンテインド .kata.md から生成
+## 方法 A: テンプレート + data.yml で生成 (推奨)
 
-テンプレート・スキーマ・データをすべて 1 ファイルに書く方法。最もシンプル。
+組み込みテンプレートと YAML データを使う方法。最も実用的。
+
+### 1. テンプレートを確認
+
+```bash
+gospelo-kata templates              # 一覧表示
+gospelo-kata prepare checklist      # Prompt + Schema を確認
+```
+
+### 2. data.yml を作成
+
+```bash
+gospelo-kata prepare checklist -o data.yml   # スケルトン生成
+```
+
+生成された `data.yml` を編集してデータを入力します。AI スキル (`/kata-gen` 等) を使って自動生成することもできます。
+
+### 3. ビルド + 検証
+
+```bash
+gospelo-kata build checklist data.yml -o outputs/
+gospelo-kata lint outputs/checklist.kata.md
+```
+
+`build` はテンプレートとデータの結合・レンダリングをワンステップで実行します。
+
+### 4. データ抽出 (ラウンドトリップ)
+
+```bash
+gospelo-kata extract outputs/checklist.kata.md
+```
+
+rendered output から元のデータを復元できます。
+
+---
+
+## 方法 B: セルフコンテインド .kata.md から生成
+
+テンプレート・スキーマ・データをすべて 1 ファイルに書く方法。
 
 ### 1. ソースファイルを作成
 
@@ -87,52 +125,22 @@ gospelo-kata render my_checklist.kata.md -o outputs/my_checklist.kata.md
 gospelo-kata lint outputs/my_checklist.kata.md
 ```
 
-### 4. データ抽出 (ラウンドトリップ)
-
-```bash
-gospelo-kata extract outputs/my_checklist.kata.md
-```
-
-rendered output から元の JSON データを復元できます。
-
----
-
-## 方法 B: テンプレート + JSON で生成
-
-組み込みテンプレートと JSON データを分離する方法。
-
-### 1. テンプレート初期化
-
-```bash
-gospelo-kata init --type test_spec -o ./my_project/
-```
-
-`templates/`、`outputs/`、`.workflow_status.json` が生成されます。
-
-### 2. JSON データを作成・バリデーション
-
-```bash
-gospelo-kata validate my_data.json --schema test_spec
-```
-
-### 3. ドキュメント生成
-
-```bash
-gospelo-kata generate my_data.json -f markdown -o output.kata.md
-```
-
 ---
 
 ## ワークフロー概要
 
 ```
-ソース (.kata.md)
-  ↓ render
+prepare → data.yml 作成 → build → lint → (修正ループ)
+```
+
+```
+テンプレート + data.yml
+  ↓ build (assemble + render)
 レンダリング済み (.kata.md)  ← data-kata属性 + Schema/Data
   ↓ lint
 検証 (0 errors)
   ↓ extract
-JSON データ復元 (ラウンドトリップ)
+データ復元 (ラウンドトリップ)
 ```
 
 ---
@@ -142,5 +150,5 @@ JSON データ復元 (ラウンドトリップ)
 - [CLI リファレンス](cli-reference.md) — 全コマンド詳細
 - [KATA Markdown™ フォーマット](kata-markdown-format.md) — テンプレート記法
 - [Lint ルール一覧](lint-rules.md) — エラーコード解説
-- [ワークフローガイド](workflow-guide.md) — 生成パイプライン管理
+- [スキルガイド](skill-guide.md) — AI スキルの使い方
 - [VSCode 連携](vscode-integration.md) — 拡張機能の設定

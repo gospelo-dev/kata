@@ -3,13 +3,11 @@ name: gospelo-kata-pack
 description: Manage KATA ARchive™ (.katar) template packages (unpack, edit, repack, test)
 ---
 
-# KATA Markdown™ Template Package Management
+# /kata-pack — KATA ARchive™ Template Package Management
 
 Manage `.katar` template packages: unpack, edit, repack, and verify.
 
 ## Prerequisites
-
-The `gospelo-kata` package must be installed.
 
 ```bash
 pip install gospelo-kata
@@ -22,7 +20,7 @@ pip install gospelo-kata
 ### 1. List available templates
 
 ```bash
-python -m gospelo_kata.cli templates
+gospelo-kata templates
 ```
 
 ### 2. Unpack a template for editing
@@ -47,39 +45,31 @@ Extracted structure:
 
 ### 3. Edit the template
 
-Edit `{name}_tpl.kata.md`. The template contains:
+Edit `{name}_tpl.kata.md`. The template uses unified block format:
 
-- `{#schema ... #}` — Schema definition (YAML shorthand)
-- `{#prompt ... #}` — AI prompt (usage instructions)
-- `{#data ... #}` — Sample data (YAML)
+- `**Prompt**` + `` ```yaml `` — AI prompt
+- `**Schema**` + `` ```yaml `` — Schema definition (YAML shorthand)
+- `**Data**` + `` ```yaml `` — Sample data
 - Template body — Jinja2-compatible syntax
 
 ### 4. Repack
 
 ```bash
-python -m gospelo_kata.cli pack /tmp/{name}_rebuild/{name} -o gospelo_kata/templates/{name}.katar
+gospelo-kata pack /tmp/{name}_rebuild/{name} -o gospelo_kata/templates/{name}.katar
 ```
 
 This regenerates the integrity hash in `manifest.json`.
 
 **Important**: The `outputs/` directory must be removed before packing — `pack` only allows template, manifest, and image files.
 
-### 5. Verify (assemble → render → lint)
+### 5. Verify
 
 ```bash
-# Create test data
-cat <<'EOF' > /tmp/test_data.yaml
-# ... YAML data matching the schema ...
-EOF
+gospelo-kata prepare {name} -o /tmp/test_data.yml
+# Edit /tmp/test_data.yml with test values
 
-# Assemble
-echo "y" | python -m gospelo_kata.cli assemble --type {name} --data /tmp/test_data.yaml -o /tmp/test_tpl.kata.md
-
-# Render
-python -m gospelo_kata.cli render /tmp/test_tpl.kata.md -o /tmp/test_out.kata.md
-
-# Lint (must pass with 0 errors)
-python -m gospelo_kata.cli lint /tmp/test_out.kata.md
+gospelo-kata build {name} /tmp/test_data.yml -o /tmp/test_outputs/
+gospelo-kata lint /tmp/test_outputs/{name}.kata.md
 ```
 
 If lint errors exist, fix the template and repeat from Step 4.
@@ -92,17 +82,15 @@ If lint errors exist, fix the template and repeat from Step 4.
 |---------|-------------|
 | `templates` | List available templates |
 | `pack {dir}` | Pack a directory into `.katar` |
-| `pack-init {name}` | Create a new template scaffold |
-| `assemble --type {name} --data {file}` | Combine template + data into `_tpl.kata.md` |
-| `render {file}` | Render a `_tpl.kata.md` to final output |
+| `pack-init {dir}` | Create a new template scaffold |
+| `prepare {name}` | Show template info + generate skeleton data |
+| `build {name} {data}` | Build rendered document |
 | `lint {file}` | Verify the output |
-| `show-prompt {name}` | Display the template's `{#prompt}` |
-| `show-schema {name}` | Display the template's schema |
 
 ---
 
 ## Notes
 
 - Always use `gospelo-kata pack` to repack — manual ZIP creation will fail the integrity check
-- The `assemble` command may prompt for trust confirmation on first use or when the prompt changes — pipe `echo "y"` for non-interactive use
-- After repacking, the prompt hash changes, so the next `assemble` will show the trust prompt again
+- The `build` command may prompt for trust confirmation on first use or when the prompt changes
+- After repacking, the prompt hash changes, so the next `build` will show the trust prompt again

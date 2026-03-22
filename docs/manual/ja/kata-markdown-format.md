@@ -79,6 +79,17 @@ categories[]!:
 | `string[]` | 文字列配列 | `{"type": "array", "items": {"type": "string"}}` |
 | `items[]!:` | 必須オブジェクト配列 | `{"type": "array", "items": {"type": "object", ...}}` + required |
 | `items[]:` | 任意オブジェクト配列 | 同上 (required なし) |
+| `integer\|integer[]` | union 型 | `{"oneOf": [{"type": "integer"}, {"type": "array", "items": {"type": "integer"}}]}` |
+
+#### union 型
+
+`|` で区切って複数の型を指定できます。いずれかの型に一致すれば有効です。
+
+```yaml
+expected_status: integer|integer[]!    # 整数または整数配列 (必須)
+```
+
+JSON Schema の `oneOf` に展開されます。
 
 #### 型エイリアス
 
@@ -190,7 +201,7 @@ priority は high/medium/low のいずれかです。
 
 ## レンダリング出力フォーマット
 
-`gospelo-kata render` が生成する出力の構造。
+`gospelo-kata build`（または `render`）が生成する出力の構造。
 
 ### data-kata 属性
 

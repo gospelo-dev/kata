@@ -8,7 +8,7 @@
 
 KATA ARchive™ (`.katar`) は gospelo-kata のテンプレートパッケージフォーマットです。中身は標準的な ZIP 形式で、テンプレートに必要なファイル一式を1つのファイルにまとめます。
 
-展開せずそのまま `./templates/` に配置するだけで、`assemble`、`show-schema`、`show-prompt` などすべてのコマンドから利用できます。
+展開せずそのまま `./templates/` に配置するだけで、`prepare`、`build` などすべてのコマンドから利用できます。
 
 **設計原則: 1パッケージ = 1テンプレート = 1スキーマ**
 
@@ -85,13 +85,13 @@ my_template/
 }
 ```
 
-`show-schema` や `show-prompt` 実行時に依存情報が表示され、AI は必要なテンプレートすべてのデータを生成できます:
+`prepare` 実行時に依存情報が表示され、AI は必要なテンプレートすべてのデータを生成できます:
 
 ```
-$ gospelo-kata show-schema test_spec
+$ gospelo-kata prepare test_spec
 ...
 Requires: test_prereq
-  → gospelo-kata show-schema test_prereq
+  → gospelo-kata prepare test_prereq
 ```
 
 ### `pack-init` でテンプレートを新規作成
@@ -162,7 +162,7 @@ items[]!:
 
 - `**Prompt**` + `` ```yaml `` — AI がデータ生成時に参照する説明文
 - `**Schema**` + `` ```yaml `` — AI がデータ構造を理解するためのスキーマ定義
-- `**Data**` + `` ```yaml `` — `assemble` コマンドがデータを挿入する位置（空でも記述推奨）
+- `**Data**` + `` ```yaml `` — `build` コマンドがデータを挿入する位置（空でも記述推奨）
 - テンプレート本文 — Jinja2 互換構文で記述
 
 ---
@@ -233,15 +233,11 @@ cp my_template.katar ./templates/
 # テンプレート一覧で確認（バージョンも表示されます）
 gospelo-kata templates
 
-# スキーマ確認
-gospelo-kata show-schema my_template --format yaml
+# Prompt + Schema 確認、スケルトン data.yml 生成
+gospelo-kata prepare my_template -o data.yml
 
-# AI プロンプト確認
-gospelo-kata show-prompt my_template
-
-# データ作成 → アセンブル → レンダリング
-gospelo-kata assemble --type my_template --data data.yml
-gospelo-kata render my_template_tpl.kata.md -o outputs/my_template.kata.md
+# data.yml を編集後、ビルド + 検証
+gospelo-kata build my_template data.yml -o outputs/
 gospelo-kata lint outputs/my_template.kata.md
 ```
 
@@ -279,15 +275,12 @@ gospelo-kata lint outputs/my_template.kata.md
 パッケージ化の前にテンプレートが正しく動作するか確認:
 
 ```bash
-# テストデータでアセンブル
-gospelo-kata assemble --type my_template --data test_data.yml
-
-# レンダリング + lint
-gospelo-kata render my_template_tpl.kata.md -o outputs/test.kata.md
-gospelo-kata lint outputs/test.kata.md
+# テストデータでビルド + lint
+gospelo-kata build my_template test_data.yml -o outputs/
+gospelo-kata lint outputs/my_template.kata.md
 
 # ラウンドトリップ確認
-gospelo-kata extract outputs/test.kata.md
+gospelo-kata extract outputs/my_template.kata.md
 ```
 
 ---
@@ -318,7 +311,7 @@ Claude Code や GitHub Copilot で `/gospelo-kata-pack` スキルを使うと、
 
 ## セキュリティ
 
-安全対策として、テンプレートは**ユーザーが明示的に許可したもの**のみ AI ワークフロー（`assemble` コマンド等）で使用できます。
+安全対策として、テンプレートは**ユーザーが明示的に許可したもの**のみ AI ワークフロー（`build` コマンド等）で使用できます。
 
 ### テンプレートの信頼管理
 
@@ -327,11 +320,11 @@ Claude Code や GitHub Copilot で `/gospelo-kata-pack` スキルを使うと、
 - テンプレートの `**Prompt**` が変更された場合、再度確認が必要になります
 
 ```bash
-# プロンプト内容と信頼状態を確認
-gospelo-kata show-prompt my_template
+# Prompt + Schema を確認
+gospelo-kata prepare my_template
 
-# assemble 時に未許可テンプレートは確認を求められる
-gospelo-kata assemble --type my_template --data data.yml
+# build 時に未許可テンプレートは確認を求められる
+gospelo-kata build my_template data.yml -o outputs/
 ```
 
 ### パッケージのファイル制限
@@ -375,7 +368,7 @@ gospelo-kata assemble --type my_template --data data.yml
 
 **仕組み:**
 
-1. `gospelo-kata render` 実行時、`<details>` セクション内の Prompt・テンプレート本体・Schema からハッシュ値を計算します（Data ブロックは除外）
+1. `gospelo-kata build`（または `render`）実行時、`<details>` セクション内の Prompt・テンプレート本体・Schema からハッシュ値を計算します（Data ブロックは除外）
 2. 計算したハッシュ値を HTML コメント `<!-- kata-structure-integrity: sha256:... -->` として埋め込みます
 3. `gospelo-kata lint` 実行時、同じ計算を再度行い、埋め込みハッシュと照合します
 4. 不一致の場合、`D017` warning を報告します

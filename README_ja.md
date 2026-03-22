@@ -287,7 +287,7 @@ gospelo-kata は AI アシスタントとの連携を前提に設計されてい
 - [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md)
 - [KATA Markdown™ フォーマット](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/kata-markdown-format.md)
 - [Lint ルール一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/lint-rules.md)
-- [ワークフローガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/workflow-guide.md)
+- [スキルガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/skill-guide.md)
 - [VSCode 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md)
 - [Copilot セットアップ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/copilot-setup.md)
 - [テンプレートパッケージ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md)

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gospelo-kata"
-version = "0.3.0"
+version = "0.3.2"
 description = "KATA Markdown™ toolkit for human-AI collaboration: schema, validation, and template in a single file"
 readme = "README.md"
 license = "MIT"

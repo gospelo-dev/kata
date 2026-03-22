@@ -368,10 +368,13 @@ def _resolve_template(type_name: str) -> TemplateSource:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from . import __version__
+
     parser = argparse.ArgumentParser(
         prog="gospelo-kata",
         description="JSON-driven document generation toolkit",
     )
+    parser.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # --- validate ---
@@ -441,6 +444,39 @@ def build_parser() -> argparse.ArgumentParser:
     )
     init_parser.add_argument(
         "--output", "-o", help="Output directory or file path",
+    )
+
+    # --- prepare ---
+    prep_parser = subparsers.add_parser(
+        "prepare", help="Show template info (Prompt + Schema) and generate skeleton data.yml",
+    )
+    prep_parser.add_argument(
+        "template", help="Template name (e.g., checklist) or path to .kata.md",
+    )
+    prep_parser.add_argument(
+        "--output", "-o", help="Output path for data.yml (default: ./data.yml)",
+    )
+
+    # --- build ---
+    build_parser = subparsers.add_parser(
+        "build", help="Build a rendered .kata.md from template + data in one step (assemble + render)",
+    )
+    build_parser.add_argument(
+        "template", help="Template name (e.g., checklist) or path to _tpl.kata.md",
+    )
+    build_parser.add_argument(
+        "data", help="Data file (YAML or JSON)",
+    )
+    build_parser.add_argument(
+        "--output", "-o", help="Output file or directory (default: ./outputs/)",
+    )
+    build_parser.add_argument(
+        "--no-annotate", action="store_true",
+        help="Disable data-kata annotations in output",
+    )
+    build_parser.add_argument(
+        "--no-validate", action="store_true",
+        help="Skip schema validation",
     )
 
     # --- render ---
@@ -695,6 +731,10 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_pack_init(args)
     elif args.command == "fmt":
         _cmd_fmt(args)
+    elif args.command == "prepare":
+        _cmd_prepare(args)
+    elif args.command == "build":
+        _cmd_build(args)
     else:
         parser.print_help()
         sys.exit(1)
@@ -1528,6 +1568,181 @@ def _cmd_assemble(args: argparse.Namespace) -> None:
 
     out_path.write_text(result, encoding="utf-8")
     print(f"Assembled: {out_path}")
+
+
+def _schema_to_skeleton(schema: dict) -> dict | list | str:
+    """Convert a JSON Schema dict to a skeleton data structure with empty/default values."""
+    schema_type = schema.get("type", "string")
+
+    if schema_type == "object":
+        result = {}
+        for name, prop in schema.get("properties", {}).items():
+            result[name] = _schema_to_skeleton(prop)
+        return result
+
+    if schema_type == "array":
+        items_schema = schema.get("items", {})
+        if items_schema.get("type") == "object":
+            return [_schema_to_skeleton(items_schema)]
+        return []
+
+    # Scalar types — use first enum value or type default
+    enum_values = schema.get("enum")
+    if enum_values:
+        return enum_values[0]
+
+    if schema_type == "integer":
+        return 0
+    if schema_type == "number":
+        return 0.0
+    if schema_type == "boolean":
+        return False
+    return ""
+
+
+def _cmd_prepare(args: argparse.Namespace) -> None:
+    """Show template info (Prompt + Schema) and generate skeleton data.yml."""
+    from .template import (
+        Template,
+        _PROMPT_PATTERN, _PROMPT_CODEBLOCK_PATTERN,
+        _SCHEMA_INLINE_PATTERN, _SCHEMA_CODEBLOCK_PATTERN, _SCHEMA_BOLD_CODEBLOCK_PATTERN,
+    )
+
+    source = _resolve_template_source(args.template)
+    tpl = Template(source)
+
+    # Extract raw schema text (YAML shorthand)
+    schema_raw = None
+    for pat in (_SCHEMA_BOLD_CODEBLOCK_PATTERN, _SCHEMA_CODEBLOCK_PATTERN, _SCHEMA_INLINE_PATTERN):
+        m = pat.search(source)
+        if m:
+            schema_raw = m.group(1).strip()
+            break
+
+    # Extract raw prompt text
+    prompt_raw = None
+    for pat in (_PROMPT_CODEBLOCK_PATTERN, _PROMPT_PATTERN):
+        m = pat.search(source)
+        if m:
+            prompt_raw = m.group(1).strip()
+            break
+
+    # Display template info to stdout
+    print("=" * 60)
+    print(f"Template: {args.template}")
+    print("=" * 60)
+
+    if prompt_raw:
+        print()
+        print("## Prompt")
+        print()
+        print(prompt_raw)
+
+    if schema_raw:
+        print()
+        print("## Schema")
+        print()
+        print(schema_raw)
+
+    # Generate skeleton data.yml
+    if tpl.schema is None:
+        print("\nNo schema found — cannot generate skeleton data.", file=sys.stderr)
+        sys.exit(1)
+
+    skeleton = _schema_to_skeleton(tpl.schema)
+
+    import yaml
+    skeleton_yaml = yaml.dump(skeleton, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    out_path = Path(args.output) if args.output else Path("data.yml")
+    out_path.write_text(skeleton_yaml, encoding="utf-8")
+
+    print()
+    print(f"## Skeleton data written to: {out_path}")
+    print()
+
+
+def _cmd_build(args: argparse.Namespace) -> None:
+    """Build a rendered .kata.md from template + data in one step."""
+    import tempfile
+    from .template import (
+        Template, _SCHEMA_INLINE_PATTERN, _PROMPT_PATTERN,
+        _DATA_PATTERN, _PROMPT_CODEBLOCK_PATTERN,
+        _DATA_BOLD_CODEBLOCK_PATTERN,
+    )
+
+    # Resolve template source
+    tpl_path = Path(args.template)
+    if tpl_path.exists() and tpl_path.suffix == ".md":
+        # Direct path to _tpl.kata.md
+        tpl_source = tpl_path.read_text(encoding="utf-8")
+        tpl_name = tpl_path.stem.replace("_tpl.kata", "")
+    else:
+        # Built-in template name
+        tpl = _resolve_template(args.template)
+        tpl_source = tpl.find_tpl_kata_md()
+        tpl_name = args.template
+
+    # Check prompt trust
+    prompt_match = _PROMPT_PATTERN.search(tpl_source)
+    if not prompt_match:
+        prompt_match = _PROMPT_CODEBLOCK_PATTERN.search(tpl_source)
+    if prompt_match:
+        if not _check_template_trust(tpl_name, prompt_match.group(1).strip()):
+            sys.exit(1)
+
+    # Read data file
+    data_path = Path(args.data)
+    if not data_path.exists():
+        print(f"Error: data file not found: {data_path}", file=sys.stderr)
+        sys.exit(1)
+    data_text = data_path.read_text(encoding="utf-8").strip()
+
+    # Assemble: embed data into template
+    if _DATA_PATTERN.search(tpl_source):
+        assembled = _DATA_PATTERN.sub(f"{{#data\n{data_text}\n#}}", tpl_source)
+    elif _DATA_BOLD_CODEBLOCK_PATTERN.search(tpl_source):
+        def _replace_data_codeblock(m: re.Match) -> str:
+            return f"**Data**\n\n```yaml\n{data_text}\n```"
+        assembled = _DATA_BOLD_CODEBLOCK_PATTERN.sub(_replace_data_codeblock, tpl_source)
+    else:
+        prompt_m = _PROMPT_PATTERN.search(tpl_source)
+        schema_m = _SCHEMA_INLINE_PATTERN.search(tpl_source)
+        if prompt_m:
+            insert_pos = prompt_m.end()
+        elif schema_m:
+            insert_pos = schema_m.end()
+        else:
+            insert_pos = 0
+        assembled = tpl_source[:insert_pos] + f"\n\n{{#data\n{data_text}\n#}}\n" + tpl_source[insert_pos:]
+
+    # Render
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix="_tpl.kata.md", delete=False, encoding="utf-8"
+    ) as tmp:
+        tmp.write(assembled)
+        tmp_path = Path(tmp.name)
+
+    try:
+        tpl_obj = Template(assembled, template_path=str(tmp_path))
+        rendered = tpl_obj.render_self(
+            annotate=not getattr(args, "no_annotate", False),
+        )
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    # Determine output path
+    if args.output:
+        out_path = Path(args.output)
+        if out_path.is_dir() or args.output.endswith("/"):
+            out_path.mkdir(parents=True, exist_ok=True)
+            out_path = out_path / f"{tpl_name}.kata.md"
+    else:
+        out_path = Path("outputs") / f"{tpl_name}.kata.md"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    out_path.write_text(rendered, encoding="utf-8")
+    print(f"Built: {out_path}")
 
 
 def _cmd_pack(args: argparse.Namespace) -> None:
