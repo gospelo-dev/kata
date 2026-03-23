@@ -9,12 +9,14 @@ KATA Markdown™ の AI スキルをユースケース別に解説します。
 すべてのスキルは共通のワークフローに従います:
 
 ```
-prepare → data.yml 作成 → build → lint → (修正ループ)
+prepare → data.yml 作成 → import-data → build → lint → (修正ループ)
 ```
 
 | ステップ | コマンド | 説明 |
 |---------|---------|------|
 | 準備 | `gospelo-kata prepare {template}` | テンプレート情報表示 + 空 data.yml 生成 |
+| 抽出 | `gospelo-kata export {template} --part prompt,schema` | プロンプト・スキーマの高速抽出 (AI 用) |
+| データ検証 | `gospelo-kata import-data {template} data.yml -q` | build 前のスキーマ検証 |
 | ビルド | `gospelo-kata build {template} data.yml` | テンプレート + データ → 最終出力 |
 | 検証 | `gospelo-kata lint {output}.kata.md` | 構造・スキーマ検証 |
 | 抽出 | `gospelo-kata extract {output}.kata.md` | レンダリング済みからデータ復元 |
@@ -49,7 +51,8 @@ gospelo-kata prepare checklist -o data.yml
 
 # 3. data.yml を編集（手動またはAIに依頼）
 
-# 4. ビルド + 検証
+# 4. データ検証、ビルド、lint
+gospelo-kata import-data checklist data.yml -q
 gospelo-kata build checklist data.yml -o outputs/
 gospelo-kata lint outputs/checklist.kata.md
 ```
@@ -196,7 +199,8 @@ gospelo-kata lint outputs/checklist.kata.md
 
 # 2. data.yml を修正
 
-# 3. 再ビルド + 再検証
+# 3. データ検証、再ビルド、再検証
+gospelo-kata import-data checklist data.yml -q
 gospelo-kata build checklist data.yml -o outputs/
 gospelo-kata lint outputs/checklist.kata.md
 
@@ -252,7 +256,7 @@ gospelo-kata extract outputs/checklist.kata.md -o extracted.yml
 
 ## 共通の注意事項
 
-- すべてのスキルは `data.yml` → `build` → `lint` の流れで最終出力を生成します
+- すべてのスキルは `data.yml` → `import-data` → `build` → `lint` の流れで最終出力を生成します
 - `data.yml` は YAML 形式で記述します（JSON は使用しません）
 - Prompt ブロックはデータ生成のガイドラインとしてのみ使用します
 - lint エラーが 0 になるまで `data.yml` を修正して再ビルドします

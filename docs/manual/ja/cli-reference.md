@@ -66,22 +66,45 @@ gospelo-kata init --type checklist -o ./docs/
 
 > **注意:** 新しいワークフローでは `prepare` + `build` の使用を推奨します。
 
-### `show-prompt` — AI 向け説明の表示
+### `export` — テンプレートパートの抽出
+
+正規表現ベースの高速抽出（AST/JSON Schema パース不要）。
 
 ```bash
-gospelo-kata show-prompt checklist
+gospelo-kata export checklist --part prompt,schema   # AI 推奨パターン
+gospelo-kata export checklist --part schema           # 単一パート
+gospelo-kata export checklist                         # 全パート
+gospelo-kata export checklist --format json            # JSON 出力
+gospelo-kata export checklist -o output.md             # ファイル保存
 ```
 
-テンプレートの `**Prompt**` ブロックを表示。テンプレート名またはファイルパスを指定。
+| オプション | デフォルト | 説明 |
+|-----------|-----------|------|
+| `template` | — | テンプレート名またはファイルパス (必須) |
+| `--part` | `all` | `prompt`, `schema`, `data`, `body`, `all`, またはカンマ区切り |
+| `--format` | `md` | 出力形式: `md`, `yaml`, `json` |
+| `--output`, `-o` | stdout | 出力ファイルパス |
 
-### `show-schema` — スキーマの表示
+出力はパート数で変化: 単一パートは生テキスト、複数パートはセクション見出し付き、`all` はテンプレート名・説明を含みます。
+
+### `import-data` — データのスキーマ検証
+
+YAML データファイルを KATA 短縮記法スキーマで検証します。build 前のゲートとして使用。
 
 ```bash
-gospelo-kata show-schema checklist              # JSON (デフォルト)
-gospelo-kata show-schema checklist --format yaml # YAML
+gospelo-kata import-data checklist data.yml         # 検証 + データ出力
+gospelo-kata import-data checklist data.yml -q      # 検証のみ (build ゲート)
+gospelo-kata import-data checklist data.yml --format json  # JSON 出力
 ```
 
-`**Schema**` ブロックから JSON Schema を生成して表示。
+| オプション | デフォルト | 説明 |
+|-----------|-----------|------|
+| `template` | — | テンプレート名またはファイルパス (必須) |
+| `data` | — | YAML データファイルパス (必須) |
+| `--format` | `yaml` | 出力形式: `yaml`, `json` |
+| `--quiet`, `-q` | false | データ出力を抑制、検証結果のみ |
+
+必須フィールド、enum 値、型、配列構造、ネストされたオブジェクトを検証します。ユニオン型（例: `integer|integer[]!`）にも対応。検証エラー時は終了コード 1 で終了。
 
 ### `schemas` — バリデーションスキーマ一覧
 

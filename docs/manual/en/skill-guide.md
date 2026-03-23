@@ -9,12 +9,14 @@ How to use KATA Markdown™ AI skills organized by use case.
 All skills follow a common workflow:
 
 ```
-prepare → data.yml creation → build → lint → (fix loop)
+prepare → data.yml creation → import-data → build → lint → (fix loop)
 ```
 
 | Step | Command | Description |
 |------|---------|-------------|
 | Prepare | `gospelo-kata prepare {template}` | Show template info + generate empty data.yml |
+| Export | `gospelo-kata export {template} --part prompt,schema` | Fast extraction of prompt and schema (AI use) |
+| Import | `gospelo-kata import-data {template} data.yml -q` | Validate data.yml against schema before build |
 | Build | `gospelo-kata build {template} data.yml` | Template + data → final output |
 | Validate | `gospelo-kata lint {output}.kata.md` | Structure & schema validation |
 | Extract | `gospelo-kata extract {output}.kata.md` | Recover data from rendered output |
@@ -49,7 +51,8 @@ gospelo-kata prepare checklist -o data.yml
 
 # 3. Edit data.yml (manually or with AI assistance)
 
-# 4. Build + validate
+# 4. Validate data, build, and lint
+gospelo-kata import-data checklist data.yml -q
 gospelo-kata build checklist data.yml -o outputs/
 gospelo-kata lint outputs/checklist.kata.md
 ```
@@ -196,7 +199,8 @@ gospelo-kata lint outputs/checklist.kata.md
 
 # 2. Fix data.yml
 
-# 3. Rebuild + revalidate
+# 3. Validate, rebuild, and revalidate
+gospelo-kata import-data checklist data.yml -q
 gospelo-kata build checklist data.yml -o outputs/
 gospelo-kata lint outputs/checklist.kata.md
 
@@ -252,7 +256,7 @@ gospelo-kata extract outputs/checklist.kata.md -o extracted.yml
 
 ## Common Notes
 
-- All skills follow the `data.yml` → `build` → `lint` flow to produce final output
+- All skills follow the `data.yml` → `import-data` → `build` → `lint` flow to produce final output
 - `data.yml` is written in YAML format (not JSON)
 - Prompt blocks are used only as data generation guidelines
 - Fix `data.yml` and rebuild until lint errors reach 0
