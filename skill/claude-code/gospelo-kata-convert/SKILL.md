@@ -24,7 +24,7 @@ Execute all steps without interruption. Do not ask for confirmation between step
 ### Step 1: Understand the target template
 
 ```bash
-gospelo-kata prepare {template_name}
+gospelo-kata export {template_name} --part prompt,schema
 ```
 
 Read the Prompt and Schema output carefully. Understand:
@@ -51,19 +51,15 @@ Rules:
 - If a required field has no corresponding source data, use a reasonable placeholder and add a YAML comment `# TODO: verify`
 - Write in the same language as the source document
 
-### Step 4: Build
+### Step 4: Validate + Build + Lint
 
 ```bash
+gospelo-kata import-data {template_name} {output_dir}/data.yml -q
 gospelo-kata build {template_name} {output_dir}/data.yml -o {output_dir}/outputs/
-```
-
-### Step 5: Lint
-
-```bash
 gospelo-kata lint {output_dir}/outputs/{template_name}.kata.md
 ```
 
-If lint reports errors, fix `data.yml` and re-run Steps 4-5.
+If `import-data` reports errors, fix `data.yml` before building. If lint reports errors, fix and re-run all three.
 
 ---
 
@@ -101,6 +97,7 @@ When mapping source content to schema fields:
 - Do not invent data that is not in the source document
 - Do not skip the lint step
 - Do not ask for confirmation between steps
+- Do not read `.kata.md` files directly to inspect data — use `gospelo-kata export {template} --part data` or `gospelo-kata extract {file}` to save context
 
 ## Expected output
 

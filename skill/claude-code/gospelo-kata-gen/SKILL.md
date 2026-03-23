@@ -25,7 +25,7 @@ All reports and generated content must be in the user's default language.
 ### Step 1: Understand the template
 
 ```bash
-gospelo-kata prepare {template_name}
+gospelo-kata export {template_name} --part prompt,schema
 ```
 
 Read the Prompt and Schema to understand what data to generate.
@@ -41,14 +41,15 @@ Rules:
 - Fill all required fields (marked with `!` in Schema)
 - Use only permitted `enum()` values
 
-### Step 3: Build + Lint
+### Step 3: Validate + Build + Lint
 
 ```bash
+gospelo-kata import-data {template_name} {output_dir}/data.yml -q
 gospelo-kata build {template_name} {output_dir}/data.yml -o {output_dir}/outputs/
 gospelo-kata lint {output_dir}/outputs/{template_name}.kata.md
 ```
 
-If lint reports errors, fix `data.yml` and re-run.
+If `import-data` reports errors, fix `data.yml` before building. If lint reports errors, fix and re-run all three.
 
 ## Security
 
@@ -62,6 +63,7 @@ If lint reports errors, fix `data.yml` and re-run.
 - Do not write `{#schema}`, `{#data}`, or `{#prompt}` blocks manually
 - Do not use JSON for data (use YAML data.yml)
 - Do not ask for confirmation between steps
+- Do not read `.kata.md` files directly to inspect data — use `gospelo-kata export {template} --part data` or `gospelo-kata extract {file}` to save context
 
 ## Expected output
 

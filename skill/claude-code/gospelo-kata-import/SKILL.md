@@ -43,7 +43,7 @@ Read the source file and extract:
 ### Step 2: Understand the target template
 
 ```bash
-gospelo-kata prepare {template_name}
+gospelo-kata export {template_name} --part prompt,schema
 ```
 
 ### Step 3: Design and generate data.yml
@@ -74,14 +74,15 @@ For each endpoint, generate:
 | GET with path params | medium |
 | OPTIONS/HEAD | low |
 
-### Step 4: Build + Lint
+### Step 4: Validate + Build + Lint
 
 ```bash
+gospelo-kata import-data {template_name} {output_dir}/data.yml -q
 gospelo-kata build {template_name} {output_dir}/data.yml -o {output_dir}/outputs/
 gospelo-kata lint {output_dir}/outputs/{template_name}.kata.md
 ```
 
-If lint reports errors, fix `data.yml` and re-run.
+If `import-data` reports errors, fix `data.yml` before building. If lint reports errors, fix and re-run all three.
 
 ---
 
@@ -94,6 +95,7 @@ If lint reports errors, fix `data.yml` and re-run.
 
 - Do not create `.kata.md` files by hand — always use `gospelo-kata build`
 - Do not ask for confirmation between steps
+- Do not read `.kata.md` files directly to inspect data — use `gospelo-kata export {template} --part data` or `gospelo-kata extract {file}` to save context
 
 ## Expected output
 

@@ -45,7 +45,15 @@ Edit `data.yml` based on the Prompt and Schema:
 - Set `status` initial value to `"draft"` unless specified otherwise
 - Arrays can have multiple entries — the skeleton shows one as an example
 
-### Step 4: Build — assemble + render in one step
+### Step 4: Validate data against schema
+
+```bash
+gospelo-kata import-data {template_name} data.yml -q
+```
+
+Checks required fields, enum values, and types before building. Fix errors in `data.yml` before proceeding.
+
+### Step 5: Build — assemble + render in one step
 
 ```bash
 gospelo-kata build {template_name} data.yml -o outputs/
@@ -53,18 +61,18 @@ gospelo-kata build {template_name} data.yml -o outputs/
 
 This combines the template with data and renders the final `.kata.md` document.
 
-### Step 5: Lint — validate the output
+### Step 6: Lint — validate the output
 
 ```bash
 gospelo-kata lint outputs/{template_name}.kata.md
 ```
 
-### Step 6: Fix loop
+### Step 7: Fix loop
 
 If lint reports errors:
 1. Analyze the error details
 2. Fix `data.yml`
-3. Re-run `build` and `lint`
+3. Re-run `import-data`, `build`, and `lint`
 4. Repeat until errors reach 0
 
 ---
@@ -77,14 +85,42 @@ If lint reports errors:
 | `prepare {name}` | Show template info + generate skeleton data.yml |
 | `build {name} {data}` | Build rendered document (assemble + render) |
 | `lint {file}` | Validate templates and rendered documents |
+| `export {name}` | Export template parts (prompt, schema, data, body, or all) |
+| `import-data {name} {data.yml}` | Validate YAML data against template schema and output |
 | `extract {file}` | Extract structured data from rendered output |
 | `assemble --type {name} --data {file}` | Assemble template + data (without render) |
 | `render {file}` | Render a _tpl.kata.md file |
-| `show-schema {name}` | Display template schema as JSON Schema |
-| `show-prompt {name}` | Display template prompt |
 | `validate {file}` | Validate JSON/YAML against schema |
 | `fmt {file}` | Auto-format data-kata spans |
 | `edit {file}` | Browser-based data editor |
+
+### export — Fast Template Part Extraction
+
+Export individual parts of a template without full parsing. Uses regex-based extraction for speed.
+
+```bash
+# Export prompt + schema together (recommended for AI context)
+gospelo-kata export {template_name} --part prompt,schema
+
+# Export all parts
+gospelo-kata export {template_name}
+
+# Export a single part
+gospelo-kata export {template_name} --part schema
+gospelo-kata export {template_name} --part data
+
+# JSON format (for programmatic use)
+gospelo-kata export {template_name} --format json
+
+# Save to file
+gospelo-kata export {template_name} -o catalog.md
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--part` | `all` | `prompt`, `schema`, `data`, `body`, `all`, or comma-separated (e.g., `prompt,schema`) |
+| `--format` | `md` | `md`, `yaml`, or `json` |
+| `--output` / `-o` | stdout | Output file path |
 
 ---
 
@@ -108,3 +144,4 @@ If lint reports errors:
 - `data-kata` attributes are automatically added by the template engine
 - The Schema Reference section is auto-generated
 - Use YAML for data files (not JSON)
+- **Context saving**: When you need to inspect data in a `.kata.md` file, do NOT read the entire file. Use `gospelo-kata export {template_name} --part data` or `gospelo-kata extract {file}` instead. This avoids loading the full document (which includes Schema Reference, annotations, etc.) into the conversation context.

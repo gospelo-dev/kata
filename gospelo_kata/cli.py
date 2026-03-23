@@ -543,28 +543,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format (default: yaml)",
     )
 
-    # --- show-prompt ---
-    sp_parser = subparsers.add_parser(
-        "show-prompt",
-        help="Show the embedded {#prompt} block from a template",
-    )
-    sp_parser.add_argument(
-        "template", help="Template name (e.g., checklist) or path to .kata.md",
-    )
-
-    # --- show-schema ---
-    ss_parser = subparsers.add_parser(
-        "show-schema",
-        help="Show the embedded schema from a template as JSON Schema",
-    )
-    ss_parser.add_argument(
-        "template", help="Template name (e.g., checklist) or path to .kata.md",
-    )
-    ss_parser.add_argument(
-        "--format", "-f", choices=["json", "yaml"], default="json",
-        help="Output format (default: json)",
-    )
-
     # --- init-vscode ---
     vscode_parser = subparsers.add_parser(
         "init-vscode", help="Generate .vscode/tasks.json for lint-on-save",
@@ -672,6 +650,47 @@ def build_parser() -> argparse.ArgumentParser:
         "template_dir", help="Template directory (e.g., ./my_template)",
     )
 
+    # --- export ---
+    exp_parser = subparsers.add_parser(
+        "export", help="Export template parts (prompt, schema, data, body, or all)",
+    )
+    exp_parser.add_argument(
+        "template", help="Template name or path to .katar file",
+    )
+    exp_parser.add_argument(
+        "--part", default="all",
+        help="Parts to export: prompt, schema, data, body, all, or comma-separated (e.g., prompt,schema). Default: all",
+    )
+    exp_parser.add_argument(
+        "--format", dest="fmt", default="md",
+        choices=["md", "yaml", "json"],
+        help="Output format (default: md)",
+    )
+    exp_parser.add_argument(
+        "--output", "-o", help="Output file path (default: stdout)",
+    )
+
+    # --- import-data ---
+    impdata_parser = subparsers.add_parser(
+        "import-data",
+        help="Validate a YAML data file against a template's schema and output the data",
+    )
+    impdata_parser.add_argument(
+        "template", help="Template name (e.g., test_spec) or path to .katar",
+    )
+    impdata_parser.add_argument(
+        "data_file", help="YAML data file to validate and import",
+    )
+    impdata_parser.add_argument(
+        "--format", dest="fmt", default="yaml",
+        choices=["yaml", "json"],
+        help="Output format (default: yaml)",
+    )
+    impdata_parser.add_argument(
+        "--quiet", "-q", action="store_true",
+        help="Suppress data output, only show validation result",
+    )
+
     # --- fmt (format) ---
     fmt_parser = subparsers.add_parser(
         "fmt", help="Auto-format rendered .kata.md files (sanitize HTML in data-kata spans)",
@@ -711,10 +730,6 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_gen_schema_section(args)
     elif args.command == "infer-schema":
         _cmd_infer_schema(args)
-    elif args.command == "show-prompt":
-        _cmd_show_prompt(args)
-    elif args.command == "show-schema":
-        _cmd_show_schema(args)
     elif args.command == "init-vscode":
         _cmd_init_vscode(args)
     elif args.command == "extract":
@@ -729,6 +744,10 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_pack(args)
     elif args.command == "pack-init":
         _cmd_pack_init(args)
+    elif args.command == "export":
+        _cmd_export(args)
+    elif args.command == "import-data":
+        _cmd_import_data(args)
     elif args.command == "fmt":
         _cmd_fmt(args)
     elif args.command == "prepare":
@@ -968,6 +987,391 @@ def _cmd_templates(args: argparse.Namespace) -> None:
 
     if not local_sources and not _builtin_templates_dir().exists():
         print("No templates available.")
+
+
+# ---------------------------------------------------------------------------
+# Regex patterns for fast template part extraction (no AST / JSON Schema parse)
+# ---------------------------------------------------------------------------
+import re as _re
+
+_EXP_PROMPT_RE = _re.compile(
+    r"\*\*Prompt\*\*\s*\n\s*```[a-z]*\n(.*?)```",
+    _re.DOTALL,
+)
+_EXP_SCHEMA_RE = _re.compile(
+    r"\*\*Schema\*\*\s*\n\s*```[a-z]*\n(.*?)```",
+    _re.DOTALL,
+)
+_EXP_DATA_RE = _re.compile(
+    r"\*\*Data\*\*\s*\n\s*```[a-z]*\n(.*?)```",
+    _re.DOTALL,
+)
+_EXP_SCHEMA_REF_RE = _re.compile(
+    r"\n?(?:---\s*\n+)?(?:Total:.*\n+)?<details>\s*\n<summary>Schema Reference</summary>.*",
+    _re.DOTALL,
+)
+_EXP_PROMPT_BLOCK_RE = _re.compile(
+    r"\*\*Prompt\*\*\s*\n\s*```[a-z]*\n.*?```\s*\n?",
+    _re.DOTALL,
+)
+
+
+def _extract_template_parts(source: "TemplateSource") -> dict[str, str]:
+    """Extract template parts via regex — fast, no AST/Schema parsing."""
+    raw = source.find_tpl_kata_md()
+
+    parts: dict[str, str] = {}
+
+    # Prompt
+    m = _EXP_PROMPT_RE.search(raw)
+    parts["prompt"] = m.group(1).rstrip("\n") if m else ""
+
+    # Schema (inside <details>)
+    m = _EXP_SCHEMA_RE.search(raw)
+    parts["schema"] = m.group(1).rstrip("\n") if m else ""
+
+    # Data (inside <details>)
+    m = _EXP_DATA_RE.search(raw)
+    parts["data"] = m.group(1).rstrip("\n") if m else ""
+
+    # Body = everything between prompt block and Schema Reference <details>
+    body = _EXP_PROMPT_BLOCK_RE.sub("", raw)
+    body = _EXP_SCHEMA_REF_RE.sub("", body).strip()
+    parts["body"] = body
+
+    return parts
+
+
+_VALID_PARTS = {"prompt", "schema", "data", "body"}
+
+_PART_HEADINGS = {
+    "prompt": ("Prompt", ""),
+    "schema": ("Schema", "yaml"),
+    "data": ("Sample Data", "yaml"),
+    "body": ("Template Body", "jinja2"),
+}
+
+
+def _cmd_export(args: argparse.Namespace) -> None:
+    """Export template parts (prompt, schema, data, body, all, or comma-separated)."""
+    source = _resolve_template(args.template)
+    parts = _extract_template_parts(source)
+    manifest = source.manifest()
+    fmt = args.fmt
+
+    # Parse --part: "all", single, or comma-separated
+    raw_part = args.part.strip()
+    if raw_part == "all":
+        selected = list(_VALID_PARTS)
+    else:
+        selected = [p.strip() for p in raw_part.split(",")]
+        invalid = [p for p in selected if p not in _VALID_PARTS]
+        if invalid:
+            print(
+                f"Error: invalid part(s): {', '.join(invalid)}. "
+                f"Valid: {', '.join(sorted(_VALID_PARTS))}, all",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+    is_all = raw_part == "all"
+    is_single = len(selected) == 1
+
+    lines: list[str] = []
+
+    if fmt == "json":
+        if is_all:
+            payload = {
+                "name": source.name,
+                "version": manifest.get("version", ""),
+                "description": manifest.get("description", ""),
+                **{k: parts[k] for k in selected},
+            }
+        elif is_single:
+            payload = {"name": source.name, selected[0]: parts.get(selected[0], "")}
+        else:
+            payload = {"name": source.name, **{k: parts.get(k, "") for k in selected}}
+        lines.append(json.dumps(payload, indent=2, ensure_ascii=False))
+
+    elif fmt == "yaml":
+        lines.append(f"name: {source.name}")
+        if is_all:
+            lines.append(f"version: \"{manifest.get('version', '')}\"")
+            lines.append(f"description: \"{manifest.get('description', '')}\"")
+        for key in selected:
+            lines.append(f"{key}: |")
+            for line in parts.get(key, "").split("\n"):
+                lines.append(f"  {line}")
+
+    else:  # md (default)
+        if is_single:
+            # Single part: raw text, no headings
+            content = parts.get(selected[0], "")
+            if content:
+                lines.append(content)
+            else:
+                print(f"No '{selected[0]}' found in template '{source.name}'.", file=sys.stderr)
+                sys.exit(1)
+        else:
+            # Multiple parts or all: with headings
+            if is_all:
+                lines.append(f"# {source.name}")
+                lines.append("")
+                desc = manifest.get("description", "")
+                if desc:
+                    lines.append(f"> {desc}")
+                    lines.append("")
+                ver = manifest.get("version", "")
+                if ver:
+                    lines.append(f"Version: {ver}")
+                    lines.append("")
+                reqs = source.requires()
+                if reqs:
+                    lines.append(f"Requires: {', '.join(reqs)}")
+                    lines.append("")
+
+            for key in selected:
+                content = parts.get(key, "")
+                if not content:
+                    continue
+                heading, lang = _PART_HEADINGS[key]
+                lines.append(f"## {heading}")
+                lines.append("")
+                lines.append(f"```{lang}" if lang else "```")
+                lines.append(content)
+                lines.append("```")
+                lines.append("")
+
+    output = "\n".join(lines) + "\n"
+    if args.output:
+        Path(args.output).write_text(output, encoding="utf-8")
+        print(f"Exported to {args.output}", file=sys.stderr)
+    else:
+        sys.stdout.write(output)
+
+
+# ---------------------------------------------------------------------------
+# import-data: schema-validated YAML data import
+# ---------------------------------------------------------------------------
+
+def _validate_shorthand(schema_text: str, data: dict) -> list[str]:
+    """Validate YAML data against KATA shorthand schema. Returns error list."""
+    errors: list[str] = []
+    lines = schema_text.strip().split("\n")
+
+    def _parse_fields(start: int, base_indent: int) -> tuple[dict, int]:
+        """Parse shorthand fields at a given indent level.
+
+        Returns (fields_dict, next_line_index).
+        fields_dict: {field_name: {"type": str, "required": bool, "is_array": bool, "children": dict}}
+        """
+        fields: dict = {}
+        i = start
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.lstrip()
+            if not stripped:
+                i += 1
+                continue
+            indent = len(line) - len(stripped)
+            if indent < base_indent:
+                break
+
+            # Array of objects: name[]!:
+            arr_m = _re.match(r"^([a-z_][a-z0-9_]*)\[\](!)?:\s*$", stripped)
+            if arr_m:
+                name = arr_m.group(1)
+                required = arr_m.group(2) == "!"
+                children, i = _parse_fields(i + 1, indent + 2)
+                fields[name] = {
+                    "type": "array_of_objects",
+                    "required": required,
+                    "is_array": True,
+                    "children": children,
+                }
+                continue
+
+            # Scalar field: name: type
+            field_m = _re.match(r"^([a-z_][a-z0-9_]*):\s+(.+)$", stripped)
+            if field_m:
+                name = field_m.group(1)
+                type_str = field_m.group(2).strip()
+                required = type_str.endswith("!")
+                if required:
+                    type_str = type_str[:-1]
+
+                # Parse type — handle union types (e.g. integer|integer[])
+                if "|" in type_str:
+                    alternatives = []
+                    for alt in type_str.split("|"):
+                        alt = alt.strip()
+                        is_arr = alt.endswith("[]")
+                        if is_arr:
+                            alt = alt[:-2]
+                        alternatives.append({"type": alt, "is_array": is_arr})
+                    fields[name] = {
+                        "type": "union",
+                        "required": required,
+                        "is_array": False,
+                        "children": {},
+                        "alternatives": alternatives,
+                    }
+                    i += 1
+                    continue
+
+                is_scalar_array = type_str.endswith("[]")
+                if is_scalar_array:
+                    type_str = type_str[:-2]
+
+                fields[name] = {
+                    "type": type_str,
+                    "required": required,
+                    "is_array": is_scalar_array,
+                    "children": {},
+                }
+                i += 1
+                continue
+
+            i += 1
+        return fields, i
+
+    def _check(fields: dict, data_obj: dict, path: str) -> None:
+        for name, spec in fields.items():
+            full_path = f"{path}.{name}" if path else name
+            value = data_obj.get(name)
+
+            # Required check
+            if spec["required"] and (value is None or value == ""):
+                errors.append(f"{full_path}: required field is missing or empty")
+                continue
+
+            if value is None:
+                continue
+
+            # Array of objects
+            if spec["type"] == "array_of_objects":
+                if not isinstance(value, list):
+                    errors.append(f"{full_path}: expected array, got {type(value).__name__}")
+                    continue
+                if spec["required"] and len(value) == 0:
+                    errors.append(f"{full_path}: required array is empty")
+                for idx, item in enumerate(value):
+                    if not isinstance(item, dict):
+                        errors.append(f"{full_path}[{idx}]: expected object, got {type(item).__name__}")
+                        continue
+                    _check(spec["children"], item, f"{full_path}[{idx}]")
+                continue
+
+            # Union type (e.g., integer|integer[])
+            if spec["type"] == "union":
+                type_aliases = {"str": "string", "int": "integer", "float": "number", "bool": "boolean"}
+                type_map = {"string": str, "integer": int, "number": (int, float), "boolean": bool}
+                matched = False
+                for alt in spec["alternatives"]:
+                    atype = type_aliases.get(alt["type"], alt["type"])
+                    if alt["is_array"]:
+                        if isinstance(value, list):
+                            matched = True
+                            break
+                    elif atype in type_map:
+                        if isinstance(value, type_map[atype]):
+                            matched = True
+                            break
+                    elif atype == "object":
+                        if isinstance(value, dict):
+                            matched = True
+                            break
+                if not matched:
+                    expected = "|".join(
+                        (type_aliases.get(a["type"], a["type"]) + ("[]" if a["is_array"] else ""))
+                        for a in spec["alternatives"]
+                    )
+                    errors.append(f"{full_path}: value does not match any union type ({expected})")
+                continue
+
+            # Scalar array (e.g., string[])
+            if spec["is_array"]:
+                if not isinstance(value, list):
+                    errors.append(f"{full_path}: expected array, got {type(value).__name__}")
+                continue
+
+            # Enum check
+            enum_m = _re.match(r"^enum\((.+)\)$", spec["type"])
+            if enum_m:
+                allowed = [v.strip() for v in enum_m.group(1).split(",")]
+                if str(value) not in allowed:
+                    errors.append(
+                        f"{full_path}: '{value}' not in enum({', '.join(allowed)})"
+                    )
+                continue
+
+            # Basic type checks
+            type_name = spec["type"]
+            type_aliases = {"str": "string", "int": "integer", "float": "number", "bool": "boolean"}
+            type_name = type_aliases.get(type_name, type_name)
+
+            if type_name == "string" and not isinstance(value, str):
+                errors.append(f"{full_path}: expected string, got {type(value).__name__}")
+            elif type_name == "integer" and not isinstance(value, int):
+                errors.append(f"{full_path}: expected integer, got {type(value).__name__}")
+            elif type_name == "number" and not isinstance(value, (int, float)):
+                errors.append(f"{full_path}: expected number, got {type(value).__name__}")
+            elif type_name == "boolean" and not isinstance(value, bool):
+                errors.append(f"{full_path}: expected boolean, got {type(value).__name__}")
+
+    fields, _ = _parse_fields(0, 0)
+    if isinstance(data, dict):
+        _check(fields, data, "")
+    else:
+        errors.append(f"top-level: expected object, got {type(data).__name__}")
+
+    return errors
+
+
+def _cmd_import_data(args: argparse.Namespace) -> None:
+    """Validate a YAML data file against a template's shorthand schema and output."""
+    import yaml
+
+    # Load template schema (raw shorthand text)
+    source = _resolve_template(args.template)
+    parts = _extract_template_parts(source)
+    schema_text = parts.get("schema", "")
+    if not schema_text:
+        print(f"Error: no schema found in template '{source.name}'.", file=sys.stderr)
+        sys.exit(1)
+
+    # Load YAML data
+    data_path = Path(args.data_file)
+    if not data_path.exists():
+        print(f"Error: file not found: {data_path}", file=sys.stderr)
+        sys.exit(1)
+
+    with open(data_path, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    if data is None:
+        print(f"Error: empty or invalid YAML: {data_path}", file=sys.stderr)
+        sys.exit(1)
+
+    # Validate
+    errors = _validate_shorthand(schema_text, data)
+
+    if errors:
+        print(f"FAIL: {len(errors)} error(s) in {data_path}", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"OK: {data_path} validates against {source.name} schema", file=sys.stderr)
+
+    if args.quiet:
+        return
+
+    # Output data
+    if args.fmt == "json":
+        sys.stdout.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    else:
+        sys.stdout.write(yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False))
 
 
 def _cmd_init(args: argparse.Namespace) -> None:
@@ -1302,66 +1706,6 @@ def _resolve_template_source(name_or_path: str) -> str:
         pass
     print(f"Error: template '{name_or_path}' not found", file=sys.stderr)
     sys.exit(1)
-
-
-def _cmd_show_prompt(args: argparse.Namespace) -> None:
-    """Show the {#prompt} block from a template."""
-    from .template import _PROMPT_PATTERN
-
-    source_text = _resolve_template_source(args.template)
-    match = _PROMPT_PATTERN.search(source_text)
-    if match:
-        prompt_text = match.group(1).strip()
-        print(prompt_text)
-        # Show trust status
-        trusted = _check_template_trust(args.template, prompt_text, interactive=False)
-        status = "trusted" if trusted else "NOT trusted"
-        print(f"\n[{status}] (hash: {_prompt_hash(prompt_text)[:12]}...)", file=sys.stderr)
-    else:
-        print("No {#prompt} block found in this template.", file=sys.stderr)
-        sys.exit(1)
-
-    # Show requires info
-    try:
-        ts = _resolve_template(args.template)
-        reqs = ts.requires()
-        if reqs:
-            print(f"\nRequires: {', '.join(reqs)}", file=sys.stderr)
-            for req_name in reqs:
-                print(f"  → gospelo-kata show-prompt {req_name}", file=sys.stderr)
-    except SystemExit:
-        pass
-
-
-def _cmd_show_schema(args: argparse.Namespace) -> None:
-    """Show the embedded schema from a template as JSON Schema."""
-    from .template import Template
-
-    source = _resolve_template_source(args.template)
-    tpl = Template(source)
-    if tpl.schema is None:
-        print("No schema found in this template.", file=sys.stderr)
-        sys.exit(1)
-
-    if args.format == "yaml":
-        try:
-            import yaml
-            print(yaml.dump(tpl.schema, allow_unicode=True, default_flow_style=False, sort_keys=False))
-        except ImportError:
-            print(json.dumps(tpl.schema, indent=2, ensure_ascii=False))
-    else:
-        print(json.dumps(tpl.schema, indent=2, ensure_ascii=False))
-
-    # Show requires info
-    try:
-        ts = _resolve_template(args.template)
-        reqs = ts.requires()
-        if reqs:
-            print(f"\nRequires: {', '.join(reqs)}", file=sys.stderr)
-            for req_name in reqs:
-                print(f"  → gospelo-kata show-schema {req_name}", file=sys.stderr)
-    except SystemExit:
-        pass
 
 
 def _cmd_init_vscode(args: argparse.Namespace) -> None:

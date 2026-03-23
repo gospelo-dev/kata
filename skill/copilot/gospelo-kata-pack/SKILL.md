@@ -96,8 +96,7 @@ If lint errors exist, fix the template and repeat from Step 4.
 | `assemble --type {name} --data {file}` | Combine template + data into `_tpl.kata.md` |
 | `render {file}` | Render a `_tpl.kata.md` to final output |
 | `lint {file}` | Verify the output |
-| `show-prompt {name}` | Display the template's `{#prompt}` |
-| `show-schema {name}` | Display the template's schema |
+| `export {name}` | Export template parts (prompt, schema, data, body, or all) |
 
 ---
 
