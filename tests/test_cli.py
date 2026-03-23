@@ -369,30 +369,58 @@ class TestRenderTplRejection:
             sys.stderr = old_stderr
         assert "_tpl.kata.md files cannot be rendered directly" in err
 
-    def test_render_allows_regular_kata_md(self, tmp_path):
+    def test_render_rejects_legacy_format(self, tmp_path):
         md = tmp_path / "sample.kata.md"
         md.write_text(
             "**Schema**\n```yaml\ntype: object\nproperties:\n  name:\n    type: string\n```\n\n"
             "**Data**\n```yaml\nname: test\n```\n\n"
             "# Hello {{ name }}\n"
         )
-        output = _run(["render", str(md)])
-        assert "Hello" in output and "test" in output
+        import io, sys
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            _run(["render", str(md)], expect_exit=1)
+        finally:
+            err = sys.stderr.getvalue()
+            sys.stderr = old_stderr
+        assert "legacy format" in err
+        assert "gospelo-kata convert" in err
 
-
-# ---------------------------------------------------------------------------
-# sync — alias for render
-# ---------------------------------------------------------------------------
-
-class TestSyncAlias:
-    def test_sync_works_like_render(self, tmp_path):
+    def test_render_allows_new_format(self, tmp_path):
         md = tmp_path / "sample.kata.md"
         md.write_text(
-            "**Schema**\n```yaml\ntype: object\nproperties:\n  name:\n    type: string\n```\n\n"
-            "**Data**\n```yaml\nname: hello\n```\n\n"
-            "# {{ name }}\n"
+            "# old\n\n"
+            "<details>\n<summary>Specification</summary>\n\n"
+            "```kata:template\n# {{ name }}\n```\n\n"
+            "**Schema**\n\n```yaml\nname: string!\n```\n\n"
+            "</details>\n\n"
+            "<details>\n<summary>Data</summary>\n\n"
+            "```yaml\nname: test\n```\n\n"
+            "</details>\n"
         )
-        output = _run(["sync", str(md)])
+        output = _run(["render", str(md)])
+        assert "test" in output
+
+
+# ---------------------------------------------------------------------------
+# sync to-html / to-data
+# ---------------------------------------------------------------------------
+
+class TestSyncToHtml:
+    def test_sync_to_html_works(self, tmp_path):
+        md = tmp_path / "sample.kata.md"
+        md.write_text(
+            "# old\n\n"
+            "<details>\n<summary>Specification</summary>\n\n"
+            "```kata:template\n# {{ name }}\n```\n\n"
+            "**Schema**\n\n```yaml\nname: string!\n```\n\n"
+            "</details>\n\n"
+            "<details>\n<summary>Data</summary>\n\n"
+            "```yaml\nname: hello\n```\n\n"
+            "</details>\n"
+        )
+        output = _run(["sync", "to-html", str(md)])
         assert "hello" in output
 
 
@@ -405,7 +433,7 @@ class TestExportFromFile:
         md = tmp_path / "my_spec.kata.md"
         md.write_text(
             "# My Spec\n\n"
-            "<details>\n<summary>Schema Reference</summary>\n\n"
+            "<details>\n<summary>Specification</summary>\n\n"
             "**Prompt**\n\n```yaml\nGenerate a spec.\n```\n\n"
             "**Schema**\n\n```yaml\ntitle: string!\n```\n\n"
             "**Data**\n\n```yaml\ntitle: Hello World\n```\n\n"
@@ -418,7 +446,7 @@ class TestExportFromFile:
         md = tmp_path / "my_spec.kata.md"
         md.write_text(
             "# My Spec\n\n"
-            "<details>\n<summary>Schema Reference</summary>\n\n"
+            "<details>\n<summary>Specification</summary>\n\n"
             "**Schema**\n\n```yaml\ntitle: string!\n```\n\n"
             "**Data**\n\n```yaml\ntitle: test\n```\n\n"
             "</details>\n"
@@ -439,7 +467,7 @@ class TestSyncBidirectional:
             "table { table-layout: fixed; width: 100%; }\n"
             "</style>\n\n"
             "---\n\n"
-            "<details>\n<summary>Schema Reference</summary>\n\n"
+            "<details>\n<summary>Specification</summary>\n\n"
             "```kata:template\n"
             "# {{ title }}\n\n"
             "{% for item in items %}- {{ item.name }}\n"
@@ -461,7 +489,7 @@ class TestSyncBidirectional:
         md.write_text(self._build_separated_kata_md(
             "title: My List\nitems:\n- name: apple\n- name: banana\n"
         ))
-        output = _run(["sync", str(md), "--no-validate"])
+        output = _run(["sync", "to-html", str(md), "--no-validate"])
         assert "My List" in output
         assert "apple" in output
         assert "banana" in output
@@ -471,7 +499,7 @@ class TestSyncBidirectional:
         md.write_text(self._build_separated_kata_md(
             "title: Updated\nitems:\n- name: cherry\n"
         ))
-        output = _run(["sync", str(md), "--no-validate"])
+        output = _run(["sync", "to-html", str(md), "--no-validate"])
         assert "Updated" in output
         assert "cherry" in output
         assert "apple" not in output
@@ -481,7 +509,7 @@ class TestSyncBidirectional:
         md.write_text(self._build_separated_kata_md(
             "title: Test\nitems:\n- name: a\n- name: b\n- name: c\n"
         ))
-        output = _run(["sync", str(md), "--no-validate"])
+        output = _run(["sync", "to-html", str(md), "--no-validate"])
         assert ">a<" in output
         assert ">b<" in output
         assert ">c<" in output
@@ -491,7 +519,80 @@ class TestSyncBidirectional:
         md.write_text(self._build_separated_kata_md(
             "title: Stable\nitems:\n- name: x\n"
         ))
-        out1 = _run(["sync", str(md), "--no-validate"])
+        out1 = _run(["sync", "to-html", str(md), "--no-validate"])
         md.write_text(out1)
-        out2 = _run(["sync", str(md), "--no-validate"])
+        out2 = _run(["sync", "to-html", str(md), "--no-validate"])
         assert out1 == out2
+
+
+class TestConvertCommand:
+    _LEGACY_SRC = (
+        "{#schema\n"
+        "title: string!\n"
+        "items[]!:\n"
+        "  id: string!\n"
+        "  task: string!\n"
+        "  status: enum(todo, done)\n"
+        "#}\n\n"
+        "{#prompt\n"
+        "A simple TODO list.\n"
+        "#}\n\n"
+        "{#data\n"
+        "title: My Tasks\n"
+        "items:\n"
+        '  - id: "1"\n'
+        "    task: Buy milk\n"
+        "    status: done\n"
+        '  - id: "2"\n'
+        "    task: Buy bread\n"
+        "    status: todo\n"
+        "#}\n\n"
+        "# {{ title }}\n\n"
+        "{% for item in items %}| {{ item.id }} | {{ item.task }} | {{ item.status }} |\n"
+        "{% endfor %}"
+    )
+
+    def test_convert_legacy_to_new_format(self, tmp_path):
+        md = tmp_path / "legacy.kata.md"
+        md.write_text(self._LEGACY_SRC)
+        output = _run(["convert", str(md)])
+        assert "converted:" in output
+        content = md.read_text()
+        assert "<summary>Data</summary>" in content
+        assert "```kata:template" in content
+        assert "kata-structure-integrity" in content
+        assert 'data-kata="p-title"' in content
+
+    def test_convert_adds_enum_styling(self, tmp_path):
+        md = tmp_path / "legacy.kata.md"
+        md.write_text(self._LEGACY_SRC)
+        _run(["convert", str(md)])
+        content = md.read_text()
+        assert 'data-kata-enum="done"' in content
+        assert 'data-kata-enum="todo"' in content
+        assert "[data-kata-enum]" in content
+
+    def test_convert_skip_already_new(self, tmp_path):
+        md = tmp_path / "new.kata.md"
+        md.write_text(self._LEGACY_SRC)
+        _run(["convert", str(md)])
+        output = _run(["convert", str(md)])
+        assert "skip (already new format)" in output
+
+    def test_convert_check_mode(self, tmp_path):
+        md = tmp_path / "legacy.kata.md"
+        md.write_text(self._LEGACY_SRC)
+        output = _run(["convert", "--check", str(md)], expect_exit=1)
+        assert "needs convert:" in output
+        # File should not be modified
+        assert md.read_text() == self._LEGACY_SRC
+
+    def test_converted_file_is_syncable(self, tmp_path):
+        md = tmp_path / "legacy.kata.md"
+        md.write_text(self._LEGACY_SRC)
+        _run(["convert", str(md)])
+        # Sync should work on converted file
+        output = _run(["sync", "to-html", str(md), "-o", str(md)])
+        assert "Rendered:" in output
+        content = md.read_text()
+        assert "<summary>Data</summary>" in content

@@ -42,7 +42,7 @@ Template syntax validation. Applied to files containing schema blocks, `{{ }}`, 
 
 **P001 Remedy**: Add a `**Prompt**` + `` ```yaml `` block to the template. This provides AI guidance for data generation. User confirmation is required on first use.
 
-**P002 Remedy**: The prompt contains patterns commonly associated with prompt injection (e.g., role override, instruction override, command execution, credential access). Review the prompt content and remove any suspicious instructions. Prompts should only describe **what data to generate** and **what each field means** — see [Prompt Design Guide](prompt-design-guide.md).
+**P002 Remedy**: The prompt contains patterns commonly associated with prompt injection (e.g., role override, instruction override, command execution, credential access). Review the prompt content and remove any suspicious instructions. Prompts should only describe **what data to generate** and **what each field means** — see [Prompt Design Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/prompt-design-guide.md).
 
 ### F — Filter Validation
 
@@ -50,7 +50,7 @@ Template syntax validation. Applied to files containing schema blocks, `{{ }}`, 
 |------|-------|-------------|
 | F001 | error | Unknown filter name |
 
-**Remedy**: See the built-in filter list in [KATA Markdown™ Format](kata-markdown-format.md).
+**Remedy**: See the built-in filter list in [KATA Markdown™ Format](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/kata-markdown-format.md).
 
 ### V — Variable References
 
@@ -107,7 +107,7 @@ gospelo-kata render source.kata.md -o output.kata.md
 
 ### D017 Details
 
-The structure integrity hash protects the template structure (Prompt, template body, Schema) inside the `<details>` Schema Reference section against accidental or malicious modification. Data changes are excluded from the hash.
+The structure integrity hash protects the template structure (Prompt, template body, Schema) inside the `<details>` Specification section against accidental or malicious modification. Data changes are excluded from the hash.
 
 - **warning**: Hash mismatch — Prompt, template body, or Schema has been modified since rendering
 - Documents without an integrity hash (older files) do not trigger this rule

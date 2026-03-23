@@ -1,6 +1,6 @@
-# gospelo-kata クイックスタート
+# クイックスタート
 
-テンプレートを選んで、データを埋めるだけ。
+テンプレートを選んで、ビルドして、Data を編集するだけ。
 
 ---
 
@@ -12,72 +12,86 @@ pip install gospelo-kata
 
 ---
 
-## Step 1 — 空のドキュメントを作る
+## Step 1 --- テンプレートを選んでビルド
 
 ```bash
-gospelo-kata templates                       # テンプレート一覧
-gospelo-kata prepare agenda -o data.yml      # スケルトン YAML を生成
-gospelo-kata build agenda data.yml -o ./ --no-validate   # 空の .kata.md を生成
+gospelo-kata templates                       # 一覧を表示
+gospelo-kata build todo -o ./                # 初期値で todo.kata.md を生成
 ```
 
-`agenda.kata.md` ができます。中身はまだ空欄ですが、テンプレート・スキーマ・Data ブロックがすべて入った状態です。
+テンプレート内蔵のサンプルデータで `.kata.md` が生成されます。
 
-## Step 2 — Data ブロックを編集する
+## Step 2 --- Data ブロックを編集
 
-`agenda.kata.md` を開き、末尾の `**Data**` セクション内の YAML を編集します。
+生成された `.kata.md` の `<details>` 内にある **Data** ブロックの YAML を直接編集します。
 
 ```yaml
-title: 週次定例ミーティング
-date: "2026-03-24"
-attendees:
-  - name: 田中
-    role: Chair
-  - name: 鈴木
-    role: Scribe
-agenda:
-  - id: A-01
-    topic: 先週のアクションアイテム確認
-  - id: A-02
-    topic: リリース計画レビュー
+title: スプリントタスク
+items:
+  - id: "1"
+    task: CI パイプライン構築
+    status: done
+  - id: "2"
+    task: API テスト作成
+    status: todo
 ```
 
-> AI スキル (`/kata-gen` 等) を使えば、この YAML を自動生成することもできます。
-
-## Step 3 — Sync してドキュメントを生成する
+## Step 3 --- sync to-html で本文を更新
 
 ```bash
-gospelo-kata sync agenda.kata.md -o agenda.kata.md
-gospelo-kata lint agenda.kata.md
-# → OK: agenda.kata.md — no issues found
+gospelo-kata sync to-html todo.kata.md
 ```
 
-Data ブロックの内容が本文に反映されます。修正したいときは Data を編集して `sync` を再実行するだけです。
+Data の変更がテンプレートを通じて本文に反映されます。
+
+## Step 4 --- 検証
+
+```bash
+gospelo-kata lint todo.kata.md
+# → OK: todo.kata.md — no issues found
+```
+
+---
+
+## LiveMorph で編集を続ける
+
+### Data を変えたい → `sync to-html`
+
+Data ブロックを編集してから:
+
+```bash
+gospelo-kata sync to-html todo.kata.md
+```
+
+### 本文を直接変えたい → `sync to-data`
+
+本文中の span の値を編集してから:
+
+```bash
+gospelo-kata sync to-data todo.kata.md
+```
+
+> VS Code 拡張を使えば、保存時に自動で LiveMorph が実行されます。→ [VS Code 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode.md)
 
 ---
 
 ## まとめ
 
 ```
-build --no-validate  →  .kata.md (空)
-         ↓
-   Data ブロックを編集
-         ↓
-   sync  →  .kata.md (完成)  →  lint で検証
-         ↓
-   修正? → Data を編集 → sync (繰り返し)
+build    →  .kata.md (初期値で生成)  →  lint で検証
+    ↓
+Data 編集 → sync to-html (繰り返し)
+本文編集  → sync to-data (繰り返し)
 ```
 
-ポイント:
-- **編集するのは Data ブロックだけ**。テンプレートやスキーマに触れる必要はありません
-- `sync` は何度でも実行できます。Data を変えて sync するだけで本文が更新されます
-- `gospelo-kata export agenda.kata.md --part data` でデータだけ取り出せます
+- **編集するのは Data ブロックまたは本文の span だけ**
+- テンプレートやスキーマに触れる必要はありません
 
 ---
 
 ## 次のステップ
 
-- [CLI リファレンス](cli-reference.md) — 全コマンド詳細
-- [KATA Markdown™ フォーマット](kata-markdown-format.md) — テンプレート記法・セルフコンテインド方式
-- [Lint ルール一覧](lint-rules.md) — エラーコード解説
-- [スキルガイド](skill-guide.md) — AI スキルの使い方
-- [VSCode 連携](vscode-integration.md) — 拡張機能の設定
+- [LiveMorph ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/livemorph.md) --- 双方向同期の詳細
+- [テンプレート一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/templates.md) --- 組み込みテンプレート
+- [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md) --- 全コマンド詳細
+- [VS Code 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode.md) --- 拡張機能の設定

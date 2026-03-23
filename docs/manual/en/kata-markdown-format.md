@@ -18,7 +18,7 @@ A source `.kata.md` consists of 4 blocks:
 (Jinja2 template body)
 
 <details>
-<summary>Schema Reference</summary>
+<summary>Specification</summary>
 
 **Schema**
 
@@ -234,7 +234,7 @@ HTML tags in data values are automatically escaped:
 - Output: `&lt;script&gt;alert(1)&lt;/script&gt;`
 - On extract: Restored to `<script>alert(1)</script>`
 
-### Schema Reference Section
+### Specification Section
 
 A `<details>` block is appended at the end of the output. It contains the Prompt, template body, Schema, and Data — everything needed to reconstruct or re-render the document from a single file:
 
@@ -242,7 +242,7 @@ A `<details>` block is appended at the end of the output. It contains the Prompt
 ---
 
 <details>
-<summary>Schema Reference</summary>
+<summary>Specification</summary>
 
 **Prompt**
 
@@ -303,4 +303,4 @@ Output (.kata.md)
 JSON data (equivalent to original)
 ```
 
-`extract` uses `data-kata` span values and the Schema Reference array structure to reconstruct JSON. HTML entities (`&lt;` etc.) are automatically restored to their original characters (`<`).
+`extract` uses `data-kata` span values and the Specification array structure to reconstruct JSON. HTML entities (`&lt;` etc.) are automatically restored to their original characters (`<`).

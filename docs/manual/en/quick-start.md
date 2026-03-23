@@ -1,154 +1,112 @@
-# gospelo-kata Quick Start
+# Quick Start
 
-Get started with KATA Markdown™ document generation in 5 minutes.
+Pick a template, fill in the data, done.
 
 ---
 
-## Installation
+## Install
 
 ```bash
 pip install gospelo-kata
 ```
 
-Dependencies: **PyYAML** (required), **openpyxl** (Excel output only)
-
 ---
 
-## Method A: Generate with template + data.yml (recommended)
-
-Use a built-in template with YAML data. The most practical approach.
-
-### 1. Explore templates
+## Step 1 --- Choose a Template
 
 ```bash
-gospelo-kata templates              # List available templates
-gospelo-kata prepare checklist      # View Prompt + Schema
+gospelo-kata templates                       # List available templates
+gospelo-kata prepare agenda -o data.yml      # Generate skeleton YAML
 ```
 
-### 2. Create data.yml
+`data.yml` contains a scaffold of the fields required by the template.
 
-```bash
-gospelo-kata prepare checklist -o data.yml   # Generate skeleton
-```
+## Step 2 --- Write Your Data
 
-Edit the generated `data.yml` to fill in your data. You can also use AI skills (`/kata-gen`, etc.) to auto-generate it.
-
-### 3. Build + validate
-
-```bash
-gospelo-kata build checklist data.yml -o outputs/
-gospelo-kata lint outputs/checklist.kata.md
-```
-
-`build` combines template assembly and rendering in one step.
-
-### 4. Extract data (round-trip)
-
-```bash
-gospelo-kata extract outputs/checklist.kata.md
-```
-
-Reconstructs the original data from the rendered output.
-
----
-
-## Method B: Generate from a self-contained .kata.md
-
-Write template, schema, and data in a single file.
-
-### 1. Create a source file
-
-````bash
-cat > my_checklist.kata.md << 'EOF'
-**Prompt**
+Edit `data.yml`:
 
 ```yaml
-This template generates a task checklist with status tracking.
-Describe items in the items array with id, name, and status.
-status must be one of todo/done.
+title: Weekly Standup
+date: "2026-03-24"
+attendees:
+  - name: Alice
+    role: Chair
+  - name: Bob
+    role: Scribe
+agenda:
+  - id: A-01
+    topic: Review last week's action items
+  - id: A-02
+    topic: Release plan review
 ```
 
-# {{ title }}
+> AI skills (`/kata-gen`, `/kata-collect`) can auto-generate this YAML for you.
 
-> Version: {{ version }}
-
-| ID | Item | Status |
-|:--:|------|:------:|
-{% for item in items %}| {{ item.id }} | {{ item.name }} | {{ item.status }} |
-{% endfor %}
-
-Total: {{ items | length }} items
-
-<details>
-<summary>Schema Reference</summary>
-
-**Schema**
-
-```yaml
-title: string!
-version: string
-items[]!:
-  id: string!
-  name: string!
-  status: enum(todo, done)
-```
-
-**Data**
-
-```yaml
-title: Security Checklist
-version: 1.0
-items:
-  - id: SEC-01
-    name: Input validation
-    status: todo
-  - id: SEC-02
-    name: SQL injection prevention
-    status: done
-```
-
-</details>
-EOF
-````
-
-### 2. Render
+## Step 3 --- Build
 
 ```bash
-gospelo-kata render my_checklist.kata.md -o outputs/my_checklist.kata.md
+gospelo-kata build agenda data.yml -o ./
 ```
 
-The output `.kata.md` will have `data-kata` attributes and a Schema/Data section appended automatically.
+`agenda.kata.md` is generated as a self-contained file with template, schema, data, and body all in one.
 
-### 3. Lint
+## Step 4 --- Validate
 
 ```bash
-gospelo-kata lint outputs/my_checklist.kata.md
+gospelo-kata lint agenda.kata.md
+# → OK: agenda.kata.md — no issues found
 ```
 
 ---
 
-## Workflow Overview
+## Keep Editing with LiveMorph
+
+After the initial build, use **LiveMorph** to update the document as many times as needed.
+
+### Changed the Data? → `sync to-html`
+
+```bash
+# After editing the Data block:
+gospelo-kata sync to-html agenda.kata.md
+```
+
+Data changes flow through the template into the body.
+
+### Edited the Body Directly? → `sync to-data`
+
+```bash
+# After editing span values in the body:
+gospelo-kata sync to-data agenda.kata.md
+```
+
+Body changes are extracted into the Data block and re-rendered.
+
+> With the VS Code extension, LiveMorph runs automatically on save. → [VS Code Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode.md)
+
+---
+
+## Summary
 
 ```
-prepare → create data.yml → build → lint → (fix loop)
+prepare  →  data.yml (scaffold)
+    ↓
+  edit
+    ↓
+build    →  .kata.md (complete)  →  lint to validate
+    ↓
+LiveMorph  →  Edit Data → sync to-html (repeat)
+           →  Edit body → sync to-data (repeat)
 ```
 
-```
-Template + data.yml
-  | build (assemble + render)
-Rendered (.kata.md)  <- data-kata attributes + Schema/Data
-  | lint
-Validation (0 errors)
-  | extract
-Data recovery (round-trip)
-```
+- **You only edit the Data block or the body spans**
+- No need to touch the template or schema
+- `gospelo-kata export agenda.kata.md --part data` extracts just the data
 
 ---
 
 ## Next Steps
 
-- [CLI Reference](cli-reference.md) — Full command details
-- [KATA Markdown™ Format](kata-markdown-format.md) — Template syntax
-- [Lint Rules](lint-rules.md) — Error code reference
-- [Skill Guide](skill-guide.md) — AI skill usage guide
-- [VSCode Integration](vscode-integration.md) — Extension setup
+- [LiveMorph Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/livemorph.md) --- Bidirectional sync details
+- [Template List](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/templates.md) --- Built-in templates
+- [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md) --- All commands
+- [VS Code Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode.md) --- Extension setup

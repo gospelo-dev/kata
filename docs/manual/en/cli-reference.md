@@ -208,7 +208,7 @@ gospelo-kata lint rendered.kata.md --schema checklist # Document mode
 
 Exits with code 1 if errors are found.
 
-See [Lint Rules](lint-rules.md) for error code details.
+See [Lint Rules](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/lint-rules.md) for error code details.
 
 ### `fmt` — Auto-format
 
@@ -221,7 +221,7 @@ gospelo-kata fmt outputs/*.kata.md --check   # Check only (for CI)
 
 `--check` exits with code 1 if fixes are needed.
 
-### `gen-schema-section` — Generate Schema Reference section
+### `gen-schema-section` — Generate Specification section
 
 ```bash
 gospelo-kata gen-schema-section checklist
@@ -292,7 +292,7 @@ gospelo-kata pack ./my_template/ -o my_template.katar
 gospelo-kata pack-init ./my_template/
 ```
 
-See [Template Package](template-package.md) for details.
+See [Template Package](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md) for details.
 
 ---
 
@@ -304,4 +304,4 @@ See [Template Package](template-package.md) for details.
 gospelo-kata init-vscode --output .vscode
 ```
 
-See [VSCode Integration](vscode-integration.md) for details.
+See [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md) for details.

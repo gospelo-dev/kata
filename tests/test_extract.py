@@ -36,7 +36,7 @@ Total: <span data-kata="p-test-cases">2</span> test cases
 ---
 
 <details>
-<summary>Schema Reference</summary>
+<summary>Specification</summary>
 
 #### <a id="p-test-name"></a>test_name
 - **type**: string

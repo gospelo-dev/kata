@@ -62,7 +62,7 @@ Hovering over `data-kata` attributes shows schema property type information in a
 - Allowed enum values
 - minLength / maxLength
 
-**Supported format**: Reads information from the YAML shorthand code block in the Schema Reference section.
+**Supported format**: Reads information from the YAML shorthand code block in the Specification section.
 
 ```html
 <!-- Hover here to see: -->
@@ -78,7 +78,7 @@ Popup:
 
 ### 3. Data Sync (Sync Data)
 
-When you save a `.kata.md` file, the values in `data-kata` spans are automatically synced to the Data YAML block in the Schema Reference section.
+When you save a `.kata.md` file, the values in `data-kata` spans are automatically synced to the Data YAML block in the Specification section.
 
 **How it works**:
 1. Save file (Cmd+S)
@@ -171,12 +171,12 @@ kata-lint: gospelo-kata is not installed. Run: pip install gospelo-kata
 
 ### Hover does not show type information
 
-**Cause**: Verify that the Schema Reference section is in YAML shorthand format inside `<details>`.
+**Cause**: Verify that the Specification section is in YAML shorthand format inside `<details>`.
 
 **Required structure**:
 ```html
 <details>
-<summary>Schema Reference</summary>
+<summary>Specification</summary>
 
 **Schema**
 

@@ -6,7 +6,7 @@
 [![Linter](https://img.shields.io/badge/Category-Linter-4caf50.svg)](#機能)
 [![Marketplace](https://img.shields.io/badge/VS_Marketplace-gospelo.kata--lint-007ACC.svg?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint)
 
-[gospelo-kata](https://github.com/gospelo-dev/kata) の VSCode 拡張機能です。KATA Markdown™ テンプレート (`.kata.md`) のリアルタイム lint、シンタックスハイライト、ホバー情報、プレビューを提供します。
+[gospelo-kata](https://github.com/gospelo-dev/kata) の VSCode 拡張機能です。KATA Markdown™ (`.kata.md`) のリアルタイム lint、LiveMorph 双方向同期、ホバー情報、プレビューを提供します。
 
 [English](https://github.com/gospelo-dev/kata/blob/main/vscode-kata-lint/README.md)
 
@@ -16,24 +16,25 @@
 
 ### Lint
 
-- **自動 Lint** — `gospelo-kata lint` をファイル保存・オープン時に自動実行
+- **自動 Lint** — ファイル保存・オープン時に `gospelo-kata lint` を自動実行
 - **エディタ内表示** — エラー箇所にインライン波線 + Problems パネルに一覧表示
-- **テンプレート & ドキュメントモード** — テンプレート (`_tpl.kata.md`) とレンダリング済みドキュメント (`.kata.md`) の両方を検証
+- **テンプレート & ドキュメントモード** — テンプレートとレンダリング済みドキュメントの両方を検証
 
-### シンタックスハイライト
+### LiveMorph (双方向同期)
 
-- `{{ variable }}` — 変数補間
-- `{% for %}` / `{% if %}` — 制御構文
-- `{#schema ... #}` / `{#prompt ... #}` / `{#data ... #}` — Kata ブロック
+![LiveMorph Concept](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/images/livemorph-concept.jpg?raw=true)
+
+- **コンテキストメニュー** — 右クリックで Sync to HTML / Sync to Data / Sync OFF / Lint File
+- **ステータスバー** — 現在の同期モードを常時表示、クリックで QuickPick 切替
+- **保存時自動同期** — `syncOnSave` 設定で Data → HTML または HTML → Data を自動実行
 
 ### ホバー情報
 
-- `data-kata` 属性にホバーするとスキーマパスとバインディング情報を表示
+- `data-kata` 属性にホバーするとスキーマパス・型情報・enum 許可値を表示
 
 ### プレビュー CSS
 
-- KATA Markdown™ 専用のプレビュースタイルを提供
-- `kata-card` テーブルレイアウト、ステータススタイリング
+- KATA Markdown™ 専用のプレビュースタイル (`kata-card` テーブルレイアウト、ステータスカラー)
 
 ---
 
@@ -49,64 +50,6 @@ pip install gospelo-kata
 
 ---
 
-## Lint チェック項目
-
-### テンプレートモード (`.kata.md`)
-
-| Code | Level | 説明 |
-|------|-------|------|
-| S000 | info | スキーマ未定義 |
-| S001 | error | スキーマブロック内の JSON が不正 |
-| S002 | error | スキーマが JSON オブジェクトでない |
-| S003 | warning | スキーマに `type` フィールドがない |
-| S004 | error | 参照先のスキーマファイルが見つからない |
-| T001 | error | `{% for %}` / `{% if %}` が閉じられていない |
-| T002 | error | `{% elif %}` に対応する `{% if %}` がない |
-| T003 | error | `{% else %}` に対応する `{% if %}` / `{% for %}` がない |
-| T004 | error | `{% endif %}` に対応する `{% if %}` がない |
-| T005 | error | `{% endfor %}` に対応する `{% for %}` がない |
-| T006 | warning | 不明なブロックタグ |
-| P001 | warning | プロンプトブロックが見つからない |
-| P002 | warning | 疑わしいプロンプト内容を検出（プロンプトインジェクションパターン） |
-| F001 | error | 不明なフィルター名 |
-| V001 | warning | スキーマプロパティに存在しない変数参照 |
-| V002 | info | テンプレートで使用されていないスキーマプロパティ |
-
-### ドキュメントモード (`.md`)
-
-| Code | Level | 説明 |
-|------|-------|------|
-| D001 | info | 外部スキーマが見つからない（インラインアンカーを使用） |
-| D002 | error | 必須セクション (`## Heading`) が欠落 |
-| D003 | warning | テーブルのカラム数が不一致 |
-| D004 | warning | 空のセクション（見出しのみ、内容なし） |
-| D005 | warning | `data-kata` アンカーがスキーマプロパティに存在しない |
-| D006 | info | スキーマプロパティがアノテーションで参照されていない |
-| D007 | warning | enum 値が許可値リストにない |
-| D008 | warning | 文字列が minLength より短い |
-| D009 | warning | 文字列が maxLength を超過 |
-| D010 | warning | 配列要素数が minItems/maxItems の範囲外 |
-| D011 | warning | `data-kata` アンカー ID が重複 |
-| D012 | error/warning | kata-card 構造の問題 |
-| D014 | warning | `<details>` または `<style>` セクションが欠落 |
-| D015 | warning | テーブル内の enum 値に data-kata アノテーションがない |
-| D016 | error | data-kata span 内に HTML タグが検出された |
-| D017 | warning | 構造整合性ハッシュの不一致 |
-
-### セキュリティ
-
-| Code | 説明 |
-|------|------|
-| P002 | パターンベースのプロンプトインジェクション検出 — ロール上書き、命令上書き、コマンド実行、資格情報アクセス、Chat-ML デリミタ |
-| D016 | `data-kata` span 内の HTML インジェクションを検出（XSS 防止） |
-| D017 | 構造整合性ハッシュを検証 — レンダリング後の Prompt・Schema・テンプレート本体の改ざんを検出 |
-
-P002 のチェックは `assemble` 時の `_check_template_trust()` でも実行されます。詳細は[プロンプト設計ガイドライン](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/prompt-design-guide.md)を参照。
-
-D017 は [KATA ARchive™ セキュリティアーキテクチャ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md#なぜこの仕組みを公開しても安全なのか)の一部です。整合性検証と信頼管理の詳細は[テンプレートパッケージガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md)を参照してください。
-
----
-
 ## 拡張機能の設定
 
 | Setting | Default | 説明 |
@@ -114,19 +57,31 @@ D017 は [KATA ARchive™ セキュリティアーキテクチャ](https://githu
 | `kataLint.pythonPath` | `"python"` | Python インタープリタのパス |
 | `kataLint.lintOnSave` | `true` | 保存時の自動 Lint |
 | `kataLint.lintOnOpen` | `true` | オープン時の自動 Lint |
+| `kataLint.syncOnSave` | `"off"` | 保存時の同期モード (`"off"` / `"toHtml"` / `"toData"`) |
 | `kataLint.severity.info` | `"Information"` | info レベルの表示方法 |
+| `kataLint.exclude` | `[]` | 除外パターン (glob) |
 
 ---
 
-## VSCode セットアップ
+## Lint ルール
 
-gospelo-kata CLI でタスク設定を自動生成できます:
+詳細は [Lint ルール一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/lint-rules.md) を参照。
 
-```bash
-gospelo-kata init-vscode --output .vscode/
-```
+### セキュリティ
 
-詳細は [VSCode 連携ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md) を参照してください。
+| Code | 説明 |
+|------|------|
+| P002 | プロンプトインジェクション検出 — ロール上書き、命令上書き、コマンド実行、資格情報アクセス |
+| D016 | `data-kata` span 内の HTML インジェクション検出 (XSS 防止) |
+| D017 | 構造整合性ハッシュ検証 — レンダリング後の Prompt・Schema・テンプレート本体の改ざんを検出 |
+
+---
+
+## 関連ドキュメント
+
+- [VS Code 連携ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode.md)
+- [LiveMorph ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/livemorph.md)
+- [テンプレートパッケージ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/katar.md)
 
 ---
 

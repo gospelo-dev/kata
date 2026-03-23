@@ -363,7 +363,7 @@ def _expand_object(data: dict[str, Any]) -> dict[str, Any]:
         # Only skip keys whose values are NOT shorthand strings.
         if raw_key in ("type", "required", "properties", "items",
                        "enum", "description", "$schema", "title",
-                       "x-kata-meta", "additionalProperties",
+                       "additionalProperties",
                        "minItems", "maxItems", "minLength", "maxLength"):
             if not (isinstance(value, str) and _is_shorthand(value)):
                 continue
@@ -1390,6 +1390,7 @@ def _render_nodes(
     *,
     annotate: bool = False,
     _var_map: dict[str, str] | None = None,
+    _enum_map: dict[str, list[str]] | None = None,
 ) -> str:
     """Render AST nodes to string.
 
@@ -1397,12 +1398,15 @@ def _render_nodes(
         nodes: AST node list.
         context: Template variable context.
         annotate: If True, wrap rendered values with internal anchor links
-            that point to the Schema Reference section at the bottom.
+            that point to the Specification section at the bottom.
         _var_map: Internal — maps loop variable names to their schema
             property path (e.g. ``{"a": "attendees"}``).
+        _enum_map: Maps property paths to their enum values for CSS styling.
     """
     if _var_map is None:
         _var_map = {}
+    if _enum_map is None:
+        _enum_map = {}
     parts: list[str] = []
     for node in nodes:
         if isinstance(node, _TextNode):
@@ -1422,7 +1426,13 @@ def _render_nodes(
                     # - html.escape: < > & → entities (prevent XSS, fix extract)
                     # - pipe escape: | → &#124; (prevent Markdown table breakage)
                     safe_val = html.escape(rendered, quote=False).replace("|", "&#124;")
-                    parts.append(f'<span data-kata="{anchor}">{safe_val}</span>')
+                    # Add enum styling attribute if this property has enum values
+                    # Strip array index from prop to match enum_map keys
+                    base_prop = re.sub(r"-\d+-", "-", re.sub(r"-\d+$", "", prop))
+                    enum_attr = ""
+                    if base_prop in _enum_map and rendered in _enum_map[base_prop]:
+                        enum_attr = f' data-kata-enum="{html.escape(rendered, quote=True)}"'
+                    parts.append(f'<span data-kata="{anchor}"{enum_attr}>{safe_val}</span>')
                 else:
                     parts.append(rendered)
             else:
@@ -1473,11 +1483,13 @@ def _render_nodes(
                     parts.append(_render_nodes(
                         node.body, child_ctx,
                         annotate=annotate, _var_map=iter_var_map,
+                        _enum_map=_enum_map,
                     ))
             elif node.else_body:
                 parts.append(_render_nodes(
                     node.else_body, context,
                     annotate=annotate, _var_map=_var_map,
+                    _enum_map=_enum_map,
                 ))
 
         elif isinstance(node, _IfNode):
@@ -1487,6 +1499,7 @@ def _render_nodes(
                     parts.append(_render_nodes(
                         body, context,
                         annotate=annotate, _var_map=_var_map,
+                        _enum_map=_enum_map,
                     ))
                     rendered = True
                     break
@@ -1494,6 +1507,7 @@ def _render_nodes(
                 parts.append(_render_nodes(
                     node.else_body, context,
                     annotate=annotate, _var_map=_var_map,
+                    _enum_map=_enum_map,
                 ))
 
     return "".join(parts)
@@ -1584,8 +1598,207 @@ def _prop_to_anchor(prop: str) -> str:
     return "p-" + prop.replace(".", "-").replace("_", "-")
 
 
+def _collect_enum_map(
+    schema: dict[str, Any] | None,
+    prefix: str = "",
+) -> dict[str, list[str]]:
+    """Build a map of property paths to their enum values from a schema.
+
+    Returns e.g. ``{"status": ["todo", "done"], "items-status": ["todo", "done"]}``.
+    The keys use the same dash-separated format as ``data-kata`` anchors (without "p-").
+    """
+    if schema is None:
+        return {}
+    result: dict[str, list[str]] = {}
+    props = schema.get("properties", {})
+    for key, prop_schema in props.items():
+        path = f"{prefix}{key}" if not prefix else f"{prefix}-{key}"
+        enum_vals = prop_schema.get("enum")
+        if enum_vals:
+            result[path] = [str(v) for v in enum_vals]
+        # Recurse into nested objects
+        if prop_schema.get("type") == "object" and "properties" in prop_schema:
+            result.update(_collect_enum_map(prop_schema, path + "-"))
+        # Recurse into array items
+        items_schema = prop_schema.get("items")
+        if items_schema and isinstance(items_schema, dict):
+            if "properties" in items_schema:
+                result.update(_collect_enum_map(items_schema, path))
+            elif items_schema.get("enum"):
+                result[path] = [str(v) for v in items_schema["enum"]]
+
+
+    return result
+
+
 # ---------------------------------------------------------------------------
-# Schema Reference section generator
+# Enum color schemes
+# ---------------------------------------------------------------------------
+
+# Each scheme maps semantic enum values to (background, foreground) colors.
+# Schemes are selected via colorScheme in the Style block, or default.
+
+# Color palettes derived from Chart Banana theme system (gospelo-chart-banana).
+# Each scheme uses semantic roles: positive → done/approved/yes,
+# negative → rejected/no/high, neutral → todo/draft/inactive,
+# warning → pending/medium/in-progress.
+
+def _build_scheme(
+    positive: tuple[str, str],
+    negative: tuple[str, str],
+    neutral: tuple[str, str],
+    warning: tuple[str, str],
+) -> dict[str, tuple[str, str]]:
+    """Build an enum color scheme from 4 semantic color pairs (bg, fg)."""
+    return {
+        # positive — completed / success
+        "done": positive, "approved": positive, "approve": positive,
+        "pass": positive, "yes": positive, "true": positive,
+        "active": positive, "ok": positive, "OK": positive,
+        "full": positive,
+        # negative — failure / danger / high-severity
+        "rejected": negative, "reject": negative, "fail": negative,
+        "no": negative, "false": negative, "error": negative,
+        "high": negative, "HIGH": negative,
+        "critical": negative, "CRITICAL": negative,
+        "ng": negative, "NG": negative, "ERROR": negative,
+        "cancelled": negative,
+        # neutral — action needed / informational
+        "todo": neutral, "draft": neutral, "inactive": neutral,
+        "closed": neutral, "low": neutral, "LOW": neutral,
+        "skip": neutral, "info": neutral, "INFO": neutral,
+        "manual": neutral, "partial": neutral,
+        # warning — in-progress / medium-severity
+        "pending": warning, "medium": warning, "MEDIUM": warning,
+        "in_progress": warning, "in-progress": warning,
+        "open": warning, "semi": warning,
+    }
+
+# 浅葱 Asagi — Clear light blue (Chart Banana: asagi, pure_white)
+# done=低彩度(完了感), todo=高彩度(アクション要)
+_ENUM_SCHEME_DEFAULT = _build_scheme(
+    positive=("#e8ecea", "#6b7d75"),   # desaturated sage — finished, faded
+    negative=("#fde0d4", "#a33a12"),   # 紅緋 tint
+    neutral=("#b0e4ea", "#0e5f6a"),    # 浅葱 stronger — active, needs attention
+    warning=("#fff3d4", "#8a6b00"),    # 山吹 tint
+)
+
+# Jelly Mint — Fresh translucent green (Chart Banana: jelly_mint, pure_white)
+_ENUM_SCHEME_PASTEL = _build_scheme(
+    positive=("#eaefec", "#7a8a80"),   # muted sage — done, settled
+    negative=("#f8e0dd", "#9e4a40"),   # dusty rose tint
+    neutral=("#a8e6c4", "#1a5c3a"),    # mint stronger — todo, fresh action
+    warning=("#fce8d5", "#8a5a30"),    # warm peach tint
+)
+
+# Vivid Gradient — Bold purple & cyan (Chart Banana: vivid, pure_white)
+_ENUM_SCHEME_VIVID = _build_scheme(
+    positive=("#b0b8b6", "#3a3a3a"),   # muted gray-green — done, subdued
+    negative=("#D63031", "#ffffff"),   # red solid
+    neutral=("#00CEC9", "#ffffff"),    # cyan solid — todo, eye-catching
+    warning=("#6C5CE7", "#ffffff"),    # purple solid
+)
+
+# 墨 Sumi-ink — Monochrome with vermillion (Chart Banana: sumi, shironeri)
+_ENUM_SCHEME_MONOCHROME = _build_scheme(
+    positive=("#D0D0D0", "#3a3a3a"),   # light ink wash — done, faded
+    negative=("#CB1B45", "#ffffff"),   # 紅 kurenai
+    neutral=("#1C1C1C", "#ffffff"),    # 墨 sumi — todo, bold
+    warning=("#717171", "#ffffff"),    # medium ink
+)
+
+# Blue Aura — Calming blue-gray (Chart Banana: blue_aura, pure_white)
+_ENUM_SCHEME_OCEAN = _build_scheme(
+    positive=("#e8e9ed", "#6a6c73"),   # cool muted gray — done, settled
+    negative=("#f8ddd4", "#9c4a35"),   # terracotta tint
+    neutral=("#a8cfe0", "#1a3d55"),    # blue aura stronger — todo, active
+    warning=("#e4ecf2", "#3d6580"),    # light blue aura
+)
+
+ENUM_COLOR_SCHEMES: dict[str, dict[str, tuple[str, str]]] = {
+    "default": _ENUM_SCHEME_DEFAULT,
+    "pastel": _ENUM_SCHEME_PASTEL,
+    "vivid": _ENUM_SCHEME_VIVID,
+    "monochrome": _ENUM_SCHEME_MONOCHROME,
+    "ocean": _ENUM_SCHEME_OCEAN,
+}
+
+
+def _resolve_color_scheme(style: dict[str, Any] | None) -> str:
+    """Read colorScheme from Style block, falling back to 'default'."""
+    if style is None:
+        return "default"
+    name = style.get("colorScheme", "default")
+    if name in ENUM_COLOR_SCHEMES:
+        return name
+    return "default"
+
+
+def _resolve_enum_overrides(
+    style: dict[str, Any] | None,
+    color_scheme: str,
+) -> dict[str, tuple[str, str]]:
+    """Build enum color overrides from Style block's enumColors.
+
+    enumColors maps field names to dicts of {value: semantic_role}.
+    Semantic roles: positive, negative, neutral, warning.
+
+    Returns:
+        Dict mapping enum value → (bg, fg) color pair.
+    """
+    if style is None:
+        return {}
+    enum_colors = style.get("enumColors")
+    if not isinstance(enum_colors, dict):
+        return {}
+    palette = ENUM_COLOR_SCHEMES.get(color_scheme, _ENUM_SCHEME_DEFAULT)
+    # Collect the 4 semantic base colors from palette
+    semantic = {
+        "positive": palette.get("done", palette.get("pass", ("#e8ecea", "#6b7d75"))),
+        "negative": palette.get("fail", palette.get("rejected", ("#fde0d4", "#a33a12"))),
+        "neutral": palette.get("todo", palette.get("draft", ("#b0e4ea", "#0e5f6a"))),
+        "warning": palette.get("pending", palette.get("medium", ("#fff3d4", "#8a6b00"))),
+    }
+    overrides: dict[str, tuple[str, str]] = {}
+    for _field, mapping in enum_colors.items():
+        if isinstance(mapping, dict):
+            for value, role in mapping.items():
+                if isinstance(role, str) and role in semantic:
+                    overrides[str(value)] = semantic[role]
+    return overrides
+
+
+def _generate_enum_css(
+    enum_map: dict[str, list[str]],
+    color_scheme: str = "default",
+    style: dict[str, Any] | None = None,
+) -> list[str]:
+    """Generate CSS rules for enum-valued data-kata spans."""
+    lines: list[str] = []
+    # Collect unique enum values across all properties
+    seen_values: set[str] = set()
+    for values in enum_map.values():
+        for v in values:
+            if v not in seen_values:
+                seen_values.add(v)
+    if not seen_values:
+        return lines
+    # Base style for all enum spans
+    lines.append("[data-kata-enum] { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }")
+    palette = ENUM_COLOR_SCHEMES.get(color_scheme, _ENUM_SCHEME_DEFAULT)
+    overrides = _resolve_enum_overrides(style, color_scheme)
+    for val in sorted(seen_values):
+        safe_val = val.replace('"', '\\"')
+        # User overrides take precedence
+        colors = overrides.get(val) or palette.get(val.lower())
+        if colors:
+            bg, fg = colors
+            lines.append(f'[data-kata-enum="{safe_val}"] {{ background: {bg}; color: {fg}; }}')
+    return lines
+
+
+# ---------------------------------------------------------------------------
+# Specification section generator
 # ---------------------------------------------------------------------------
 
 _ANNOTATION_PROP_PATTERN = re.compile(r'<span\s+data-kata="p-[a-z0-9-]+">([^<]*)</span>')
@@ -1628,16 +1841,17 @@ def generate_schema_reference(
     data: dict[str, Any] | None = None,
     prompt: str | None = None,
     template_body: str | None = None,
+    style: dict[str, Any] | None = None,
 ) -> str:
-    """Generate a Schema Reference section from a JSON Schema.
+    """Generate a Specification section from a JSON Schema.
 
     The generated Markdown is wrapped in a ``<details>`` tag and contains
-    Prompt, template body, Schema, and Data blocks — everything needed to
-    reconstruct or re-render the document from a single file.
+    Prompt, template body, Schema, Style, and Data blocks — everything needed
+    to reconstruct or re-render the document from a single file.
 
     A structure integrity hash is embedded as an HTML comment before
-    ``</details>``.  The hash covers Prompt, kata:template, and Schema
-    blocks but excludes the Data block, allowing data changes without
+    ``</details>``.  The hash covers Prompt, kata:template, Schema, and
+    Style blocks but excludes the Data block, allowing data changes without
     invalidating the hash.
 
     Args:
@@ -1645,25 +1859,30 @@ def generate_schema_reference(
         data: Optional data dict to include as a Data section.
         prompt: Optional prompt text to include.
         template_body: Optional template source to include.
+        style: Optional style dict (colorScheme, enumColors).
 
     Returns:
-        Markdown string for the Schema Reference section.
+        Markdown string for the Specification section.
     """
     lines: list[str] = []
     lines.append("")
     # Inline style to prevent table horizontal overflow in Markdown previews.
-    # Markdown Preview Enhanced sets `display:block; overflow:auto` on tables,
-    # so we override with higher-specificity selectors embedded in the output.
     lines.append("<style>")
     lines.append("table { table-layout: fixed; width: 100%; display: table !important; overflow: visible !important; }")
     lines.append("table th, table td { overflow-wrap: break-word; word-break: break-word; vertical-align: top; }")
     lines.append(".markdown-preview { max-width: 100% !important; padding-left: 2em !important; padding-right: 2em !important; }")
+    # Add enum styling rules if schema contains enum properties
+    enum_map = _collect_enum_map(schema)
+    color_scheme = _resolve_color_scheme(style)
+    enum_css = _generate_enum_css(enum_map, color_scheme, style=style)
+    for rule in enum_css:
+        lines.append(rule)
     lines.append("</style>")
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("<details>")
-    lines.append("<summary>Schema Reference</summary>")
+    lines.append("<summary>Specification</summary>")
     lines.append("")
 
     if prompt is not None:
@@ -1675,6 +1894,8 @@ def generate_schema_reference(
         lines.append("")
 
     if template_body is not None:
+        lines.append("**Template**")
+        lines.append("")
         lines.append("```kata:template")
         lines.append(template_body.rstrip("\n"))
         lines.append("```")
@@ -1687,13 +1908,16 @@ def generate_schema_reference(
     lines.append("```")
     lines.append("")
 
-    # Compute structure integrity hash (excludes Data block)
-    # Build the inner content of <details> for hashing
-    details_inner = "\n".join(lines[lines.index("<details>") + 2 :])  # after <summary> line
+    # Compute structure integrity hash (Specification only)
+    details_inner = "\n".join(lines[lines.index("<details>") + 2 :])
     integrity_hash = _compute_structure_hash(details_inner)
     lines.append(f"<!-- kata-structure-integrity: sha256:{integrity_hash} -->")
     lines.append("</details>")
     lines.append("")
+
+    # Style block — separate <details>, user-editable
+    if style:
+        lines.append(generate_style_section(style))
 
     if data is not None:
         lines.append(generate_data_section(data))
@@ -1713,6 +1937,27 @@ def generate_data_section(data: dict[str, Any]) -> str:
         lines.append(yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False).rstrip())
     except ImportError:
         lines.append(json.dumps(data, indent=2, ensure_ascii=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("</details>")
+    return "\n".join(lines)
+
+
+def generate_style_section(style: dict[str, Any]) -> str:
+    """Generate a separate Style section wrapped in ``<details>``."""
+    lines: list[str] = []
+    lines.append("<details>")
+    lines.append("<summary>Style</summary>")
+    lines.append("")
+    lines.append("```yaml")
+    try:
+        import yaml
+        lines.append(yaml.dump(
+            style, allow_unicode=True,
+            default_flow_style=False, sort_keys=False,
+        ).rstrip())
+    except ImportError:
+        lines.append(json.dumps(style, indent=2, ensure_ascii=False))
     lines.append("```")
     lines.append("")
     lines.append("</details>")
@@ -1783,7 +2028,7 @@ def _walk_schema_props(
     """Recursively walk schema properties and emit anchor headings.
 
     Legacy format kept for backward compatibility with extract.py
-    which parses Schema Reference sections.
+    which parses Specification sections.
     """
     props = schema.get("properties", {})
     required = set(schema.get("required", []))
@@ -1920,22 +2165,22 @@ def strip_annotations(text: str) -> str:
     """Remove annotation links from rendered Markdown.
 
     Converts ``[value](#p-title)`` back to plain ``value``.
-    Also removes the Schema Reference section at the bottom.
+    Also removes the Specification section at the bottom.
 
     Args:
         text: Annotated Markdown text.
 
     Returns:
-        Clean Markdown without annotation links or Schema Reference.
+        Clean Markdown without annotation links or Specification.
     """
     # Remove annotations (data-kata spans and legacy links)
     cleaned = _ANNOTATION_PROP_PATTERN.sub(r"\1", text)
     cleaned = _ANNOTATION_LINK_PATTERN.sub(r"\1", cleaned)
 
-    # Remove Schema Reference section
-    # Matches: ---\n\n<details>\n<summary>Schema Reference</summary>\n...\n</details>\n
+    # Remove Specification section
+    # Matches: ---\n\n<details>\n<summary>Specification</summary>\n...\n</details>\n
     ref_pattern = re.compile(
-        r"\n---\n\n<details>\s*\n<summary>Schema Reference</summary>\n.*?</details>\n?",
+        r"\n---\n\n<details>\s*\n<summary>Specification</summary>\n.*?</details>\n?",
         re.DOTALL,
     )
     cleaned = ref_pattern.sub("", cleaned)
@@ -1970,6 +2215,7 @@ class Template:
         self.source = source
         self.template_path = template_path
         self.schema, cleaned = extract_schema(source, template_path)
+        self.style: dict[str, Any] | None = None
         # Extract prompt block (for AI assistants) and strip from template
         prompt_match = _PROMPT_PATTERN.search(cleaned)
         if not prompt_match:
@@ -1983,7 +2229,7 @@ class Template:
         cleaned = _DATA_BOLD_CODEBLOCK_PATTERN.sub("", cleaned).lstrip("\n")
         # Strip <details> wrapper (used in template files) before tokenizing
         cleaned = re.sub(
-            r"<details>\s*<summary>Schema Reference</summary>.*?</details>\s*",
+            r"<details>\s*<summary>Specification</summary>.*?</details>\s*",
             "", cleaned, flags=re.DOTALL,
         ).rstrip("\n")
         self.template_body = cleaned
@@ -1998,6 +2244,7 @@ class Template:
                 self.schema,
                 prompt=self.prompt,
                 template_body=self.template_body,
+                style=self.style,
             )
         return body
 
@@ -2005,7 +2252,7 @@ class Template:
         """Render the template with a data dictionary.
 
         If the rendered output contains internal links (``#p-``) and a schema
-        is embedded, a Schema Reference section is automatically appended.
+        is embedded, a Specification section is automatically appended.
         """
         body = _render_nodes(self._ast, data)
         if self.schema is not None and "#p-" in body:
@@ -2014,25 +2261,28 @@ class Template:
                 data=self.data,
                 prompt=self.prompt,
                 template_body=self.template_body,
+                style=self.style,
             )
         return body
 
     def render_annotated(self, data: dict[str, Any]) -> str:
-        """Render with schema annotation links and Schema Reference section.
+        """Render with schema annotation links and Specification section.
 
         Each rendered value is wrapped as ``[value](#p-property)`` linking
-        to the corresponding anchor in a Schema Reference section appended
+        to the corresponding anchor in a Specification section appended
         at the bottom of the document.
 
         If no schema is embedded, falls back to plain render_dict.
         """
-        body = _render_nodes(self._ast, data, annotate=True)
+        enum_map = _collect_enum_map(self.schema) if self.schema else {}
+        body = _render_nodes(self._ast, data, annotate=True, _enum_map=enum_map)
         if self.schema is not None:
             body += generate_schema_reference(
                 self.schema,
                 data=self.data,
                 prompt=self.prompt,
                 template_body=self.template_body,
+                style=self.style,
             )
         return body
 
@@ -2090,7 +2340,7 @@ def render_file(
         data: Data dictionary to render with.
         validate: If True and schema is embedded, validate data first.
         annotate: If True, render with schema annotation links and
-            append a Schema Reference section at the bottom.
+            append a Specification section at the bottom.
 
     Returns:
         Rendered string.
@@ -2140,10 +2390,41 @@ def _extract_data_from_details(source: str) -> dict[str, Any] | None:
         return None
 
 
+def _replace_data_in_source(source: str, new_data: dict[str, Any]) -> str:
+    """Replace the Data block in source with new data, preserving structure."""
+    import yaml
+    new_yaml = yaml.dump(
+        new_data, allow_unicode=True, default_flow_style=False, sort_keys=False,
+    ).rstrip()
+    new_block = (
+        "<details>\n<summary>Data</summary>\n\n"
+        f"```yaml\n{new_yaml}\n```\n\n</details>"
+    )
+    return _DATA_DETAILS_RE.sub(new_block, source)
+
+
 def _extract_kata_template(source: str) -> str | None:
     """Extract template code from ```kata:template block."""
     m = _KATA_TEMPLATE_RE.search(source)
     return m.group(1).rstrip("\n") if m else None
+
+
+def _extract_style_block(source: str) -> dict[str, Any] | None:
+    """Extract Style block from a separate ``<details>Style</details>``."""
+    m = re.search(
+        r"<details>\s*<summary>Style</summary>\s*```(?:yaml)?\n(.*?)```\s*</details>",
+        source, re.DOTALL,
+    )
+    if not m:
+        return None
+    try:
+        import yaml
+        style = yaml.safe_load(m.group(1))
+        if isinstance(style, dict):
+            return style
+    except Exception:
+        pass
+    return None
 
 
 def render_kata(
@@ -2157,7 +2438,7 @@ def render_kata(
     Supports two formats:
     - **New format**: Data in separate ``<details>Data</details>``,
       template code in ``kata:template`` block. Re-renders from template.
-    - **Legacy format**: Data inside ``<details>Schema Reference</details>``.
+    - **Legacy format**: Data inside ``<details>Specification</details>``.
       Falls back to span-replacement rendering.
 
     Args:
@@ -2185,9 +2466,9 @@ def render_kata(
         if tpl_code is None:
             raise ValueError(f"No kata:template block found in {kata_path}")
 
-        # Extract Schema Reference <details> (for schema + prompt)
+        # Extract Specification <details> (for schema + prompt)
         schema_ref_match = re.search(
-            r"<details>\s*<summary>Schema Reference</summary>(.*?)</details>",
+            r"<details>\s*<summary>Specification</summary>(.*?)</details>",
             source, re.DOTALL,
         )
         schema_inner = schema_ref_match.group(1) if schema_ref_match else ""
@@ -2208,6 +2489,9 @@ def render_kata(
         )
         prompt = prompt_match.group(1).rstrip("\n") if prompt_match else None
 
+        # Extract Style block (separate <details>)
+        style = _extract_style_block(source)
+
         if validate and schema is not None:
             from .validator import validate as do_validate
             result = do_validate(data, schema, schema_name=path.name)
@@ -2219,13 +2503,15 @@ def render_kata(
         ast = _parse(tokens)
 
         if annotate:
-            body = _render_nodes(ast, data, annotate=True)
+            enum_map = _collect_enum_map(schema) if schema else {}
+            body = _render_nodes(ast, data, annotate=True, _enum_map=enum_map)
             if schema is not None:
                 body += generate_schema_reference(
                     schema,
                     prompt=prompt,
                     template_body=tpl_code,
                     data=data,
+                    style=style,
                 )
         else:
             body = _render_nodes(ast, data)

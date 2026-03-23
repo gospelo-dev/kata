@@ -1,0 +1,14 @@
+title: Weekend Shopping List
+items:
+  - id: "1"
+    task: Buy milk
+    status: done
+  - id: "2"
+    task: Buy bread
+    status: done
+  - id: "3"
+    task: Buy eggs
+    status: todo
+  - id: "4"
+    task: Buy soy sauce
+    status: todo

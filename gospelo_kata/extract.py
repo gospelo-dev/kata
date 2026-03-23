@@ -9,7 +9,7 @@ that was used to generate the document. This enables the reverse flow:
 
     .kata.md (user edits) → extract → JSON → validate / export
 
-Uses the Schema Reference section (anchor IDs) to resolve the correct
+Uses the Specification section (anchor IDs) to resolve the correct
 property paths, avoiding ambiguity in dash-separated path parsing.
 """
 
@@ -21,12 +21,13 @@ import re
 from pathlib import Path
 from typing import Any
 
-# Match: <span data-kata="p-xxx-yyy">value</span>
+# Match: <span data-kata="p-xxx-yyy" ...>value</span>
+# Allows additional attributes (e.g., data-kata-enum) between data-kata and >
 _DATA_KATA_PATTERN = re.compile(
-    r'<span\s+data-kata="p-([a-z0-9]+(?:-[a-z0-9-]*)*)">([^<]*)</span>'
+    r'<span\s+data-kata="p-([a-z0-9]+(?:-[a-z0-9-]*)*)"[^>]*>([^<]*)</span>'
 )
 
-# Match: #### <a id="p-xxx-yyy"></a>xxx-yyy  (in Schema Reference)
+# Match: #### <a id="p-xxx-yyy"></a>xxx-yyy  (in Specification)
 _SCHEMA_REF_PATTERN = re.compile(
     r'####\s+<a\s+id="p-([a-z0-9-]+)"></a>\s*(\S+)'
 )
@@ -67,7 +68,7 @@ def extract_from_text(
 ) -> dict[str, Any]:
     """Extract JSON data from .kata.md text content.
 
-    Uses the Schema Reference section to determine which paths are
+    Uses the Specification section to determine which paths are
     array properties vs top-level scalars.
 
     Path resolution:
@@ -78,7 +79,7 @@ def extract_from_text(
     Returns:
         Reconstructed data dict.
     """
-    # 1. Parse schema structure from Schema Reference section or provided schema
+    # 1. Parse schema structure from Specification section or provided schema
     array_paths = _parse_schema_arrays(text, schema)
 
     # 2. Collect all (anchor_path, value) pairs in document order
@@ -127,7 +128,7 @@ def _arrays_from_schema(schema: dict[str, Any]) -> dict[str, list[str]]:
 
 
 def _arrays_from_schema_reference(text: str) -> dict[str, list[str]]:
-    """Parse the Schema Reference section to find array properties.
+    """Parse the Specification section to find array properties.
 
     Supports two formats:
     1. Legacy anchor headings:
@@ -139,8 +140,8 @@ def _arrays_from_schema_reference(text: str) -> dict[str, list[str]]:
           test_id: string!
         ```
     """
-    # Find Schema Reference section
-    schema_start = text.find("<summary>Schema Reference</summary>")
+    # Find Specification section
+    schema_start = text.find("<summary>Specification</summary>")
     if schema_start == -1:
         schema_start = text.find("<summary>Schema</summary>")
     if schema_start == -1:
@@ -247,6 +248,8 @@ def _build_data(
 
         if matched_array is not None:
             child_anchor = anchor[len(matched_array) + 1:]
+            # Strip numeric index prefix: "0-id" → "id", "12-task" → "task"
+            child_anchor = re.sub(r"^\d+-", "", child_anchor)
             prop_name = child_anchor.replace("-", "_")
 
             if matched_array not in array_items:
