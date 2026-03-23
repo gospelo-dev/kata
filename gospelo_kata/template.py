@@ -1687,18 +1687,6 @@ def generate_schema_reference(
     lines.append("```")
     lines.append("")
 
-    if data is not None:
-        lines.append("**Data**")
-        lines.append("")
-        lines.append("```yaml")
-        try:
-            import yaml
-            lines.append(yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False).rstrip())
-        except ImportError:
-            lines.append(json.dumps(data, indent=2, ensure_ascii=False))
-        lines.append("```")
-        lines.append("")
-
     # Compute structure integrity hash (excludes Data block)
     # Build the inner content of <details> for hashing
     details_inner = "\n".join(lines[lines.index("<details>") + 2 :])  # after <summary> line
@@ -1706,6 +1694,28 @@ def generate_schema_reference(
     lines.append(f"<!-- kata-structure-integrity: sha256:{integrity_hash} -->")
     lines.append("</details>")
     lines.append("")
+
+    if data is not None:
+        lines.append(generate_data_section(data))
+
+    return "\n".join(lines)
+
+
+def generate_data_section(data: dict[str, Any]) -> str:
+    """Generate a separate Data section wrapped in ``<details>``."""
+    lines: list[str] = []
+    lines.append("<details>")
+    lines.append("<summary>Data</summary>")
+    lines.append("")
+    lines.append("```yaml")
+    try:
+        import yaml
+        lines.append(yaml.dump(data, allow_unicode=True, default_flow_style=False, sort_keys=False).rstrip())
+    except ImportError:
+        lines.append(json.dumps(data, indent=2, ensure_ascii=False))
+    lines.append("```")
+    lines.append("")
+    lines.append("</details>")
     return "\n".join(lines)
 
 
@@ -2104,16 +2114,51 @@ def render_file(
     return tpl.render_dict(data)
 
 
+_KATA_TEMPLATE_RE = re.compile(
+    r"```kata:template\n(.*?)```", re.DOTALL
+)
+_DATA_DETAILS_RE = re.compile(
+    r"<details>\s*<summary>Data</summary>\s*```(?:yaml)?\n(.*?)```\s*</details>",
+    re.DOTALL,
+)
+
+
+def _is_separated_format(source: str) -> bool:
+    """Check if .kata.md uses separated Data <details> format."""
+    return bool(_DATA_DETAILS_RE.search(source))
+
+
+def _extract_data_from_details(source: str) -> dict[str, Any] | None:
+    """Extract YAML data from <details>Data</details> section."""
+    m = _DATA_DETAILS_RE.search(source)
+    if not m:
+        return None
+    try:
+        import yaml
+        return yaml.safe_load(m.group(1))
+    except Exception:
+        return None
+
+
+def _extract_kata_template(source: str) -> str | None:
+    """Extract template code from ```kata:template block."""
+    m = _KATA_TEMPLATE_RE.search(source)
+    return m.group(1).rstrip("\n") if m else None
+
+
 def render_kata(
     kata_path: str,
     *,
     validate: bool = True,
     annotate: bool = True,
 ) -> str:
-    """Render a self-contained .kata.md file using its embedded {#data} block.
+    """Render a self-contained .kata.md file using its embedded data.
 
-    The .kata.md file must contain both a template and a {#data} block.
-    Optionally validates the data against the embedded {#schema}.
+    Supports two formats:
+    - **New format**: Data in separate ``<details>Data</details>``,
+      template code in ``kata:template`` block. Re-renders from template.
+    - **Legacy format**: Data inside ``<details>Schema Reference</details>``.
+      Falls back to span-replacement rendering.
 
     Args:
         kata_path: Path to the .kata.md file.
@@ -2124,11 +2169,70 @@ def render_kata(
         Rendered string.
 
     Raises:
-        ValueError: If no {#data} block or if validation fails.
+        ValueError: If no data block or if validation fails.
     """
     from pathlib import Path as _Path
     path = _Path(kata_path)
     source = path.read_text(encoding="utf-8")
+
+    if _is_separated_format(source):
+        # New format: re-render from kata:template + Data <details>
+        data = _extract_data_from_details(source)
+        if data is None:
+            raise ValueError(f"Could not parse Data block in {kata_path}")
+
+        tpl_code = _extract_kata_template(source)
+        if tpl_code is None:
+            raise ValueError(f"No kata:template block found in {kata_path}")
+
+        # Extract Schema Reference <details> (for schema + prompt)
+        schema_ref_match = re.search(
+            r"<details>\s*<summary>Schema Reference</summary>(.*?)</details>",
+            source, re.DOTALL,
+        )
+        schema_inner = schema_ref_match.group(1) if schema_ref_match else ""
+
+        # Extract schema from **Schema** block
+        schema_yaml_match = re.search(
+            r"\*\*Schema\*\*\s*\n\s*```(?:yaml)?\n(.*?)```",
+            schema_inner, re.DOTALL,
+        )
+        schema = None
+        if schema_yaml_match:
+            schema = _parse_schema_content(schema_yaml_match.group(1))
+
+        # Extract prompt
+        prompt_match = re.search(
+            r"\*\*Prompt\*\*\s*\n\s*```(?:yaml)?\n(.*?)```",
+            schema_inner, re.DOTALL,
+        )
+        prompt = prompt_match.group(1).rstrip("\n") if prompt_match else None
+
+        if validate and schema is not None:
+            from .validator import validate as do_validate
+            result = do_validate(data, schema, schema_name=path.name)
+            if not result.valid:
+                raise ValueError(result.summary())
+
+        # Parse and render template code
+        tokens = _tokenize(tpl_code)
+        ast = _parse(tokens)
+
+        if annotate:
+            body = _render_nodes(ast, data, annotate=True)
+            if schema is not None:
+                body += generate_schema_reference(
+                    schema,
+                    prompt=prompt,
+                    template_body=tpl_code,
+                    data=data,
+                )
+        else:
+            body = _render_nodes(ast, data)
+
+        return body
+
+    # Legacy format: fall back to Template-based rendering
     tpl = Template(source, template_path=str(path))
 
     if tpl.data is None:

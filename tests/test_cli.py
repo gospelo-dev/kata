@@ -425,3 +425,73 @@ class TestExportFromFile:
         )
         output = _run(["export", str(md), "--part", "schema"])
         assert "title: string!" in output
+
+
+# ---------------------------------------------------------------------------
+# sync — bidirectional sync with separated Data <details>
+# ---------------------------------------------------------------------------
+
+class TestSyncBidirectional:
+    def _build_separated_kata_md(self, data_yaml: str) -> str:
+        return (
+            "# old title\n\n"
+            "<style>\n"
+            "table { table-layout: fixed; width: 100%; }\n"
+            "</style>\n\n"
+            "---\n\n"
+            "<details>\n<summary>Schema Reference</summary>\n\n"
+            "```kata:template\n"
+            "# {{ title }}\n\n"
+            "{% for item in items %}- {{ item.name }}\n"
+            "{% endfor %}\n"
+            "```\n\n"
+            "**Schema**\n\n```yaml\n"
+            "title: string!\n"
+            "items[]!:\n"
+            "  name: string!\n"
+            "```\n\n"
+            "</details>\n\n"
+            "<details>\n<summary>Data</summary>\n\n"
+            f"```yaml\n{data_yaml}```\n\n"
+            "</details>\n"
+        )
+
+    def test_sync_updates_body_from_data(self, tmp_path):
+        md = tmp_path / "test.kata.md"
+        md.write_text(self._build_separated_kata_md(
+            "title: My List\nitems:\n- name: apple\n- name: banana\n"
+        ))
+        output = _run(["sync", str(md), "--no-validate"])
+        assert "My List" in output
+        assert "apple" in output
+        assert "banana" in output
+
+    def test_sync_reflects_data_changes(self, tmp_path):
+        md = tmp_path / "test.kata.md"
+        md.write_text(self._build_separated_kata_md(
+            "title: Updated\nitems:\n- name: cherry\n"
+        ))
+        output = _run(["sync", str(md), "--no-validate"])
+        assert "Updated" in output
+        assert "cherry" in output
+        assert "apple" not in output
+
+    def test_sync_adds_new_items(self, tmp_path):
+        md = tmp_path / "test.kata.md"
+        md.write_text(self._build_separated_kata_md(
+            "title: Test\nitems:\n- name: a\n- name: b\n- name: c\n"
+        ))
+        output = _run(["sync", str(md), "--no-validate"])
+        assert ">a<" in output
+        assert ">b<" in output
+        assert ">c<" in output
+
+    def test_sync_is_idempotent(self, tmp_path):
+        md = tmp_path / "test.kata.md"
+        md.write_text(self._build_separated_kata_md(
+            "title: Stable\nitems:\n- name: x\n"
+        ))
+        out1 = _run(["sync", str(md), "--no-validate"])
+        md.write_text(out1)
+        out2 = _run(["sync", str(md), "--no-validate"])
+        assert out1 == out2

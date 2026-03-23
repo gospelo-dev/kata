@@ -850,7 +850,7 @@ class TestGenerateSchemaReferenceBlocks:
     def test_includes_data(self):
         schema = {"type": "object", "properties": {"x": {"type": "string"}}}
         ref = generate_schema_reference(schema, data={"x": "hello"})
-        assert "**Data**" in ref
+        assert "<summary>Data</summary>" in ref
         assert "hello" in ref
 
     def test_no_prompt_when_none(self):
@@ -866,7 +866,7 @@ class TestGenerateSchemaReferenceBlocks:
         assert "**Prompt**" in ref
         assert "```kata:template" in ref
         assert "**Schema**" in ref
-        assert "**Data**" in ref
+        assert "<summary>Data</summary>" in ref
 
 
 # ---------------------------------------------------------------------------
