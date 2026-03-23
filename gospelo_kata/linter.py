@@ -744,6 +744,16 @@ def lint_document(
     return result
 
 
+def _mask_pipes_in_spans(line: str) -> str:
+    """Replace pipe characters inside backticks and Jinja2 tags with a placeholder."""
+    # Mask pipes inside backtick spans
+    result = re.sub(r"`[^`]*`", lambda m: m.group().replace("|", "\x00"), line)
+    # Mask pipes inside Jinja2 expression/statement tags
+    result = re.sub(r"\{\{.*?\}\}", lambda m: m.group().replace("|", "\x00"), result)
+    result = re.sub(r"\{%.*?%\}", lambda m: m.group().replace("|", "\x00"), result)
+    return result
+
+
 def _check_table_columns(text: str, messages: list[LintMessage]) -> None:
     """Check that tables have consistent column counts."""
     lines = text.split("\n")
@@ -753,7 +763,8 @@ def _check_table_columns(text: str, messages: list[LintMessage]) -> None:
     for i, line in enumerate(lines, 1):
         stripped = line.strip()
         if stripped.startswith("|") and stripped.endswith("|"):
-            cells = [c.strip() for c in stripped.split("|")[1:-1]]
+            masked = _mask_pipes_in_spans(stripped)
+            cells = [c.strip() for c in masked.split("|")[1:-1]]
             # Skip separator rows
             if all(c.replace("-", "").replace(":", "") == "" for c in cells):
                 continue

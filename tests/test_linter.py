@@ -345,6 +345,21 @@ class TestDocumentModeLint:
         codes = [m.code for m in result.messages]
         assert "D003" in codes
 
+    def test_lint_document_table_pipe_in_backtick_no_d003(self):
+        """Pipes inside backticks or Jinja2 tags should not cause D003."""
+        from gospelo_kata.linter import lint_document
+        text = (
+            "# Test\n\n"
+            "## Cases\n\n"
+            "| Field | Value |\n"
+            "|-------|-------|\n"
+            '| Priority | {{ case.priority | default("medium") }} |\n'
+            '| Body | `{"key": "a|b"}` |\n\n'
+        )
+        result = lint_document(text, "agenda")
+        codes = [m.code for m in result.messages]
+        assert "D003" not in codes
+
     def test_lint_document_empty_section(self):
         from gospelo_kata.linter import lint_document
         text = (

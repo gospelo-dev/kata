@@ -4,4 +4,4 @@
 
 """gospelo-kata: JSON-driven document generation toolkit."""
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
