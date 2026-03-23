@@ -479,9 +479,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip schema validation",
     )
 
-    # --- render ---
+    # --- render / sync ---
     render_parser = subparsers.add_parser(
-        "render", help="Render a self-contained .kata.md file using its {#data} block",
+        "render", aliases=["sync"],
+        help="Re-render a .kata.md file from its Data block (alias: sync)",
     )
     render_parser.add_argument(
         "file", help=".kata.md file to render (_tpl.kata.md files are not allowed)",
@@ -655,7 +656,7 @@ def build_parser() -> argparse.ArgumentParser:
         "export", help="Export template parts (prompt, schema, data, body, or all)",
     )
     exp_parser.add_argument(
-        "template", help="Template name or path to .katar file",
+        "template", help="Template name, path to .katar file, or path to .kata.md file",
     )
     exp_parser.add_argument(
         "--part", default="all",
@@ -718,7 +719,7 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_edit(args)
     elif args.command == "templates":
         _cmd_templates(args)
-    elif args.command == "render":
+    elif args.command in ("render", "sync"):
         _cmd_render(args)
     elif args.command == "init":
         _cmd_init(args)
@@ -1052,11 +1053,35 @@ _PART_HEADINGS = {
 }
 
 
+def _extract_parts_from_kata_md(text: str) -> dict[str, str]:
+    """Extract template parts from a rendered .kata.md file."""
+    parts: dict[str, str] = {}
+    m = _EXP_PROMPT_RE.search(text)
+    parts["prompt"] = m.group(1).rstrip("\n") if m else ""
+    m = _EXP_SCHEMA_RE.search(text)
+    parts["schema"] = m.group(1).rstrip("\n") if m else ""
+    m = _EXP_DATA_RE.search(text)
+    parts["data"] = m.group(1).rstrip("\n") if m else ""
+    body = _EXP_PROMPT_BLOCK_RE.sub("", text)
+    body = _EXP_SCHEMA_REF_RE.sub("", body).strip()
+    parts["body"] = body
+    return parts
+
+
 def _cmd_export(args: argparse.Namespace) -> None:
     """Export template parts (prompt, schema, data, body, all, or comma-separated)."""
-    source = _resolve_template(args.template)
-    parts = _extract_template_parts(source)
-    manifest = source.manifest()
+    path = Path(args.template)
+    if path.is_file() and path.suffix == ".md":
+        # Direct .kata.md file path
+        text = path.read_text(encoding="utf-8")
+        parts = _extract_parts_from_kata_md(text)
+        name = path.stem.replace(".kata", "") or path.stem
+        manifest: dict = {}
+    else:
+        source = _resolve_template(args.template)
+        parts = _extract_template_parts(source)
+        manifest = source.manifest()
+        name = source.name
     fmt = args.fmt
 
     # Parse --part: "all", single, or comma-separated
@@ -1082,19 +1107,19 @@ def _cmd_export(args: argparse.Namespace) -> None:
     if fmt == "json":
         if is_all:
             payload = {
-                "name": source.name,
+                "name": name,
                 "version": manifest.get("version", ""),
                 "description": manifest.get("description", ""),
                 **{k: parts[k] for k in selected},
             }
         elif is_single:
-            payload = {"name": source.name, selected[0]: parts.get(selected[0], "")}
+            payload = {"name": name, selected[0]: parts.get(selected[0], "")}
         else:
-            payload = {"name": source.name, **{k: parts.get(k, "") for k in selected}}
+            payload = {"name": name, **{k: parts.get(k, "") for k in selected}}
         lines.append(json.dumps(payload, indent=2, ensure_ascii=False))
 
     elif fmt == "yaml":
-        lines.append(f"name: {source.name}")
+        lines.append(f"name: {name}")
         if is_all:
             lines.append(f"version: \"{manifest.get('version', '')}\"")
             lines.append(f"description: \"{manifest.get('description', '')}\"")
@@ -1110,12 +1135,12 @@ def _cmd_export(args: argparse.Namespace) -> None:
             if content:
                 lines.append(content)
             else:
-                print(f"No '{selected[0]}' found in template '{source.name}'.", file=sys.stderr)
+                print(f"No '{selected[0]}' found in '{name}'.", file=sys.stderr)
                 sys.exit(1)
         else:
             # Multiple parts or all: with headings
             if is_all:
-                lines.append(f"# {source.name}")
+                lines.append(f"# {name}")
                 lines.append("")
                 desc = manifest.get("description", "")
                 if desc:
@@ -1124,10 +1149,6 @@ def _cmd_export(args: argparse.Namespace) -> None:
                 ver = manifest.get("version", "")
                 if ver:
                     lines.append(f"Version: {ver}")
-                    lines.append("")
-                reqs = source.requires()
-                if reqs:
-                    lines.append(f"Requires: {', '.join(reqs)}")
                     lines.append("")
 
             for key in selected:

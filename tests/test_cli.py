@@ -378,3 +378,50 @@ class TestRenderTplRejection:
         )
         output = _run(["render", str(md)])
         assert "Hello" in output and "test" in output
+
+
+# ---------------------------------------------------------------------------
+# sync — alias for render
+# ---------------------------------------------------------------------------
+
+class TestSyncAlias:
+    def test_sync_works_like_render(self, tmp_path):
+        md = tmp_path / "sample.kata.md"
+        md.write_text(
+            "**Schema**\n```yaml\ntype: object\nproperties:\n  name:\n    type: string\n```\n\n"
+            "**Data**\n```yaml\nname: hello\n```\n\n"
+            "# {{ name }}\n"
+        )
+        output = _run(["sync", str(md)])
+        assert "hello" in output
+
+
+# ---------------------------------------------------------------------------
+# export — .kata.md file path support
+# ---------------------------------------------------------------------------
+
+class TestExportFromFile:
+    def test_export_data_from_kata_md(self, tmp_path):
+        md = tmp_path / "my_spec.kata.md"
+        md.write_text(
+            "# My Spec\n\n"
+            "<details>\n<summary>Schema Reference</summary>\n\n"
+            "**Prompt**\n\n```yaml\nGenerate a spec.\n```\n\n"
+            "**Schema**\n\n```yaml\ntitle: string!\n```\n\n"
+            "**Data**\n\n```yaml\ntitle: Hello World\n```\n\n"
+            "</details>\n"
+        )
+        output = _run(["export", str(md), "--part", "data", "--format", "yaml"])
+        assert "title: Hello World" in output
+
+    def test_export_schema_from_kata_md(self, tmp_path):
+        md = tmp_path / "my_spec.kata.md"
+        md.write_text(
+            "# My Spec\n\n"
+            "<details>\n<summary>Schema Reference</summary>\n\n"
+            "**Schema**\n\n```yaml\ntitle: string!\n```\n\n"
+            "**Data**\n\n```yaml\ntitle: test\n```\n\n"
+            "</details>\n"
+        )
+        output = _run(["export", str(md), "--part", "schema"])
+        assert "title: string!" in output
