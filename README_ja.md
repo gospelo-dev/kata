@@ -128,19 +128,17 @@ gospelo-kata init --type checklist -o ./my-project/
 
 ### 3. AI ワークフロー (推奨)
 
-AI は YAML データのみ生成し、`assemble` が組み込みテンプレートと結合します:
+AI は YAML データのみ生成し、`build` が組み込みテンプレートと結合します:
 
 ```bash
-# 1. スキーマを確認
-gospelo-kata show-schema checklist --format yaml
+# 1. プロンプト + スキーマを確認
+gospelo-kata export checklist --part prompt,schema
 
-# 2. AI が スキーマに従って data.yml を作成
+# 2. AI がスキーマに従って data.yml を作成
 
-# 3. テンプレート + データを結合
-gospelo-kata assemble --type checklist --data data.yml
-
-# 4. レンダリングと検証
-gospelo-kata render checklist_tpl.kata.md -o outputs/checklist.kata.md
+# 3. 検証、ビルド、lint
+gospelo-kata import-data checklist data.yml -q
+gospelo-kata build checklist data.yml -o outputs/
 gospelo-kata lint outputs/checklist.kata.md
 ```
 
@@ -251,8 +249,8 @@ categories:
 | `generate`        | JSON データから Markdown/Excel/HTML を生成                    |
 | `pack`            | テンプレートディレクトリを `.katar` アーカイブにパック        |
 | `pack-init`       | 新規テンプレートディレクトリの雛形を作成                      |
-| `show-schema`     | テンプレートのスキーマを表示                                  |
-| `show-prompt`     | AI プロンプトを表示                                           |
+| `export`          | テンプレートパートの抽出 (prompt, schema, data, body)         |
+| `import-data`     | data.yml をテンプレートスキーマで検証                         |
 | `fmt`             | `data-kata` span を自動フォーマット                           |
 | `coverage`        | チェックリストカバレッジを分析                                |
 | `edit`            | ブラウザベースのデータエディター                              |
@@ -262,7 +260,7 @@ categories:
 
 ## AI 連携
 
-gospelo-kata は AI アシスタントとの連携を前提に設計されています。`assemble` コマンドにより、AI が生成するのはスキーマに従った YAML データだけで済みます。
+gospelo-kata は AI アシスタントとの連携を前提に設計されています。`build` コマンドにより、AI が生成するのはスキーマに従った YAML データだけで済みます。
 
 **対応 AI ツール:**
 

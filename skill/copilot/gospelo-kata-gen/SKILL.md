@@ -13,10 +13,10 @@ All reports and generated content must be in the user's default language.
 
 ## Subtask 1/3: Generate data.yml
 
-Check the schema, then create a YAML data file only.
+Check the prompt and schema, then create a YAML data file only.
 
 ```bash
-gospelo-kata show-schema {template} --format yaml
+gospelo-kata export {template} --part prompt,schema
 ```
 
 Create `{output_dir}/data.yml` following the schema output.
@@ -28,7 +28,17 @@ Rules:
 
 ---
 
-## Subtask 2/3: assemble (execute immediately)
+## Subtask 2/4: validate data (execute immediately)
+
+```bash
+gospelo-kata import-data {template} {output_dir}/data.yml -q
+```
+
+If errors, fix data.yml and re-run before proceeding.
+
+---
+
+## Subtask 3/4: assemble (execute immediately)
 
 ```bash
 gospelo-kata assemble --type {template} --data {output_dir}/data.yml
@@ -38,7 +48,7 @@ Outputs `{output_dir}/{template}_tpl.kata.md` automatically.
 
 ---
 
-## Subtask 3/3: render + lint (execute immediately)
+## Subtask 4/4: render + lint (execute immediately)
 
 ```bash
 mkdir -p {output_dir}/outputs
@@ -46,7 +56,7 @@ gospelo-kata render {output_dir}/{template}_tpl.kata.md -o {output_dir}/outputs/
 gospelo-kata lint {output_dir}/outputs/{template}.kata.md
 ```
 
-If lint reports errors, fix data.yml and re-run Subtasks 2-3.
+If lint reports errors, fix data.yml and re-run Subtasks 2-4.
 
 ---
 

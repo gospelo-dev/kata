@@ -39,15 +39,14 @@ Templates with `[schema, prompt]` tags support AI generation.
 ### Step 2: Get Template Specification
 
 ```bash
-# Get template usage instructions
-gospelo-kata show-prompt {template_name}
+# Get prompt and schema together
+gospelo-kata export {template_name} --part prompt,schema
 
-# Get data structure (JSON Schema)
-gospelo-kata show-schema {template_name}
-gospelo-kata show-schema {template_name} --format yaml
+# Or get all parts (prompt, schema, body, sample data)
+gospelo-kata export {template_name}
 ```
 
-**Important**: Always read both show-prompt and show-schema to understand the template specification before generating data.
+**Important**: Always read both prompt and schema to understand the template specification before generating data.
 
 ### Step 3: Create `_tpl.kata.md` File
 
@@ -114,8 +113,7 @@ If lint errors exist:
 | Command | Description |
 |---------|-------------|
 | `templates` | List templates (shows schema/prompt availability) |
-| `show-prompt {name}` | Display the template's `{#prompt}` |
-| `show-schema {name}` | Display the template's schema as JSON Schema |
+| `export {name}` | Export template parts (prompt, schema, data, body, or all) |
 | `render {file}` | Render `_tpl.kata.md` to generate `.kata.md` |
 | `lint {file}` | Lint verify a .kata.md file |
 | `extract {file}` | Extract data from a rendered `.kata.md` |
@@ -210,3 +208,4 @@ gospelo-kata lint guides/outputs/checklist.kata.md
 - Follow the conventions described in the template's `{#prompt}`
 - Excel generation requires `openpyxl`
 - YAML schema requires `PyYAML`
+- **Context saving**: When you need to inspect data in a `.kata.md` file, do NOT read the entire file. Use `gospelo-kata export {template} --part data` or `gospelo-kata extract {file}` instead.

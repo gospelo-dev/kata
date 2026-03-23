@@ -84,6 +84,7 @@ If lint errors exist, fix the template and repeat from Step 4.
 | `pack {dir}` | Pack a directory into `.katar` |
 | `pack-init {dir}` | Create a new template scaffold |
 | `prepare {name}` | Show template info + generate skeleton data |
+| `export {name}` | Export template parts (prompt, schema, data, body, or all) |
 | `build {name} {data}` | Build rendered document |
 | `lint {file}` | Verify the output |
 

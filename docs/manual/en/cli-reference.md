@@ -66,22 +66,45 @@ Output: `templates/`, `outputs/`, `.workflow_status.json`
 
 > **Note:** For new workflows, use `prepare` + `build` instead.
 
-### `show-prompt` — Display AI instructions
+### `export` — Export template parts
+
+Fast, regex-based extraction of template parts (no AST/JSON Schema parsing).
 
 ```bash
-gospelo-kata show-prompt checklist
+gospelo-kata export checklist --part prompt,schema   # AI recommended
+gospelo-kata export checklist --part schema           # Single part
+gospelo-kata export checklist                         # All parts
+gospelo-kata export checklist --format json            # JSON output
+gospelo-kata export checklist -o output.md             # Save to file
 ```
 
-Displays the `**Prompt**` block from the template. Accepts a template name or file path.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `template` | — | Template name or file path (required) |
+| `--part` | `all` | `prompt`, `schema`, `data`, `body`, `all`, or comma-separated |
+| `--format` | `md` | Output format: `md`, `yaml`, `json` |
+| `--output`, `-o` | stdout | Output file path |
 
-### `show-schema` — Display schema
+Output varies by part count: single part outputs raw text; multiple parts include section headings; `all` includes template name and description.
+
+### `import-data` — Validate data against schema
+
+Validates a YAML data file against a template's KATA shorthand schema before build.
 
 ```bash
-gospelo-kata show-schema checklist              # JSON (default)
-gospelo-kata show-schema checklist --format yaml # YAML
+gospelo-kata import-data checklist data.yml         # Validate + output data
+gospelo-kata import-data checklist data.yml -q      # Validate only (build gate)
+gospelo-kata import-data checklist data.yml --format json  # JSON output
 ```
 
-Generates and displays JSON Schema from the `**Schema**` block.
+| Option | Default | Description |
+|--------|---------|-------------|
+| `template` | — | Template name or file path (required) |
+| `data` | — | YAML data file path (required) |
+| `--format` | `yaml` | Output format: `yaml`, `json` |
+| `--quiet`, `-q` | false | Suppress data output; validation result only |
+
+Validates required fields, enum values, types, array structure, and nested objects. Supports union types (e.g., `integer|integer[]!`). Exits with code 1 on validation failure.
 
 ### `schemas` — List validation schemas
 

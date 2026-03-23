@@ -128,19 +128,17 @@ gospelo-kata init --type checklist -o ./my-project/
 
 ### 3. AI workflow (recommended)
 
-AI generates only the YAML data; `assemble` combines it with a built-in template:
+AI generates only the YAML data; `build` combines it with a built-in template:
 
 ```bash
-# 1. Check schema
-gospelo-kata show-schema checklist --format yaml
+# 1. Check prompt + schema
+gospelo-kata export checklist --part prompt,schema
 
 # 2. AI creates data.yml following the schema
 
-# 3. Assemble template + data
-gospelo-kata assemble --type checklist --data data.yml
-
-# 4. Render and validate
-gospelo-kata render checklist_tpl.kata.md -o outputs/checklist.kata.md
+# 3. Validate, build, and lint
+gospelo-kata import-data checklist data.yml -q
+gospelo-kata build checklist data.yml -o outputs/
 gospelo-kata lint outputs/checklist.kata.md
 ```
 
@@ -251,8 +249,8 @@ categories:
 | `generate`        | Generate Markdown/Excel/HTML from JSON data               |
 | `pack`            | Pack a template directory into a `.katar` archive         |
 | `pack-init`       | Scaffold a new template directory                         |
-| `show-schema`     | Display template schema                                   |
-| `show-prompt`     | Display AI prompt                                         |
+| `export`          | Export template parts (prompt, schema, data, body)        |
+| `import-data`     | Validate data.yml against template schema                 |
 | `fmt`             | Auto-format `data-kata` spans                             |
 | `coverage`        | Analyze checklist coverage                                |
 | `edit`            | Browser-based data editor                                 |
@@ -262,7 +260,7 @@ See the [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manua
 
 ## AI Integration
 
-gospelo-kata is designed to work with AI assistants. The `assemble` command minimizes what AI needs to generate — just YAML data following the schema.
+gospelo-kata is designed to work with AI assistants. The `build` command minimizes what AI needs to generate — just YAML data following the schema.
 
 **Supported AI tools:**
 

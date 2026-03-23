@@ -23,7 +23,7 @@ Execute all steps without interruption. Do not ask for confirmation between step
 ### Step 1: Understand the template
 
 ```bash
-gospelo-kata prepare {template_name}
+gospelo-kata export {template_name} --part prompt,schema
 ```
 
 Or if a custom template path is given, read the file directly. Understand:
@@ -57,17 +57,18 @@ Rules:
 - Populate ALL categories and items — be comprehensive
 - Include all mandatory fields marked with `!` in the Schema
 
-### Step 4: Build + Lint
+### Step 4: Validate + Build + Lint
 
 For built-in templates:
 ```bash
+gospelo-kata import-data {template_name} {output_dir}/data.yml -q
 gospelo-kata build {template_name} {output_dir}/data.yml -o {output_dir}/outputs/
 gospelo-kata lint {output_dir}/outputs/{template_name}.kata.md
 ```
 
 For custom templates (.kata.md path): manually replace the Data block content with the generated YAML, then render and lint.
 
-If lint reports errors, fix `data.yml` and re-run.
+If `import-data` reports errors, fix `data.yml` before building. If lint reports errors, fix and re-run all three.
 
 ## Security
 
@@ -80,6 +81,7 @@ If lint reports errors, fix `data.yml` and re-run.
 - Do not create `.kata.md` files by hand — always use `gospelo-kata build`
 - Do not skip the web search step
 - Do not ask for confirmation between steps
+- Do not read `.kata.md` files directly to inspect data — use `gospelo-kata export {template} --part data` or `gospelo-kata extract {file}` to save context
 
 ## Expected output
 
