@@ -9,49 +9,23 @@ A document format and toolkit designed for **human-AI collaboration**. KATA Mark
 
 ## Why gospelo-kata?
 
-KATA Markdown™ is designed so that both humans and AI can read, understand, and work with the same document. The format is self-describing: AI can understand the template structure from the embedded schema and prompt without needing external instructions, while humans can read and edit the same file naturally. It acts as a harness for autonomous AI — schema, validation, and trust management guide AI output along safe, structured paths.
+When generating documents with AI, you often face problems: no structure, no round-trip, no validation, and AI needs coaching every time. gospelo-kata solves this with a **single `.kata.md` file** that contains schema definition, structured data, and a Jinja2-compatible template.
 
-When generating documents with AI, you often face these problems:
+## LiveMorph — Bidirectional Real-time Sync
 
-- **No structure** — AI outputs free-form text that's hard to validate or reuse
-- **No round-trip** — once rendered, you can't extract the original data back
-- **No validation** — schema violations go unnoticed until review
-- **AI needs coaching** — you have to explain the output format every time
+<p align="center">
+  <img src="docs/manual/en/images/livemorph-concept.jpg" alt="LiveMorph Concept Diagram" width="720">
+</p>
 
-gospelo-kata solves this with a **single `.kata.md` file** that contains everything: schema definition, structured data, and a Jinja2-compatible template (built-in engine, no external dependency). The embedded `**Schema**` and `**Prompt**` blocks let AI understand the template on its own — no separate instructions needed. Rendered output preserves data bindings via `data-kata` annotations, enabling round-trip extraction and automated validation.
+Bidirectional sync between Data blocks and HTML body. Switch modes with **one click** from VS Code, with the current sync mode always visible in the status bar.
 
-## Features
+## Human-AI Readable — Self-Describing Format
 
-- **Human-AI collaborative format** — both humans and AI can read, edit, and generate from the same file
-- **Self-describing templates** — embedded `**Schema**` and `**Prompt**` blocks let AI understand the template without external instructions
-- **Single-file format** — schema, data, and template in one `.kata.md` file
-- **YAML shorthand schemas** — define types concisely (`string!`, `enum(a,b,c)`, `items[]!:`)
-- **Round-trip** — extract structured data back from rendered documents
-- **Lint** — validate both templates and rendered output (20+ rules)
-- **AI-friendly** — `assemble` command lets AI generate only YAML data; the toolkit handles the rest
-- **Secure packaging** — KATA ARchive™ (`.katar`) bundles templates with integrity verification and trust management
-- **Multi-format output** — Markdown, Excel, and HTML
-- **VSCode extension** — real-time lint, hover info, preview CSS
-- **No external templating dependencies** for core features (built-in Jinja2 3.1.6-compatible engine; PyYAML required, openpyxl optional for Excel)
+Embedded `**Schema**` and `**Prompt**` blocks let AI understand the template without external instructions. Humans read and edit the same file naturally. The `build` command means AI only needs to generate YAML data.
 
-## KATA ARchive™ (.katar) — Secure Template Packages
+## Secure Packaging — KATA ARchive™ (.katar)
 
-KATA ARchive™ is a secure, single-file template package format. A `.katar` file bundles template, schema, prompt, manifest, and optional images into a ZIP archive that AI can autonomously discover, understand, and use — no manual instructions needed.
-
-- **Self-contained** — everything AI needs is in one file
-- **Integrity-verified** — `pack` computes a hash stored in `manifest.json`; tampered packages are rejected on load
-- **Sandboxed** — only `manifest.json`, `_tpl.kata.md`, and image files are allowed; all other file types are blocked
-- **Trust-managed** — AI prompt execution requires explicit user approval; changes to prompts trigger re-confirmation
-- **Structure integrity** — rendered `.kata.md` output embeds a hash to detect post-render tampering of template structure
-
-```bash
-# Create, pack, and use a template
-gospelo-kata pack-init ./my_template/
-gospelo-kata pack ./my_template/ -o my_template.katar
-gospelo-kata init --from-package my_template.katar
-```
-
-See the [Template Package Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md) for details.
+Bundle template, schema, and prompt into a ZIP archive. SHA-256 integrity verification, file-type sandboxing, and AI prompt trust management included.
 
 ## Installation
 
@@ -66,232 +40,67 @@ Requires Python 3.11+.
 
 ## Quick Start
 
-### 1. Create a document from scratch
-
-````bash
-cat > todo_tpl.kata.md << 'EOF'
-**Prompt**
-
-```yaml
-This template generates a task checklist.
-Describe items in the items array with task and done fields.
-```
-
-# {{ title }}
-
-| Task | Done |
-|------|:----:|
-{% for item in items %}| {{ item.task }} | {{ item.done }} |
-{% endfor %}
-
-<details>
-<summary>Schema Reference</summary>
-
-**Schema**
-
-```yaml
-title: string!
-items[]!:
-  task: string!
-  done: boolean
-```
-
-**Data**
-
-```yaml
-title: Sprint Tasks
-items:
-  - task: Set up CI pipeline
-    done: true
-  - task: Write API tests
-    done: false
-  - task: Deploy to staging
-    done: false
-```
-
-</details>
-EOF
-
-gospelo-kata render todo_tpl.kata.md -o outputs/todo.kata.md
-gospelo-kata lint outputs/todo.kata.md
-````
-
-### 2. Use a built-in template
-
 ```bash
 # List available templates
 gospelo-kata templates
 
-# Initialize a project
-gospelo-kata init --type checklist -o ./my-project/
+# Generate .kata.md with built-in sample data
+gospelo-kata build todo -o ./
+
+# Edit the Data block → update body
+gospelo-kata sync to-html todo.kata.md
+
+# Validate
+gospelo-kata lint todo.kata.md
 ```
-
-### 3. AI workflow (recommended)
-
-AI generates only the YAML data; `build` combines it with a built-in template:
-
-```bash
-# 1. Check prompt + schema
-gospelo-kata export checklist --part prompt,schema
-
-# 2. AI creates data.yml following the schema
-
-# 3. Validate, build, and lint
-gospelo-kata import-data checklist data.yml -q
-gospelo-kata build checklist data.yml -o outputs/
-gospelo-kata lint outputs/checklist.kata.md
-```
-
-### 4. Extract data (round-trip)
-
-```bash
-gospelo-kata extract outputs/checklist.kata.md -o extracted.json
-```
-
-Reconstructs the original structured data from the rendered document.
-
-## KATA Markdown™ Format
-
-A `_tpl.kata.md` file has four blocks:
-
-````markdown
-**Prompt**
-
-```yaml
-Generate a security checklist with categories and items.
-Each item needs an id, status (draft/pending/approve/reject), and tags.
-```
-
-# {{ title }}
-
-{% for cat in categories %}
-## {{ cat.name }}
-
-| ID | Status | Tags |
-|----|--------|------|
-{% for item in cat.items %}| {{ item.id }} | {{ item.status }} | {{ item.tags | join(", ") }} |
-{% endfor %}
-{% endfor %}
-
-<details>
-<summary>Schema Reference</summary>
-
-**Schema**
-
-```yaml
-title: string!
-version: string
-categories[]!:
-  id: string!
-  name: string!
-  items[]!:
-    id: string!
-    status: enum(draft, pending, approve, reject)
-    tags: string[]
-```
-
-**Data**
-
-```yaml
-title: Security Checklist
-version: "1.0"
-categories:
-  - id: auth
-    name: Authentication
-    items:
-      - id: auth-01
-        status: draft
-        tags: [web, api]
-```
-
-</details>
-````
-
-### Schema Shorthand
-
-| Notation                   | Meaning                                     |
-| -------------------------- | ------------------------------------------- |
-| `string`                         | Optional string                             |
-| `string!`                        | Required string                             |
-| `integer`, `number`, `boolean`   | Typed values                                |
-| `int`, `float`, `bool`, `str`    | Aliases (→ integer, number, boolean, string) |
-| `enum(a, b, c)`                  | Enumeration                                 |
-| `string[]`                       | String array                                |
-| `items[]!:`                      | Required array of objects (indent children) |
-
-### Rendered Output
-
-`gospelo-kata render` produces annotated Markdown:
-
-- `<span data-kata="p-{path}">value</span>` — data bindings
-- `<div data-kata-each="collection">` — loop markers
-- `<details>` section with Schema + Data for reconstruction
 
 ## Built-in Templates
 
-| Type        | Description                                                                  |
-| ----------- | ---------------------------------------------------------------------------- |
-| `checklist` | Structured checklist with categories, status tracking, and automation levels |
-| `test_spec` | Test case specification with prerequisites and expected results              |
-| `agenda`    | Meeting agenda with decisions, action items, and time allocation             |
+| Type | Description |
+|------|-------------|
+| `checklist` | Structured checklist with categories and status tracking |
+| `test_spec` | Test case specification with prerequisites and expected results |
+| `agenda` | Meeting agenda with decisions and action items |
 
 ## CLI Commands
 
-| Command           | Description                                               |
-| ----------------- | --------------------------------------------------------- |
-| `templates`       | List available templates                                  |
-| `init`            | Initialize project from a template                        |
-| `render`          | Render a `.kata.md` template to annotated output          |
-| `assemble`        | Combine built-in template + data file into `_tpl.kata.md` |
-| `lint`            | Validate templates and rendered documents                 |
-| `extract`         | Extract structured data from rendered output              |
-| `validate`        | Validate JSON/YAML data against a schema                  |
-| `generate`        | Generate Markdown/Excel/HTML from JSON data               |
-| `pack`            | Pack a template directory into a `.katar` archive         |
-| `pack-init`       | Scaffold a new template directory                         |
-| `export`          | Export template parts (prompt, schema, data, body)        |
-| `import-data`     | Validate data.yml against template schema                 |
-| `fmt`             | Auto-format `data-kata` spans                             |
-| `coverage`        | Analyze checklist coverage                                |
-| `edit`            | Browser-based data editor                                 |
-| `workflow-status` | Track pipeline progress                                   |
+| Command | Description |
+|---------|-------------|
+| `templates` | List available templates |
+| `init` | Initialize project from a template |
+| `render` | Render template to annotated output |
+| `assemble` | Combine built-in template + data into `_tpl.kata.md` |
+| `build` | Generate .kata.md from template (data arg optional) |
+| `lint` | Validate templates and rendered documents |
+| `extract` | Extract structured data from rendered output |
+| `validate` | Validate data against a schema |
+| `pack` / `pack-init` | Create `.katar` archives |
+| `export` | Export template parts |
+| `import-data` | Validate data.yml against schema |
+| `sync` | LiveMorph bidirectional sync (`to-html` / `to-data`) |
 
-See the [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md) for full details.
-
-## AI Integration
-
-gospelo-kata is designed to work with AI assistants. The `build` command minimizes what AI needs to generate — just YAML data following the schema.
-
-**Supported AI tools:**
-
-- **Claude Code** — skill files in `skill/claude-code/`
-- **GitHub Copilot Chat** — instructions via `.github/copilot-instructions.md`
-
-The 3-step workflow (`data.yml` → `assemble` → `render` + `lint`) works reliably even with smaller models that have limited context windows.
+See the [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md) for details.
 
 ## VSCode Extension
 
-Install from [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint). The `kata-lint` extension provides:
+Install from [VS Marketplace](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint):
 
-- Real-time lint diagnostics in the Problems panel
-- Hover information for `data-kata` attributes
-- Preview CSS for kata-specific styles
-
-See the [VSCode Integration Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md).
+- Real-time lint (Problems panel)
+- LiveMorph sync (context menu / status bar)
+- Hover info for `data-kata` attributes
+- Preview CSS for kata styles
 
 ## Documentation
 
 - [Quick Start](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/quick-start.md)
 - [CLI Reference](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/cli-reference.md)
 - [KATA Markdown™ Format](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/kata-markdown-format.md)
+- [LiveMorph Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/livemorph.md)
+- [Templates](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/templates.md)
+- [KATA ARchive Package](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/katar.md)
+- [VSCode Extension](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode.md)
 - [Lint Rules](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/lint-rules.md)
-- [Skill Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/skill-guide.md)
-- [VSCode Integration](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/vscode-integration.md)
-- [Copilot Setup](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/copilot-setup.md)
-- [Template Package](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/template-package.md)
-- [Prompt Design Guide](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/prompt-design-guide.md)
-- [Type Conversion](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/type-conversion.md)
 
 ## License
 
-MIT — free for commercial use. Documents generated by this software and templates created by users are the intellectual property of their respective creators. When used with AI services, data may be transmitted to AI providers. See [LICENSE.md](https://github.com/gospelo-dev/kata/blob/main/LICENSE.md) for details.
+MIT — free for commercial use. Documents and templates you create are yours. See [LICENSE.md](https://github.com/gospelo-dev/kata/blob/main/LICENSE.md) for details.

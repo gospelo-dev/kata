@@ -465,7 +465,8 @@ def build_parser() -> argparse.ArgumentParser:
         "template", help="Template name (e.g., checklist) or path to _tpl.kata.md",
     )
     build_parser.add_argument(
-        "data", help="Data file (YAML or JSON)",
+        "data", nargs="?", default=None,
+        help="Data file (YAML or JSON). If omitted, uses the template's built-in Data block.",
     )
     build_parser.add_argument(
         "--output", "-o", help="Output file or directory (default: ./outputs/)",
@@ -479,9 +480,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip schema validation",
     )
 
-    # --- render ---
+    # --- render (kept for backward compat) ---
     render_parser = subparsers.add_parser(
-        "render", help="Render a self-contained .kata.md file using its {#data} block",
+        "render",
+        help="Re-render a .kata.md file from its Data block",
     )
     render_parser.add_argument(
         "file", help=".kata.md file to render (_tpl.kata.md files are not allowed)",
@@ -496,6 +498,45 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument(
         "--no-validate", action="store_true",
         help="Skip schema validation",
+    )
+
+    # --- sync (with to-html / to-data subcommands) ---
+    sync_parser = subparsers.add_parser(
+        "sync",
+        help="Bidirectional sync between HTML spans and Data block",
+    )
+    sync_sub = sync_parser.add_subparsers(dest="sync_direction")
+
+    # sync to-html: Data → template re-execution → body update
+    sync_html_parser = sync_sub.add_parser(
+        "to-html",
+        help="Data → template re-execution → body update",
+    )
+    sync_html_parser.add_argument(
+        "file", help=".kata.md file to render",
+    )
+    sync_html_parser.add_argument(
+        "--output", "-o", help="Output file path (default: stdout)",
+    )
+    sync_html_parser.add_argument(
+        "--no-annotate", action="store_true",
+        help="Disable data-kata annotations in output",
+    )
+    sync_html_parser.add_argument(
+        "--no-validate", action="store_true",
+        help="Skip schema validation",
+    )
+
+    # sync to-data: Span extraction → Data block update → re-render
+    sync_data_parser = sync_sub.add_parser(
+        "to-data",
+        help="Extract span values → update Data block → re-render",
+    )
+    sync_data_parser.add_argument(
+        "file", help=".kata.md file to extract from and re-render",
+    )
+    sync_data_parser.add_argument(
+        "--output", "-o", help="Output file path (default: stdout)",
     )
 
     # --- schemas ---
@@ -655,7 +696,7 @@ def build_parser() -> argparse.ArgumentParser:
         "export", help="Export template parts (prompt, schema, data, body, or all)",
     )
     exp_parser.add_argument(
-        "template", help="Template name or path to .katar file",
+        "template", help="Template name, path to .katar file, or path to .kata.md file",
     )
     exp_parser.add_argument(
         "--part", default="all",
@@ -703,6 +744,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Check only — exit 1 if changes needed, do not modify files",
     )
 
+    # --- convert ---
+    conv_parser = subparsers.add_parser(
+        "convert",
+        help="Convert legacy .kata.md to new format (separated Data <details>)",
+    )
+    conv_parser.add_argument(
+        "files", nargs="+", help=".kata.md files to convert",
+    )
+    conv_parser.add_argument(
+        "--check", action="store_true",
+        help="Check only — exit 1 if conversion needed, do not modify files",
+    )
+
     return parser
 
 
@@ -720,6 +774,8 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_templates(args)
     elif args.command == "render":
         _cmd_render(args)
+    elif args.command == "sync":
+        _cmd_sync(args)
     elif args.command == "init":
         _cmd_init(args)
     elif args.command == "schemas":
@@ -750,6 +806,8 @@ def main(argv: list[str] | None = None) -> None:
         _cmd_import_data(args)
     elif args.command == "fmt":
         _cmd_fmt(args)
+    elif args.command == "convert":
+        _cmd_convert(args)
     elif args.command == "prepare":
         _cmd_prepare(args)
     elif args.command == "build":
@@ -894,7 +952,7 @@ li {{ margin: 4px 0; }}
 
 
 def _cmd_render(args: argparse.Namespace) -> None:
-    from .template import render_kata
+    from .template import render_kata, _is_separated_format
 
     file_path = Path(args.file)
     if not file_path.exists():
@@ -905,6 +963,17 @@ def _cmd_render(args: argparse.Namespace) -> None:
         print(
             "Error: _tpl.kata.md files cannot be rendered directly. "
             "Use 'gospelo-kata assemble' with a .katar package to create a renderable file.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Check for legacy format and warn
+    source = file_path.read_text(encoding="utf-8")
+    if not _is_separated_format(source):
+        print(
+            "Error: this file uses the legacy format (no separated Data <details>).\n"
+            "Run 'gospelo-kata convert' first to upgrade:\n"
+            f"  gospelo-kata convert {file_path}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -924,6 +993,115 @@ def _cmd_render(args: argparse.Namespace) -> None:
         print(f"Rendered: {args.output}")
     else:
         print(result)
+
+
+def _cmd_sync(args: argparse.Namespace) -> None:
+    direction = getattr(args, "sync_direction", None)
+    if direction is None:
+        print(
+            "Error: specify a direction: sync to-html or sync to-data\n"
+            "  gospelo-kata sync to-html <file>   # Data → HTML\n"
+            "  gospelo-kata sync to-data <file>   # Span → Data",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if direction == "to-html":
+        _cmd_sync_to_html(args)
+    elif direction == "to-data":
+        _cmd_sync_to_data(args)
+
+
+def _cmd_sync_to_html(args: argparse.Namespace) -> None:
+    """sync to-html: Data → template re-execution → body update."""
+    from .template import render_kata, _is_separated_format
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(f"Error: file not found: {file_path}", file=sys.stderr)
+        sys.exit(1)
+
+    if file_path.name.endswith("_tpl.kata.md"):
+        print(
+            "Error: _tpl.kata.md files cannot be rendered directly. "
+            "Use 'gospelo-kata assemble' with a .katar package to create a renderable file.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    source = file_path.read_text(encoding="utf-8")
+    if not _is_separated_format(source):
+        print(
+            "Error: this file uses the legacy format (no separated Data <details>).\n"
+            "Run 'gospelo-kata convert' first to upgrade:\n"
+            f"  gospelo-kata convert {file_path}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        result = render_kata(
+            str(file_path),
+            validate=not args.no_validate,
+            annotate=not args.no_annotate,
+        )
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.output:
+        Path(args.output).write_text(result, encoding="utf-8")
+        print(f"Rendered: {args.output}")
+    else:
+        print(result)
+
+
+def _cmd_sync_to_data(args: argparse.Namespace) -> None:
+    """sync to-data: Extract span values → update Data block → re-render."""
+    from .extract import extract_from_text
+    from .template import (
+        render_kata,
+        _is_separated_format,
+        _extract_data_from_details,
+        _replace_data_in_source,
+    )
+
+    file_path = Path(args.file)
+    if not file_path.exists():
+        print(f"Error: file not found: {file_path}", file=sys.stderr)
+        sys.exit(1)
+
+    source = file_path.read_text(encoding="utf-8")
+    if not _is_separated_format(source):
+        print(
+            "Error: this file uses the legacy format (no separated Data <details>).\n"
+            "Run 'gospelo-kata convert' first to upgrade:\n"
+            f"  gospelo-kata convert {file_path}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Step 1: Extract data from spans
+    extracted = extract_from_text(source)
+    if not extracted:
+        print("Error: no data-kata spans found to extract", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 2: Replace Data block with extracted data
+    updated_source = _replace_data_in_source(source, extracted)
+
+    # Step 3: Write updated source, then re-render via render_kata
+    file_path.write_text(updated_source, encoding="utf-8")
+
+    try:
+        result = render_kata(str(file_path))
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    out = args.output or str(file_path)
+    Path(out).write_text(result, encoding="utf-8")
+    print(f"Synced to-data: {out}")
 
 
 def _cmd_edit(args: argparse.Namespace) -> None:
@@ -1007,7 +1185,7 @@ _EXP_DATA_RE = _re.compile(
     _re.DOTALL,
 )
 _EXP_SCHEMA_REF_RE = _re.compile(
-    r"\n?(?:---\s*\n+)?(?:Total:.*\n+)?<details>\s*\n<summary>Schema Reference</summary>.*",
+    r"\n?(?:---\s*\n+)?(?:Total:.*\n+)?<details>\s*\n<summary>Specification</summary>.*",
     _re.DOTALL,
 )
 _EXP_PROMPT_BLOCK_RE = _re.compile(
@@ -1034,7 +1212,7 @@ def _extract_template_parts(source: "TemplateSource") -> dict[str, str]:
     m = _EXP_DATA_RE.search(raw)
     parts["data"] = m.group(1).rstrip("\n") if m else ""
 
-    # Body = everything between prompt block and Schema Reference <details>
+    # Body = everything between prompt block and Specification <details>
     body = _EXP_PROMPT_BLOCK_RE.sub("", raw)
     body = _EXP_SCHEMA_REF_RE.sub("", body).strip()
     parts["body"] = body
@@ -1052,11 +1230,35 @@ _PART_HEADINGS = {
 }
 
 
+def _extract_parts_from_kata_md(text: str) -> dict[str, str]:
+    """Extract template parts from a rendered .kata.md file."""
+    parts: dict[str, str] = {}
+    m = _EXP_PROMPT_RE.search(text)
+    parts["prompt"] = m.group(1).rstrip("\n") if m else ""
+    m = _EXP_SCHEMA_RE.search(text)
+    parts["schema"] = m.group(1).rstrip("\n") if m else ""
+    m = _EXP_DATA_RE.search(text)
+    parts["data"] = m.group(1).rstrip("\n") if m else ""
+    body = _EXP_PROMPT_BLOCK_RE.sub("", text)
+    body = _EXP_SCHEMA_REF_RE.sub("", body).strip()
+    parts["body"] = body
+    return parts
+
+
 def _cmd_export(args: argparse.Namespace) -> None:
     """Export template parts (prompt, schema, data, body, all, or comma-separated)."""
-    source = _resolve_template(args.template)
-    parts = _extract_template_parts(source)
-    manifest = source.manifest()
+    path = Path(args.template)
+    if path.is_file() and path.suffix == ".md":
+        # Direct .kata.md file path
+        text = path.read_text(encoding="utf-8")
+        parts = _extract_parts_from_kata_md(text)
+        name = path.stem.replace(".kata", "") or path.stem
+        manifest: dict = {}
+    else:
+        source = _resolve_template(args.template)
+        parts = _extract_template_parts(source)
+        manifest = source.manifest()
+        name = source.name
     fmt = args.fmt
 
     # Parse --part: "all", single, or comma-separated
@@ -1082,19 +1284,19 @@ def _cmd_export(args: argparse.Namespace) -> None:
     if fmt == "json":
         if is_all:
             payload = {
-                "name": source.name,
+                "name": name,
                 "version": manifest.get("version", ""),
                 "description": manifest.get("description", ""),
                 **{k: parts[k] for k in selected},
             }
         elif is_single:
-            payload = {"name": source.name, selected[0]: parts.get(selected[0], "")}
+            payload = {"name": name, selected[0]: parts.get(selected[0], "")}
         else:
-            payload = {"name": source.name, **{k: parts.get(k, "") for k in selected}}
+            payload = {"name": name, **{k: parts.get(k, "") for k in selected}}
         lines.append(json.dumps(payload, indent=2, ensure_ascii=False))
 
     elif fmt == "yaml":
-        lines.append(f"name: {source.name}")
+        lines.append(f"name: {name}")
         if is_all:
             lines.append(f"version: \"{manifest.get('version', '')}\"")
             lines.append(f"description: \"{manifest.get('description', '')}\"")
@@ -1110,12 +1312,12 @@ def _cmd_export(args: argparse.Namespace) -> None:
             if content:
                 lines.append(content)
             else:
-                print(f"No '{selected[0]}' found in template '{source.name}'.", file=sys.stderr)
+                print(f"No '{selected[0]}' found in '{name}'.", file=sys.stderr)
                 sys.exit(1)
         else:
             # Multiple parts or all: with headings
             if is_all:
-                lines.append(f"# {source.name}")
+                lines.append(f"# {name}")
                 lines.append("")
                 desc = manifest.get("description", "")
                 if desc:
@@ -1124,10 +1326,6 @@ def _cmd_export(args: argparse.Namespace) -> None:
                 ver = manifest.get("version", "")
                 if ver:
                     lines.append(f"Version: {ver}")
-                    lines.append("")
-                reqs = source.requires()
-                if reqs:
-                    lines.append(f"Requires: {', '.join(reqs)}")
                     lines.append("")
 
             for key in selected:
@@ -1815,7 +2013,7 @@ def _cmd_extract(args: argparse.Namespace) -> None:
             try:
                 schema = get_builtin_schema(args.schema)
             except FileNotFoundError:
-                print(f"Warning: schema '{args.schema}' not found, using Schema Reference section",
+                print(f"Warning: schema '{args.schema}' not found, using Specification section",
                       file=sys.stderr)
 
     data = extract_from_file(file_path, schema=schema)
@@ -2035,30 +2233,34 @@ def _cmd_build(args: argparse.Namespace) -> None:
         if not _check_template_trust(tpl_name, prompt_match.group(1).strip()):
             sys.exit(1)
 
-    # Read data file
-    data_path = Path(args.data)
-    if not data_path.exists():
-        print(f"Error: data file not found: {data_path}", file=sys.stderr)
-        sys.exit(1)
-    data_text = data_path.read_text(encoding="utf-8").strip()
+    # Read data file (or use template's built-in Data block)
+    if args.data is not None:
+        data_path = Path(args.data)
+        if not data_path.exists():
+            print(f"Error: data file not found: {data_path}", file=sys.stderr)
+            sys.exit(1)
+        data_text = data_path.read_text(encoding="utf-8").strip()
 
-    # Assemble: embed data into template
-    if _DATA_PATTERN.search(tpl_source):
-        assembled = _DATA_PATTERN.sub(f"{{#data\n{data_text}\n#}}", tpl_source)
-    elif _DATA_BOLD_CODEBLOCK_PATTERN.search(tpl_source):
-        def _replace_data_codeblock(m: re.Match) -> str:
-            return f"**Data**\n\n```yaml\n{data_text}\n```"
-        assembled = _DATA_BOLD_CODEBLOCK_PATTERN.sub(_replace_data_codeblock, tpl_source)
-    else:
-        prompt_m = _PROMPT_PATTERN.search(tpl_source)
-        schema_m = _SCHEMA_INLINE_PATTERN.search(tpl_source)
-        if prompt_m:
-            insert_pos = prompt_m.end()
-        elif schema_m:
-            insert_pos = schema_m.end()
+        # Assemble: embed data into template
+        if _DATA_PATTERN.search(tpl_source):
+            assembled = _DATA_PATTERN.sub(f"{{#data\n{data_text}\n#}}", tpl_source)
+        elif _DATA_BOLD_CODEBLOCK_PATTERN.search(tpl_source):
+            def _replace_data_codeblock(m: re.Match) -> str:
+                return f"**Data**\n\n```yaml\n{data_text}\n```"
+            assembled = _DATA_BOLD_CODEBLOCK_PATTERN.sub(_replace_data_codeblock, tpl_source)
         else:
-            insert_pos = 0
-        assembled = tpl_source[:insert_pos] + f"\n\n{{#data\n{data_text}\n#}}\n" + tpl_source[insert_pos:]
+            prompt_m = _PROMPT_PATTERN.search(tpl_source)
+            schema_m = _SCHEMA_INLINE_PATTERN.search(tpl_source)
+            if prompt_m:
+                insert_pos = prompt_m.end()
+            elif schema_m:
+                insert_pos = schema_m.end()
+            else:
+                insert_pos = 0
+            assembled = tpl_source[:insert_pos] + f"\n\n{{#data\n{data_text}\n#}}\n" + tpl_source[insert_pos:]
+    else:
+        # No data file — use template's built-in Data block as-is
+        assembled = tpl_source
 
     # Render
     with tempfile.NamedTemporaryFile(
@@ -2248,6 +2450,77 @@ def _cmd_pack_init(args: argparse.Namespace) -> None:
         print(f"  created: {outputs_dir}/")
 
 
+def _cmd_convert(args: argparse.Namespace) -> None:
+    """Convert legacy .kata.md files to new separated-Data format."""
+    from .template import (
+        Template,
+        _is_separated_format,
+        _tokenize,
+        _parse,
+        _render_nodes,
+        _collect_enum_map,
+        generate_schema_reference,
+        generate_data_section,
+    )
+
+    needs_convert = False
+    for file_path in args.files:
+        path = Path(file_path)
+        if not path.exists():
+            print(f"Error: file not found: {file_path}", file=sys.stderr)
+            sys.exit(1)
+
+        source = path.read_text(encoding="utf-8")
+
+        if _is_separated_format(source):
+            print(f"  skip (already new format): {file_path}")
+            continue
+
+        # Parse legacy format via Template class
+        try:
+            tpl = Template(source, template_path=str(path))
+        except Exception as e:
+            print(f"Error: could not parse {file_path}: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        if tpl.data is None:
+            print(f"  skip (no data block): {file_path}")
+            continue
+
+        # Re-render in new format
+        data = tpl.data
+        schema = tpl.schema
+        prompt = tpl.prompt
+        template_body = tpl.template_body
+
+        if template_body is None:
+            print(f"  skip (no template body): {file_path}")
+            continue
+
+        tokens = _tokenize(template_body)
+        ast = _parse(tokens)
+        enum_map = _collect_enum_map(schema) if schema else {}
+        body = _render_nodes(ast, data, annotate=True, _enum_map=enum_map)
+
+        if schema is not None:
+            body += generate_schema_reference(
+                schema,
+                prompt=prompt,
+                template_body=template_body,
+                data=data,
+            )
+
+        needs_convert = True
+        if args.check:
+            print(f"  needs convert: {file_path}")
+        else:
+            path.write_text(body, encoding="utf-8")
+            print(f"  converted: {file_path}")
+
+    if args.check and needs_convert:
+        sys.exit(1)
+
+
 def _cmd_fmt(args: argparse.Namespace) -> None:
     import html as _html
     import re
@@ -2280,11 +2553,11 @@ def _cmd_fmt(args: argparse.Namespace) -> None:
     data_kata_pattern = re.compile(
         r'<span\s+data-kata="(p-[a-z0-9-]+)">([^<]*)</span>'
     )
-    # Detect Data block inside Schema Reference
+    # Detect Data block inside Specification
     data_block_pattern = re.compile(
         r'(\*\*Data\*\*\s*\n\s*```yaml\n)([\s\S]*?)(```)',
     )
-    # Detect Schema block inside Schema Reference
+    # Detect Schema block inside Specification
     schema_block_pattern = re.compile(
         r'\*\*Schema\*\*\s*\n\s*```yaml\n([\s\S]*?)```',
     )
@@ -2381,7 +2654,7 @@ def _cmd_fmt(args: argparse.Namespace) -> None:
 
     def _sync_span_to_data(text: str) -> tuple[str, bool]:
         """Rebuild Data YAML block from span values."""
-        schema_ref_marker = "<summary>Schema Reference</summary>"
+        schema_ref_marker = "<summary>Specification</summary>"
         schema_ref_pos = text.find(schema_ref_marker)
         if schema_ref_pos == -1:
             return text, False

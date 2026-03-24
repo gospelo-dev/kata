@@ -110,7 +110,7 @@ class TestRenderSelf:
         tpl = Template(TEMPLATE_WITH_DATA)
         result = tpl.render_self(annotate=True)
         assert "data-kata" in result
-        assert "Schema Reference" in result
+        assert "Specification" in result
 
     def test_raises_without_data(self):
         tpl = Template(TEMPLATE_NO_DATA)

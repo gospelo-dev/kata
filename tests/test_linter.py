@@ -430,7 +430,7 @@ class TestAnnotationLinkChecks:
             '# [Meeting](#p-title)\n\n'
             '## [Attendees](#p-attendees)\n\n| Name |\n|------|\n| Alice |\n\n'
             '## [Agenda](#p-agenda)\n\n### 1. Topic\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '#### <a id="p-title"></a>title\n- **type**: string\n\n'
             '#### <a id="p-attendees"></a>attendees\n- **type**: array\n\n'
             '#### <a id="p-agenda"></a>agenda\n- **type**: array\n\n'
@@ -457,7 +457,7 @@ class TestAnnotationLinkChecks:
             '# <span data-kata="p-title">Test</span>\n\n'
             '| Desc |\n|------|\n'
             '| <span data-kata="p-description">inject <script>alert(1)</script> here</span> |\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntitle: string\ndescription: string\n```\n\n'
             '</details>\n'
         )
@@ -475,7 +475,7 @@ class TestAnnotationLinkChecks:
             '# <span data-kata="p-title">Clean Title</span>\n\n'
             '| Desc |\n|------|\n'
             '| <span data-kata="p-description">No HTML here</span> |\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntitle: string\ndescription: string\n```\n\n'
             '</details>\n'
         )
@@ -488,7 +488,7 @@ class TestAnnotationLinkChecks:
         from gospelo_kata.linter import lint_document
         text = (
             '# <span data-kata="p-title">&lt;b&gt;Safe&lt;/b&gt;</span>\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntitle: string\n```\n\n'
             '</details>\n'
         )
@@ -542,7 +542,7 @@ class TestUnifiedBlockFormatLinter:
         """Template syntax inside code blocks should not trigger template mode."""
         md = (
             '# Report\n\nContent here.\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '```kata:template\n# {{ title }}\n{% for item in items %}{{ item }}{% endfor %}\n```\n\n'
             '**Schema**\n\n```yaml\ntitle: string\nitems: string[]\n```\n\n'
             '</details>\n'
@@ -568,7 +568,7 @@ class TestUnifiedBlockFormatLinter:
             '# Meeting\n\n'
             '## Attendees\n\n| Name |\n|------|\n| Alice |\n\n'
             '## Agenda\n\n### 1. Topic\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '#### <a id="p-title"></a>title\n- **type**: string\n\n'
             '#### <a id="p-attendees"></a>attendees\n- **type**: array\n\n'
             '</details>\n'
@@ -642,7 +642,7 @@ class TestStructureIntegrityLint:
         from gospelo_kata.linter import lint_document
         doc = (
             '# <span data-kata="p-title">Hi</span>\n\n'
-            '---\n\n<details>\n<summary>Schema Reference</summary>\n\n'
+            '---\n\n<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntitle: string!\n```\n\n'
             '</details>\n'
         )

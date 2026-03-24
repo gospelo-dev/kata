@@ -585,7 +585,7 @@ def lint_file(file_path: str, schema_name: str | None = None) -> LintResult:
 
     # Detect mode: template has Jinja2-like syntax, document does not
     # Strip code blocks before checking — template syntax inside ``` blocks
-    # (e.g. kata:template in Schema Reference) should not trigger template mode
+    # (e.g. kata:template in Specification) should not trigger template mode
     text_no_codeblocks = re.sub(r"```[^\n]*\n.*?```", "", text, flags=re.DOTALL)
     has_template_syntax = (
         "{#" in text_no_codeblocks
@@ -687,7 +687,7 @@ def lint_document(
         from .validator import get_builtin_schema
         schema = get_builtin_schema(schema_name)
     except FileNotFoundError:
-        has_schema_ref = "Schema Reference" in text and "**Schema**" in text
+        has_schema_ref = "Specification" in text and "**Schema**" in text
         if not has_schema_ref:
             messages.append(LintMessage(
                 level="info", line=1, column=1,
@@ -907,7 +907,7 @@ def _parse_inline_constraints(
     defined_anchors: set[str],
     constraints: dict[str, PropConstraints],
 ) -> None:
-    """Parse constraint definitions from inline Schema Reference section.
+    """Parse constraint definitions from inline Specification section.
 
     Looks for patterns like:
         #### <a id="p-categories-items-status"></a>categories-items-status
@@ -1033,7 +1033,7 @@ def _check_annotation_links(
     Valid anchors are derived from two sources:
     1. External JSON Schema (if provided) — via _collect_schema_anchors
     2. Inline anchor definitions in the document — <a id="p-...">
-    Both are merged so that documents with a <details>Schema Reference</details>
+    Both are merged so that documents with a <details>Specification</details>
     section work without requiring an external schema.json.
     """
     # Collect valid anchors from external schema
@@ -1056,7 +1056,7 @@ def _check_annotation_links(
     if schema is not None:
         constraint_map = _collect_schema_constraints(schema)
 
-    # Also parse inline constraint definitions from Schema Reference section
+    # Also parse inline constraint definitions from Specification section
     _parse_inline_constraints(text, defined_anchors, constraint_map)
     # Parse Schema shorthand block for constraints
     _parse_shorthand_constraints(text, valid_anchors, constraint_map)
@@ -1183,7 +1183,7 @@ _RAW_SPAN_PATTERN = re.compile(
     r'<span\s+data-kata="(p-[a-z0-9-]+)">(.*?)</span>'
 )
 def _check_structure_integrity(text: str, messages: list[LintMessage]) -> None:
-    """D017: Verify structure integrity hash in the Schema Reference section.
+    """D017: Verify structure integrity hash in the Specification section.
 
     The hash covers Prompt, kata:template, and Schema blocks but excludes
     the Data block — so data changes are allowed without invalidating the
@@ -1332,7 +1332,7 @@ def _check_card_structure(text: str, messages: list[LintMessage]) -> None:
 
 
 def _check_required_sections_present(text: str, messages: list[LintMessage]) -> None:
-    """D014: Check that <details>Schema Reference and <style> sections exist.
+    """D014: Check that <details>Specification and <style> sections exist.
 
     The <style> check is relaxed when the document has a theme metadata field
     (e.g. <!-- kata: {"theme": "default"} -->), indicating CSS is externalized.
@@ -1341,7 +1341,7 @@ def _check_required_sections_present(text: str, messages: list[LintMessage]) -> 
         messages.append(LintMessage(
             level="warning", line=1, column=1,
             code="D014",
-            message="Missing <details> section (Schema Reference)",
+            message="Missing <details> section (Specification)",
         ))
     if "<style>" not in text:
         # Check for theme metadata — if present, CSS is externalized

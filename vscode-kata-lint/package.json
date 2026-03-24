@@ -2,7 +2,7 @@
   "name": "kata-lint",
   "displayName": "KATA Markdown™ Language Support",
   "description": "Linter for .kata.md template files — powered by gospelo-kata CLI",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "publisher": "gospelo",
   "author": {
     "name": "gorosun",
@@ -63,14 +63,36 @@
         "title": "Kata: Lint Current File"
       },
       {
-        "command": "kataLint.formatFile",
-        "title": "Kata: Sync Data"
+        "command": "kataLint.syncToHtml",
+        "title": "Kata: Sync to HTML"
+      },
+      {
+        "command": "kataLint.syncToData",
+        "title": "Kata: Sync to Data"
+      },
+      {
+        "command": "kataLint.syncOff",
+        "title": "Kata: Sync OFF"
+      },
+      {
+        "command": "kataLint.setSyncMode",
+        "title": "Kata: Set Sync Mode"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "kataLint.formatFile",
+          "command": "kataLint.syncToHtml",
+          "when": "resourceFilename =~ /\\.kata\\.md$/",
+          "group": "1_modification@97"
+        },
+        {
+          "command": "kataLint.syncToData",
+          "when": "resourceFilename =~ /\\.kata\\.md$/",
+          "group": "1_modification@98"
+        },
+        {
+          "command": "kataLint.syncOff",
           "when": "resourceFilename =~ /\\.kata\\.md$/",
           "group": "1_modification@99"
         },
@@ -90,9 +112,15 @@
           "description": "Path to the Python interpreter (must have gospelo-kata installed)"
         },
         "kataLint.syncOnSave": {
-          "type": "boolean",
-          "default": true,
-          "description": "Run Sync Data (span → Data YAML) and lint on file save"
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "toHtml", "toData"],
+          "enumDescriptions": [
+            "Do nothing on save (use manual commands)",
+            "Data → template re-execution → body update",
+            "Span extraction → Data block update → re-render"
+          ],
+          "description": "Sync direction to run automatically on file save"
         },
         "kataLint.lintOnSave": {
           "type": "boolean",

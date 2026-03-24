@@ -1,0 +1,14 @@
+title: 週末の買い物リスト
+items:
+  - id: "1"
+    task: 牛乳を買う
+    status: done
+  - id: "2"
+    task: パンを買う
+    status: done
+  - id: "3"
+    task: 卵を買う
+    status: todo
+  - id: "4"
+    task: 醤油を買う
+    status: todo

@@ -137,7 +137,7 @@ status must be either draft or done.
 {% endfor %}
 
 <details>
-<summary>Schema Reference</summary>
+<summary>Specification</summary>
 
 **Schema**
 

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+table { table-layout: fixed; width: 100%; display: table !important; overflow: visible !important; }
+table th, table td { overflow-wrap: break-word; word-break: break-word; vertical-align: top; }
+.markdown-preview { max-width: 100% !important; padding-left: 2em !important; padding-right: 2em !important; }
+[data-kata-enum] { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 0.9em; }
+[data-kata-enum="done"] { background: #e8e9ed; color: #6a6c73; }
+[data-kata-enum="todo"] { background: #a8cfe0; color: #1a3d55; }
+</style>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  padding: 24px 32px;
+  background: white;
+  color: #1f2328;
+  max-width: 640px;
+}
+h1 { font-size: 1.6em; margin: 0 0 16px 0; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  border: 1px solid #d1d9e0;
+  padding: 8px 12px;
+}
+th {
+  background: #f6f8fa;
+  font-weight: 600;
+}
+p { margin: 12px 0 0 0; color: #656d76; }
+</style>
+</head>
+<body>
+<h1>Weekend Shopping List</h1>
+<table><tr><th style="text-align:center">#</th><th style="text-align:left">Task</th><th style="text-align:center">Status</th></tr><tr><td style="text-align:center"><span data-kata="p-items-0-id">1</span></td><td style="text-align:left"><span data-kata="p-items-0-task">Buy milk</span></td><td style="text-align:center"><span data-kata="p-items-0-status" data-kata-enum="done">done</span></td></tr><tr><td style="text-align:center"><span data-kata="p-items-1-id">2</span></td><td style="text-align:left"><span data-kata="p-items-1-task">Buy bread</span></td><td style="text-align:center"><span data-kata="p-items-1-status" data-kata-enum="done">done</span></td></tr><tr><td style="text-align:center"><span data-kata="p-items-2-id">3</span></td><td style="text-align:left"><span data-kata="p-items-2-task">Buy eggs</span></td><td style="text-align:center"><span data-kata="p-items-2-status" data-kata-enum="todo">todo</span></td></tr><tr><td style="text-align:center"><span data-kata="p-items-3-id">4</span></td><td style="text-align:left"><span data-kata="p-items-3-task">Buy soy sauce</span></td><td style="text-align:center"><span data-kata="p-items-3-status" data-kata-enum="todo">todo</span></td></tr></table>
+<p>Total: 4 tasks</p>
+</body>
+</html>

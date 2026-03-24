@@ -5,53 +5,27 @@
 [![AI Collaborative](https://img.shields.io/badge/AI-Collaborative-ff6f00.svg?logo=openai&logoColor=white)](#なぜ-gospelo-kata)
 [![KATA Markdown](https://img.shields.io/badge/Format-KATA_Markdown-00bcd4.svg)](#kata-markdown-フォーマット)
 
-**人間と AI の協同作業**のために設計されたドキュメントフォーマットおよびツールキットです。KATA Markdown™ はスキーマ・データ・テンプレートを1つのファイルに統合し、人間にも AI にも特別な指示なしで読み書きできるフォーマットです。
+**人間と AI の協同作業**のために設計されたドキュメントフォーマットおよびツールキットです。スキーマ・データ・テンプレートを1つのファイルに統合し、人間にも AI にも読み書きできるフォーマットです。
 
 ## なぜ gospelo-kata？
 
-KATA Markdown™ は、人間と AI が同じドキュメントを読み、理解し、共同で作業できるように設計されています。フォーマットは自己記述的で、AI は埋め込まれたスキーマとプロンプトからテンプレート構造を自力で理解でき、人間も同じファイルを自然に読み書きできます。スキーマ・バリデーション・信頼管理によって AI の出力を安全な経路に導くハーネスとして機能し、自律型 AI が構造から逸脱せず安全に動作します。
+AI でドキュメントを生成する際、構造がない・ラウンドトリップできない・バリデーションがない・毎回指示が必要、といった問題があります。gospelo-kata は **単一の `.kata.md` ファイル** にスキーマ定義・構造化データ・テンプレートを統合し、これらを解決します。
 
-AI でドキュメントを生成する際、よくある問題:
+## LiveMorph — 双方向リアルタイム同期
 
-- **構造がない** — AI が出力する自由形式のテキストは検証や再利用が難しい
-- **ラウンドトリップできない** — レンダリング後、元のデータを取り出せない
-- **バリデーションがない** — スキーマ違反がレビューまで気づかれない
-- **AI への指示が毎回必要** — 出力形式を毎回説明しなければならない
+<p align="center">
+  <img src="docs/manual/ja/images/livemorph-concept.jpg" alt="LiveMorph コンセプト図" width="720">
+</p>
 
-gospelo-kata は **単一の `.kata.md` ファイル** にすべてを含めることで解決します。スキーマ定義・構造化データ・Jinja2 互換テンプレート（組み込みエンジン、外部依存なし）を1ファイルに統合。埋め込みの `**Schema**` と `**Prompt**` ブロックにより、AI は外部の指示なしでテンプレートを理解できます。レンダリング出力は `data-kata` アノテーションでデータバインディングを保持し、ラウンドトリップ抽出と自動バリデーションを実現します。
+Data ブロックと HTML 本文を双方向に同期。VS Code 拡張から **ワンクリック** で切り替え、ステータスバーで現在の同期モードを常時確認できます。
 
-## 特徴
+## Human-AI Readable — 自己記述的フォーマット
 
-- **人間と AI の協同フォーマット** — 人間にも AI にも同じファイルを読み書き・生成できる
-- **自己記述的テンプレート** — 埋め込みの `**Schema**` と `**Prompt**` ブロックで AI が外部指示なしにテンプレートを理解
-- **シングルファイル** — スキーマ、データ、テンプレートを1つの `.kata.md` に
-- **YAML ショートハンドスキーマ** — 簡潔な型定義 (`string!`, `enum(a,b,c)`, `items[]!:`)
-- **ラウンドトリップ** — レンダリング済みドキュメントから構造化データを抽出
-- **Lint** — テンプレートとレンダリング出力の両方を検証 (20以上のルール)
-- **AI フレンドリー** — `assemble` コマンドで AI は YAML データのみ生成すればOK
-- **セキュアパッケージ** — KATA ARchive™ (`.katar`) で整合性検証・信頼管理付きのテンプレート配布
-- **マルチフォーマット** — Markdown、Excel、HTML 出力
-- **VSCode 拡張機能** — リアルタイム lint、ホバー情報、プレビュー CSS
-- **外部テンプレート依存なし** — コア機能は外部テンプレートエンジン不要 (Jinja2 3.1.6 互換エンジン組み込み、PyYAML 必須、openpyxl は Excel 用オプション)
+埋め込みの `**Schema**` と `**Prompt**` ブロックにより、AI は外部の指示なしでテンプレートを理解。人間も同じファイルを自然に読み書きできます。`build` コマンドで AI は YAML データのみ生成すれば OK。
 
-## KATA ARchive™ (.katar) — セキュアなテンプレートパッケージ
+## Secure Packaging — KATA ARchive™ (.katar)
 
-KATA ARchive™ は、安全な単一ファイルのテンプレートパッケージフォーマットです。`.katar` ファイルにテンプレート・スキーマ・プロンプト・マニフェスト・画像を ZIP アーカイブとして一括格納し、AI が自律的に発見・理解・利用できます。手動の指示は不要です。
-
-- **自己完結** — AI に必要なすべてが1ファイルに
-- **整合性検証** — `pack` がハッシュを `manifest.json` に記録。改ざんされたパッケージは読み込み時に拒否
-- **サンドボックス** — `manifest.json`、`_tpl.kata.md`、画像ファイルのみ許可。それ以外のファイルタイプはブロック
-- **信頼管理** — AI プロンプトの実行にはユーザーの明示的な承認が必要。プロンプト変更時は再確認
-- **構造整合性** — レンダリング済み `.kata.md` にハッシュを埋め込み、テンプレート構造の事後改ざんを検出
-
-```bash
-# テンプレートの作成、パック、利用
-gospelo-kata pack-init ./my_template/
-gospelo-kata pack ./my_template/ -o my_template.katar
-gospelo-kata init --from-package my_template.katar
-```
-
-詳細は [テンプレートパッケージガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md) を参照。
+テンプレート・スキーマ・プロンプトを ZIP アーカイブとして一括格納。SHA-256 ハッシュによる整合性検証、ファイル種別サンドボックス、AI プロンプトの信頼管理を提供します。
 
 ## インストール
 
@@ -66,232 +40,67 @@ Python 3.11+ が必要です。
 
 ## クイックスタート
 
-### 1. ゼロからドキュメントを作成
-
-````bash
-cat > todo_tpl.kata.md << 'EOF'
-**Prompt**
-
-```yaml
-このテンプレートはタスクチェックリストを生成します。
-items 配列に task と done フィールドを記述してください。
-```
-
-# {{ title }}
-
-| タスク | 完了 |
-|--------|:----:|
-{% for item in items %}| {{ item.task }} | {{ item.done }} |
-{% endfor %}
-
-<details>
-<summary>Schema Reference</summary>
-
-**Schema**
-
-```yaml
-title: string!
-items[]!:
-  task: string!
-  done: boolean
-```
-
-**Data**
-
-```yaml
-title: スプリントタスク
-items:
-  - task: CI パイプライン構築
-    done: true
-  - task: API テスト作成
-    done: false
-  - task: ステージングデプロイ
-    done: false
-```
-
-</details>
-EOF
-
-gospelo-kata render todo_tpl.kata.md -o outputs/todo.kata.md
-gospelo-kata lint outputs/todo.kata.md
-````
-
-### 2. 組み込みテンプレートを使う
-
 ```bash
 # テンプレート一覧
 gospelo-kata templates
 
-# プロジェクトを初期化
-gospelo-kata init --type checklist -o ./my-project/
+# 初期値で .kata.md を生成
+gospelo-kata build todo -o ./
+
+# Data ブロックを編集 → 本文に反映
+gospelo-kata sync to-html todo.kata.md
+
+# 検証
+gospelo-kata lint todo.kata.md
 ```
-
-### 3. AI ワークフロー (推奨)
-
-AI は YAML データのみ生成し、`build` が組み込みテンプレートと結合します:
-
-```bash
-# 1. プロンプト + スキーマを確認
-gospelo-kata export checklist --part prompt,schema
-
-# 2. AI がスキーマに従って data.yml を作成
-
-# 3. 検証、ビルド、lint
-gospelo-kata import-data checklist data.yml -q
-gospelo-kata build checklist data.yml -o outputs/
-gospelo-kata lint outputs/checklist.kata.md
-```
-
-### 4. データ抽出 (ラウンドトリップ)
-
-```bash
-gospelo-kata extract outputs/checklist.kata.md -o extracted.json
-```
-
-レンダリング済みドキュメントから元の構造化データを復元します。
-
-## KATA Markdown™ フォーマット
-
-`_tpl.kata.md` テンプレートファイルは4つのブロックで構成されます:
-
-````markdown
-**Prompt**
-
-```yaml
-カテゴリと項目を含むセキュリティチェックリストを生成してください。
-各項目には id、status (draft/pending/approve/reject)、tags が必要です。
-```
-
-# {{ title }}
-
-{% for cat in categories %}
-## {{ cat.name }}
-
-| ID | ステータス | タグ |
-|----|-----------|------|
-{% for item in cat.items %}| {{ item.id }} | {{ item.status }} | {{ item.tags | join(", ") }} |
-{% endfor %}
-{% endfor %}
-
-<details>
-<summary>Schema Reference</summary>
-
-**Schema**
-
-```yaml
-title: string!
-version: string
-categories[]!:
-  id: string!
-  name: string!
-  items[]!:
-    id: string!
-    status: enum(draft, pending, approve, reject)
-    tags: string[]
-```
-
-**Data**
-
-```yaml
-title: セキュリティチェックリスト
-version: "1.0"
-categories:
-  - id: auth
-    name: 認証・認可
-    items:
-      - id: auth-01
-        status: draft
-        tags: [web, api]
-```
-
-</details>
-````
-
-### スキーマショートハンド
-
-| 記法                       | 意味                                        |
-| -------------------------- | ------------------------------------------- |
-| `string`                         | 任意文字列                                           |
-| `string!`                        | 必須文字列                                           |
-| `integer`, `number`, `boolean`   | 型付き値                                             |
-| `int`, `float`, `bool`, `str`    | エイリアス (→ integer, number, boolean, string)       |
-| `enum(a, b, c)`                  | 列挙型                                               |
-| `string[]`                       | 文字列配列                                           |
-| `items[]!:`                      | 必須オブジェクト配列 (子をインデントで記述)           |
-
-### レンダリング出力
-
-`gospelo-kata render` はアノテーション付き Markdown を出力します:
-
-- `<span data-kata="p-{path}">value</span>` — データバインディング
-- `<div data-kata-each="collection">` — ループマーカー
-- `<details>` セクションに Schema + Data を付与 (再構築用)
 
 ## 組み込みテンプレート
 
-| タイプ      | 説明                                                     |
-| ----------- | -------------------------------------------------------- |
-| `checklist` | カテゴリ・ステータス追跡・自動化レベル付きチェックリスト |
-| `test_spec` | 前提条件と期待結果を含むテストケース仕様書               |
-| `agenda`    | 決定事項・アクションアイテム・時間配分付き会議アジェンダ |
+| タイプ | 説明 |
+|--------|------|
+| `checklist` | カテゴリ・ステータス追跡付きチェックリスト |
+| `test_spec` | 前提条件と期待結果を含むテストケース仕様書 |
+| `agenda` | 決定事項・アクションアイテム付き会議アジェンダ |
 
 ## CLI コマンド一覧
 
-| コマンド          | 説明                                                          |
-| ----------------- | ------------------------------------------------------------- |
-| `templates`       | テンプレート一覧                                              |
-| `init`            | テンプレートからプロジェクトを初期化                          |
-| `render`          | `.kata.md` テンプレートをアノテーション付きでレンダリング     |
-| `assemble`        | 組み込みテンプレート + データファイルを `_tpl.kata.md` に結合 |
-| `lint`            | テンプレートとレンダリング済みドキュメントを検証              |
-| `extract`         | レンダリング出力から構造化データを抽出                        |
-| `validate`        | JSON/YAML データをスキーマに対して検証                        |
-| `generate`        | JSON データから Markdown/Excel/HTML を生成                    |
-| `pack`            | テンプレートディレクトリを `.katar` アーカイブにパック        |
-| `pack-init`       | 新規テンプレートディレクトリの雛形を作成                      |
-| `export`          | テンプレートパートの抽出 (prompt, schema, data, body)         |
-| `import-data`     | data.yml をテンプレートスキーマで検証                         |
-| `fmt`             | `data-kata` span を自動フォーマット                           |
-| `coverage`        | チェックリストカバレッジを分析                                |
-| `edit`            | ブラウザベースのデータエディター                              |
-| `workflow-status` | パイプラインの進捗管理                                        |
+| コマンド | 説明 |
+|----------|------|
+| `templates` | テンプレート一覧 |
+| `init` | テンプレートからプロジェクトを初期化 |
+| `render` | テンプレートをアノテーション付きでレンダリング |
+| `assemble` | 組み込みテンプレート + データを `_tpl.kata.md` に結合 |
+| `build` | テンプレートから .kata.md を生成 (data 省略時は内蔵データ使用) |
+| `lint` | テンプレートとレンダリング出力を検証 |
+| `extract` | レンダリング出力から構造化データを抽出 |
+| `validate` | データをスキーマに対して検証 |
+| `pack` / `pack-init` | `.katar` アーカイブの作成 |
+| `export` | テンプレートパートの抽出 |
+| `import-data` | data.yml をスキーマで検証 |
+| `sync` | LiveMorph 双方向同期 (`to-html` / `to-data`) |
 
 詳細は [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md) を参照。
 
-## AI 連携
-
-gospelo-kata は AI アシスタントとの連携を前提に設計されています。`build` コマンドにより、AI が生成するのはスキーマに従った YAML データだけで済みます。
-
-**対応 AI ツール:**
-
-- **Claude Code** — `skill/claude-code/` のスキルファイル
-- **GitHub Copilot Chat** — `.github/copilot-instructions.md` による指示
-
-3ステップワークフロー (`data.yml` → `assemble` → `render` + `lint`) は、コンテキストウィンドウの小さいモデルでも安定して動作します。
-
 ## VSCode 拡張機能
 
-[VS Marketplace](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint) からインストールできます。`kata-lint` 拡張機能の機能:
+[VS Marketplace](https://marketplace.visualstudio.com/items?itemName=gospelo.kata-lint) からインストール:
 
-- Problems パネルへのリアルタイム lint 表示
+- リアルタイム lint (Problems パネル)
+- LiveMorph 同期 (コンテキストメニュー / ステータスバー)
 - `data-kata` 属性のホバー情報
-- kata 専用スタイルのプレビュー CSS
-
-詳細は [VSCode 連携ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md) を参照。
+- kata 専用プレビュー CSS
 
 ## ドキュメント
 
 - [クイックスタート](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/quick-start.md)
 - [CLI リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/cli-reference.md)
 - [KATA Markdown™ フォーマット](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/kata-markdown-format.md)
+- [LiveMorph ガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/livemorph.md)
+- [テンプレート一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/templates.md)
+- [KATA ARchive パッケージ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/katar.md)
+- [VSCode 拡張](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode.md)
 - [Lint ルール一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/lint-rules.md)
-- [スキルガイド](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/skill-guide.md)
-- [VSCode 連携](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/vscode-integration.md)
-- [Copilot セットアップ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/copilot-setup.md)
-- [テンプレートパッケージ](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/template-package.md)
-- [プロンプト設計ガイドライン](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/prompt-design-guide.md)
-- [型変換リファレンス](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/type-conversion.md)
 
 ## ライセンス
 
-MIT — 商用利用を含め自由に利用できます。本ソフトウェアで生成したドキュメントやユーザーが作成したテンプレートの著作権はユーザーに帰属します。AI サービスと組み合わせて使用する場合、データが AI プロバイダーに送信される可能性があります。詳細は [LICENSE_ja.md](https://github.com/gospelo-dev/kata/blob/main/LICENSE_ja.md) を参照してください。
+MIT — 商用利用を含め自由に利用できます。生成したドキュメントやユーザー作成テンプレートの著作権はユーザーに帰属します。詳細は [LICENSE_ja.md](https://github.com/gospelo-dev/kata/blob/main/LICENSE_ja.md) を参照。

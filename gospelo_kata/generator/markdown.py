@@ -19,7 +19,7 @@ def generate_checklist_md(data: dict[str, Any]) -> str:
 
     Uses the checklist_tpl.kata.md template via the built-in template engine.
     Renders with annotate=True so that values are auto-linked to the
-    Schema Reference section appended at the bottom.
+    Specification section appended at the bottom.
 
     Args:
         data: Parsed checklist data.

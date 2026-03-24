@@ -13,8 +13,12 @@ import tempfile
 import pytest
 
 from gospelo_kata.template import (
+    ENUM_COLOR_SCHEMES,
     Template,
+    _collect_enum_map,
     _compute_structure_hash,
+    _generate_enum_css,
+    _resolve_color_scheme,
     extract_data,
     extract_schema,
     generate_schema_reference,
@@ -586,7 +590,7 @@ class TestAnnotation:
         }
         tpl = self._make_template(schema, "# {{ title }}")
         result = tpl.render_annotated({"title": "Hello"})
-        assert "Schema Reference" in result
+        assert "Specification" in result
         assert "title: string!" in result
 
     def test_schema_reference_nested_array(self):
@@ -616,7 +620,7 @@ class TestAnnotation:
         assert tpl.schema is None
         result = tpl.render_annotated({"title": "Hello"})
         # No schema → links still attempted but no reference section
-        assert "Schema Reference" not in result
+        assert "Specification" not in result
 
     def test_render_file_annotated(self):
         schema = {"type": "object", "properties": {"name": {"type": "string"}}}
@@ -631,7 +635,7 @@ class TestAnnotation:
         try:
             result = render_file(path, {"name": "World"}, annotate=True)
             assert '<span data-kata="p-name">World</span>' in result
-            assert "Schema Reference" in result
+            assert "Specification" in result
         finally:
             os.unlink(path)
 
@@ -650,17 +654,17 @@ class TestStripAnnotations:
         assert "#p-" not in result
 
     def test_strip_schema_reference_section(self):
-        text = "# Hello\n\n---\n\n<details>\n<summary>Schema Reference</summary>\n\n#### title\n- type: string\n\n</details>\n"
+        text = "# Hello\n\n---\n\n<details>\n<summary>Specification</summary>\n\n#### title\n- type: string\n\n</details>\n"
         result = strip_annotations(text)
-        assert "Schema Reference" not in result
+        assert "Specification" not in result
         assert "# Hello" in result
 
     def test_strip_both(self):
-        text = '# <span data-kata="p-title">Hello</span>\n\n---\n\n<details>\n<summary>Schema Reference</summary>\n\n#### <a id="p-title"></a>title\n- **type**: string\n\n</details>\n'
+        text = '# <span data-kata="p-title">Hello</span>\n\n---\n\n<details>\n<summary>Specification</summary>\n\n#### <a id="p-title"></a>title\n- **type**: string\n\n</details>\n'
         result = strip_annotations(text)
         assert result.strip() == "# Hello"
         assert "data-kata" not in result
-        assert "Schema Reference" not in result
+        assert "Specification" not in result
 
     def test_no_annotations_unchanged(self):
         text = "# Hello\n\nSome content"
@@ -692,7 +696,7 @@ class TestBoldCodeblockSchema:
 
     def test_bold_codeblock_schema_in_details(self):
         source = (
-            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntype: object\nproperties:\n  name:\n    type: string\n```\n\n'
             '</details>\n\n# {{ name }}'
         )
@@ -705,7 +709,7 @@ class TestBoldCodeblockSchema:
     def test_bold_codeblock_schema_in_details_with_data(self):
         """When <details> has both **Schema** and **Data**, only schema is removed."""
         source = (
-            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntype: object\nproperties:\n  x:\n    type: string\n```\n\n'
             '**Data**\n\n```yaml\nx: hello\n```\n\n'
             '</details>\n\n# {{ x }}'
@@ -791,7 +795,7 @@ class TestBoldCodeblockPrompt:
         )
         t = Template(source)
         result = t.render_annotated({"title": "Hello"})
-        assert "Schema Reference" in result
+        assert "Specification" in result
         assert "report generator" in result
 
 
@@ -811,7 +815,7 @@ class TestStripDetailsMultiBlock:
 
     def test_details_with_schema_and_data_preserves_data(self):
         source = (
-            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '<details>\n<summary>Specification</summary>\n\n'
             '{#schema\n{"type":"object","properties":{"x":{"type":"string"}}}\n#}\n\n'
             '{#data\nx: hello\n#}\n\n'
             '</details>\n\n# {{ x }}'
@@ -822,7 +826,7 @@ class TestStripDetailsMultiBlock:
 
     def test_details_with_bold_schema_and_bold_data_preserves_data(self):
         source = (
-            '<details>\n<summary>Schema Reference</summary>\n\n'
+            '<details>\n<summary>Specification</summary>\n\n'
             '**Schema**\n\n```yaml\ntype: object\nproperties:\n  x:\n    type: string\n```\n\n'
             '**Data**\n\n```yaml\nx: hello\n```\n\n'
             '</details>\n\n# {{ x }}'
@@ -850,7 +854,7 @@ class TestGenerateSchemaReferenceBlocks:
     def test_includes_data(self):
         schema = {"type": "object", "properties": {"x": {"type": "string"}}}
         ref = generate_schema_reference(schema, data={"x": "hello"})
-        assert "**Data**" in ref
+        assert "<summary>Data</summary>" in ref
         assert "hello" in ref
 
     def test_no_prompt_when_none(self):
@@ -866,7 +870,7 @@ class TestGenerateSchemaReferenceBlocks:
         assert "**Prompt**" in ref
         assert "```kata:template" in ref
         assert "**Schema**" in ref
-        assert "**Data**" in ref
+        assert "<summary>Data</summary>" in ref
 
 
 # ---------------------------------------------------------------------------
@@ -952,3 +956,157 @@ class TestStructureIntegrity:
         h1 = re.search(r"sha256:([0-9a-f]{64})", ref1).group(1)
         h2 = re.search(r"sha256:([0-9a-f]{64})", ref2).group(1)
         assert h1 != h2
+
+
+# ---------------------------------------------------------------------------
+# Enum styling (rich UI)
+# ---------------------------------------------------------------------------
+
+class TestCollectEnumMap:
+    def test_flat_enum(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "enum": ["todo", "done"]},
+                "title": {"type": "string"},
+            },
+        }
+        result = _collect_enum_map(schema)
+        assert result == {"status": ["todo", "done"]}
+
+    def test_nested_array_enum(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "status": {"type": "string", "enum": ["todo", "done"]},
+                            "task": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        }
+        result = _collect_enum_map(schema)
+        assert result == {"items-status": ["todo", "done"]}
+
+    def test_no_enum(self):
+        schema = {
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+        }
+        assert _collect_enum_map(schema) == {}
+
+    def test_none_schema(self):
+        assert _collect_enum_map(None) == {}
+
+
+class TestGenerateEnumCss:
+    def test_known_enum_values(self):
+        css = _generate_enum_css({"status": ["todo", "done"]})
+        assert any("data-kata-enum" in line for line in css)
+        assert any('"done"' in line for line in css)
+        assert any('"todo"' in line for line in css)
+
+    def test_empty_map(self):
+        assert _generate_enum_css({}) == []
+
+    def test_unknown_enum_values_no_color(self):
+        css = _generate_enum_css({"kind": ["custom_value"]})
+        # Base style should exist
+        assert any("[data-kata-enum]" in line for line in css)
+        # No specific color rule for unknown values
+        assert not any("custom_value" in line for line in css)
+
+
+class TestEnumSpanAnnotation:
+    def test_enum_span_has_data_kata_enum_attr(self):
+        src = (
+            "status: {{ status }}\n"
+            "{#schema\n"
+            '{"type":"object","properties":{"status":{"type":"string","enum":["todo","done"]}}}\n'
+            "#}\n"
+        )
+        tpl = Template(src)
+        result = tpl.render_annotated({"status": "done"})
+        assert 'data-kata-enum="done"' in result
+
+    def test_non_enum_span_no_enum_attr(self):
+        src = (
+            "name: {{ name }}\n"
+            "{#schema\n"
+            '{"type":"object","properties":{"name":{"type":"string"}}}\n'
+            "#}\n"
+        )
+        tpl = Template(src)
+        result = tpl.render_annotated({"name": "Alice"})
+        assert "data-kata-enum" not in result
+
+    def test_enum_css_in_schema_reference(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "enum": ["todo", "done"]},
+            },
+        }
+        ref = generate_schema_reference(schema)
+        assert 'data-kata-enum="done"' in ref
+        assert 'data-kata-enum="todo"' in ref
+
+    def test_array_enum_in_for_loop(self):
+        src = (
+            "{% for item in items %}{{ item.status }} {% endfor %}\n"
+            "{#schema\n"
+            '{"type":"object","properties":{"items":{"type":"array","items":'
+            '{"type":"object","properties":{"status":{"type":"string","enum":["todo","done"]}}}}}}\n'
+            "#}\n"
+        )
+        tpl = Template(src)
+        result = tpl.render_annotated({"items": [{"status": "done"}, {"status": "todo"}]})
+        assert 'data-kata-enum="done"' in result
+        assert 'data-kata-enum="todo"' in result
+
+
+class TestEnumColorSchemes:
+    def test_all_schemes_exist(self):
+        assert "default" in ENUM_COLOR_SCHEMES
+        assert "pastel" in ENUM_COLOR_SCHEMES
+        assert "vivid" in ENUM_COLOR_SCHEMES
+        assert "monochrome" in ENUM_COLOR_SCHEMES
+        assert "ocean" in ENUM_COLOR_SCHEMES
+
+    def test_vivid_todo_uses_white_foreground(self):
+        css = _generate_enum_css({"status": ["todo"]}, "vivid")
+        joined = " ".join(css)
+        assert "#ffffff" in joined
+
+    def test_monochrome_no_color_hues(self):
+        css = _generate_enum_css({"status": ["done", "todo"]}, "monochrome")
+        joined = " ".join(css)
+        # monochrome only uses gray-scale hex values (no a-f except in selectors)
+        for line in css:
+            if "background" in line:
+                assert "#d4edda" not in line  # not default green
+
+    def test_resolve_from_style(self):
+        style = {"colorScheme": "vivid"}
+        assert _resolve_color_scheme(style) == "vivid"
+
+    def test_resolve_fallback_to_default(self):
+        assert _resolve_color_scheme(None) == "default"
+
+    def test_resolve_unknown_scheme_falls_back(self):
+        style = {"colorScheme": "nonexistent"}
+        assert _resolve_color_scheme(style) == "default"
+
+    def test_schema_reference_uses_scheme(self):
+        schema = {
+            "type": "object",
+            "properties": {"status": {"type": "string", "enum": ["todo"]}},
+        }
+        style = {"colorScheme": "vivid"}
+        ref = generate_schema_reference(schema, style=style)
+        assert "#00CEC9" in ref  # vivid todo uses cyan

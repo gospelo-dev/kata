@@ -3,6 +3,14 @@ import { execFile } from "child_process";
 
 const DIAGNOSTIC_SOURCE = "kata-lint";
 
+const SYNC_MODE_LABELS: Record<string, string> = {
+  off: "$(sync-ignored) Sync: OFF",
+  toHtml: "$(arrow-right) Sync: to HTML",
+  toData: "$(arrow-left) Sync: to Data",
+};
+
+let syncStatusBarItem: vscode.StatusBarItem;
+
 interface LintMessage {
   file: string;
   line: number;
@@ -347,34 +355,66 @@ class KataHoverProvider implements vscode.HoverProvider {
   }
 }
 
-function formatDocument(
+function syncToHtml(
   document: vscode.TextDocument,
   diagnosticCollection: vscode.DiagnosticCollection
 ): void {
   const config = vscode.workspace.getConfiguration("kataLint");
   const pythonPath = config.get<string>("pythonPath", "python");
   const filePath = document.uri.fsPath;
+  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
+  // Data → template re-execution → body update
   execFile(
     pythonPath,
-    ["-m", "gospelo_kata.cli", "fmt", filePath],
-    { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, timeout: 10000 },
-    (error, stdout, stderr) => {
+    ["-m", "gospelo_kata.cli", "sync", "to-html", filePath, "-o", filePath],
+    { cwd, timeout: 15000 },
+    (error, _stdout, stderr) => {
       if (error && error.code !== 0) {
         vscode.window.showErrorMessage(
-          `kata-lint: format failed — ${stderr || error.message}`
+          `kata-lint: sync to-html failed — ${stderr || error.message}`
         );
         return;
       }
 
-      // Show result
-      if (stdout.includes("formatted:")) {
-        vscode.window.showInformationMessage("kata-lint: formatted");
-        // Re-lint after format
-        lintDocument(document, diagnosticCollection);
-      } else {
-        vscode.window.showInformationMessage("kata-lint: no changes needed");
+      vscode.commands
+        .executeCommand("workbench.action.files.revert")
+        .then(() => {
+          vscode.window.showInformationMessage("kata-lint: synced to HTML");
+          lintDocument(document, diagnosticCollection);
+        });
+    }
+  );
+}
+
+function syncToData(
+  document: vscode.TextDocument,
+  diagnosticCollection: vscode.DiagnosticCollection
+): void {
+  const config = vscode.workspace.getConfiguration("kataLint");
+  const pythonPath = config.get<string>("pythonPath", "python");
+  const filePath = document.uri.fsPath;
+  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+  // Span extraction → Data block update → re-render
+  execFile(
+    pythonPath,
+    ["-m", "gospelo_kata.cli", "sync", "to-data", filePath, "-o", filePath],
+    { cwd, timeout: 15000 },
+    (error, _stdout, stderr) => {
+      if (error && error.code !== 0) {
+        vscode.window.showErrorMessage(
+          `kata-lint: sync to-data failed — ${stderr || error.message}`
+        );
+        return;
       }
+
+      vscode.commands
+        .executeCommand("workbench.action.files.revert")
+        .then(() => {
+          vscode.window.showInformationMessage("kata-lint: synced to Data");
+          lintDocument(document, diagnosticCollection);
+        });
     }
   );
 }
@@ -388,17 +428,17 @@ class KataFormattingProvider implements vscode.DocumentFormattingEditProvider {
       const pythonPath = config.get<string>("pythonPath", "python");
       const filePath = document.uri.fsPath;
 
-      // Run fmt --check first to see if changes are needed, then read the formatted output
+      // Run sync to-html to re-render, then read the output
       execFile(
         pythonPath,
-        ["-m", "gospelo_kata.cli", "fmt", filePath],
-        { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, timeout: 10000 },
+        ["-m", "gospelo_kata.cli", "sync", "to-html", filePath, "-o", filePath],
+        { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, timeout: 15000 },
         (error, _stdout, _stderr) => {
           if (error && error.code !== 0) {
             resolve([]);
             return;
           }
-          // fmt writes in-place, so re-read the file and replace the entire document
+          // sync writes in-place, so re-read the file and replace the entire document
           const fs = require("fs");
           try {
             const formatted = fs.readFileSync(filePath, "utf-8");
@@ -436,27 +476,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidSaveTextDocument((document) => {
       if (!isTargetDocument(document)) return;
       const cfg = vscode.workspace.getConfiguration("kataLint");
-      if (cfg.get<boolean>("syncOnSave", true)) {
-        const pythonPath = cfg.get<string>("pythonPath", "python");
-        const filePath = document.uri.fsPath;
-        execFile(
-          pythonPath,
-          ["-m", "gospelo_kata.cli", "fmt", filePath],
-          { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath, timeout: 10000 },
-          (error, _stdout, stderr) => {
-            if (error && error.code !== 0) {
-              vscode.window.showErrorMessage(
-                `kata-lint: sync failed — ${stderr || error.message}`
-              );
-              lintDocument(document, diagnosticCollection);
-              return;
-            }
-            // Revert the editor to pick up the file changes written by fmt
-            vscode.commands.executeCommand("workbench.action.files.revert").then(() => {
-              lintDocument(document, diagnosticCollection);
-            });
-          }
-        );
+      const syncDirection = cfg.get<string>("syncOnSave", "off");
+
+      if (syncDirection === "toHtml" || syncDirection === "toData") {
+        const syncFn = syncDirection === "toHtml" ? syncToHtml : syncToData;
+        syncFn(document, diagnosticCollection);
       } else if (cfg.get<boolean>("lintOnSave", true)) {
         lintDocument(document, diagnosticCollection);
       }
@@ -491,14 +515,87 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Format command
+  // Sync to HTML command (Data → HTML) + set mode
   context.subscriptions.push(
-    vscode.commands.registerCommand("kataLint.formatFile", () => {
+    vscode.commands.registerCommand("kataLint.syncToHtml", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor || !isTargetDocument(editor.document)) {
         return;
       }
-      formatDocument(editor.document, diagnosticCollection);
+      const cfg = vscode.workspace.getConfiguration("kataLint");
+      await cfg.update("syncOnSave", "toHtml", vscode.ConfigurationTarget.Workspace);
+      updateSyncStatusBar();
+      syncToHtml(editor.document, diagnosticCollection);
+    })
+  );
+
+  // Sync to Data command (Span → Data) + set mode
+  context.subscriptions.push(
+    vscode.commands.registerCommand("kataLint.syncToData", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || !isTargetDocument(editor.document)) {
+        return;
+      }
+      const cfg = vscode.workspace.getConfiguration("kataLint");
+      await cfg.update("syncOnSave", "toData", vscode.ConfigurationTarget.Workspace);
+      updateSyncStatusBar();
+      syncToData(editor.document, diagnosticCollection);
+    })
+  );
+
+  // Sync OFF command — disable auto-sync
+  context.subscriptions.push(
+    vscode.commands.registerCommand("kataLint.syncOff", async () => {
+      const cfg = vscode.workspace.getConfiguration("kataLint");
+      await cfg.update("syncOnSave", "off", vscode.ConfigurationTarget.Workspace);
+      updateSyncStatusBar();
+      vscode.window.showInformationMessage("kata-lint: sync OFF");
+    })
+  );
+
+  // Sync mode picker command
+  context.subscriptions.push(
+    vscode.commands.registerCommand("kataLint.setSyncMode", async () => {
+      const items: vscode.QuickPickItem[] = [
+        { label: "$(sync-ignored) OFF", description: "Manual sync only", detail: "off" },
+        { label: "$(arrow-right) Sync to HTML", description: "Data → HTML on save", detail: "toHtml" },
+        { label: "$(arrow-left) Sync to Data", description: "Span → Data on save", detail: "toData" },
+      ];
+      const picked = await vscode.window.showQuickPick(items, {
+        placeHolder: "Select sync mode for .kata.md files",
+      });
+      if (picked) {
+        const cfg = vscode.workspace.getConfiguration("kataLint");
+        await cfg.update("syncOnSave", picked.detail, vscode.ConfigurationTarget.Workspace);
+        updateSyncStatusBar();
+      }
+    })
+  );
+
+  // Status bar item
+  syncStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  syncStatusBarItem.command = "kataLint.setSyncMode";
+  syncStatusBarItem.tooltip = "Click to change Kata sync mode";
+  context.subscriptions.push(syncStatusBarItem);
+  updateSyncStatusBar();
+
+  // Update status bar when config changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("kataLint.syncOnSave")) {
+        updateSyncStatusBar();
+      }
+    })
+  );
+
+  // Show/hide status bar based on active editor
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      if (editor && isTargetDocument(editor.document)) {
+        syncStatusBarItem.show();
+      } else {
+        syncStatusBarItem.hide();
+      }
     })
   );
 
@@ -518,6 +615,17 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }
   }
+
+  // Show status bar if active editor is .kata.md
+  if (vscode.window.activeTextEditor && isTargetDocument(vscode.window.activeTextEditor.document)) {
+    syncStatusBarItem.show();
+  }
+}
+
+function updateSyncStatusBar(): void {
+  const cfg = vscode.workspace.getConfiguration("kataLint");
+  const mode = cfg.get<string>("syncOnSave", "off");
+  syncStatusBarItem.text = SYNC_MODE_LABELS[mode] || SYNC_MODE_LABELS.off;
 }
 
 export function deactivate(): void {
