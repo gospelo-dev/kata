@@ -61,6 +61,9 @@ gospelo-kata lint todo.kata.md
 | `checklist` | Structured checklist with categories and status tracking |
 | `test_spec` | Test case specification with prerequisites and expected results |
 | `agenda` | Meeting agenda with decisions and action items |
+| `storyboard` | Scripted scene with characters, cuts, dialogue, and bundled avatar + cut images |
+
+See the [full template list](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/templates.md) for every built-in template (security testing, load, infra, etc.).
 
 ## CLI Commands
 

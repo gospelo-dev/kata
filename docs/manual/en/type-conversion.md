@@ -138,3 +138,51 @@ Native type vs JSON Schema type → OK / ValidationError
 | Shorthand Parser | `template.py` | Add `_TYPE_ALIASES` map, replace fallback with `ValueError` |
 | Validator | `validator.py` | Change `validate_file` from `json.loads` to `yaml.safe_load` |
 | Documentation | `kata-markdown-format.md` | Add aliases to type notation table |
+
+---
+
+## Round-Trip Type Preservation (data-kata-type)
+
+A second type-conversion path exists between the **rendered .kata.md**
+and the **extracted Data**. When the schema declares a non-string type
+for a property, the annotator emits a `data-kata-type` attribute on
+that span so `extract` / `sync to-data` can restore the original type.
+
+| Schema type | Rendered span attribute | On extract |
+|-------------|-------------------------|------------|
+| `integer` | `data-kata-type="integer"` | `"42"` → `42` |
+| `number` | `data-kata-type="number"` | `"3.14"` → `3.14` |
+| `boolean` | `data-kata-type="boolean"` | `"true"` / `"yes"` / `"1"` → `True` |
+| `enum` | `data-kata-type="enum"` + `data-kata-enum="..."` | verbatim string |
+| `array` of scalars | `data-kata-type="array"` | `"a, b, c"` → `["a", "b", "c"]` |
+| `string` | *(omitted — default)* | verbatim string |
+
+### Why string spans have no type attribute
+
+`string` is the default, so the attribute is omitted to keep rendered
+markup compact. But the extractor still needs to know whether a field
+is really a string — because the legacy heuristic splits `", "`-joined
+values into arrays whenever the type is unknown, and that heuristic
+would corrupt natural-language fields (a cut's `audio: "Soft piano, strings in the background"`
+would become a two-element array).
+
+To recover, the extractor parses the Specification section's YAML
+shorthand to look up the schema-declared type of each array child. If
+the schema says `audio: string`, the comma-splitting heuristic is
+suppressed and the value is returned verbatim.
+
+If you pass an explicit JSON Schema to `extract_from_text(schema=...)`,
+that schema is used directly and the rendered Specification section is
+not consulted.
+
+### Cross-reference with `{% set %}`
+
+Values bound through `{% set %}` (used by the storyboard template to
+look up each cut's speaker in `characters[]`) are deliberately rendered
+as plain text without a `data-kata` span. That prevents a single schema
+path from being emitted twice in the output, which would make the
+extractor believe the source array has more elements than it really
+does.
+
+See [LiveMorph](https://github.com/gospelo-dev/kata/blob/main/docs/manual/en/livemorph.md)
+for a complete description of the round-trip.

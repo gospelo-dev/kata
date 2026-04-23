@@ -136,15 +136,64 @@ LiveMorph uses `data-kata` attributes to map between Data and HTML.
 
 ```html
 <span data-kata="p-title">Security Checklist</span>
-<span data-kata="p-categories-items-status" data-kata-enum="draft|pending|done">draft</span>
+<span data-kata="p-items-0-qty" data-kata-type="integer">42</span>
+<span data-kata="p-items-0-status" data-kata-type="enum" data-kata-enum="done">done</span>
+<span data-kata="p-items-0-done" data-kata-type="boolean">true</span>
 ```
 
 - `p-` prefix: property path
+- Array indices are embedded in the anchor: `p-items-0-qty` → `items[0].qty`.
+  This makes cross-referencing the same element from multiple places in the
+  template safe — the extractor dispatches each value onto the correct
+  `arr[i]` slot instead of inflating the source array
 - `-` delimited: nested properties (`categories.items.status`)
+- `data-kata-type`: original JSON Schema type, emitted for anything other
+  than `string` (omitted for strings to keep markup small). Recognized
+  values: `integer`, `number`, `boolean`, `enum`, `array`. Used by the
+  extractor to coerce textContent back to the original type on sync
 - `data-kata-enum`: allowed values (shown in VS Code hover)
 - `data-kata-each`: array loop marker
 
-`sync to-data` extracts values from these spans and reconstructs the original data structure.
+`sync to-data` extracts values from these spans and reconstructs the
+original data structure, using `data-kata-type` (when present) and the
+Specification section's schema shorthand to restore types.
+
+### Hidden annotations
+
+Fields that the template wants to preserve across round-trips but does
+not want to display can be wrapped in a hidden span:
+
+```html
+<span data-kata="p-characters-0-id" hidden>alice</span>
+```
+
+This is the idiom used by the `storyboard` template for
+`characters[].id` — the id is not shown to readers but is required by
+the schema and must survive `sync to-data`.
+
+---
+
+## Preserving Un-annotated Fields on sync
+
+`sync to-data` applies the extracted values as a **patch on top of the
+existing Data block**, not as a replacement. Fields that the template
+renders without a `data-kata` span (image `src` attributes, arbitrary
+HTML not tied to a schema property, etc.) are preserved from the old
+Data block so a single save never silently drops information.
+
+Concretely:
+
+- **Top-level scalars**: the extracted value wins; anything not in the
+  extract is kept from the old Data
+- **Arrays**: the extracted length is authoritative (so user-initiated
+  deletes flow through). Each surviving element is merged with the
+  same-index element in the old Data so un-annotated fields on that
+  element survive
+- **Nested dicts**: recursed into with the same rules
+
+Without this merge, fields such as a storyboard cut's `image` path would
+disappear on the first `sync to-data` because only the values wrapped in
+`<span data-kata="…">` are visible to the extractor.
 
 ---
 
@@ -153,3 +202,7 @@ LiveMorph uses `data-kata` attributes to map between Data and HTML.
 - **Don't enable both directions at once**: `toHtml` and `toData` are mutually exclusive. Always pick one mode at a time
 - **Don't break span structure**: Deleting `data-kata` attributes or span tags will prevent sync to-data from extracting data
 - **Enum values**: When editing span text, only use values allowed by the schema's `enum()` definition
+- **Types are restored from the schema**: a `data-kata-type="integer"`
+  span that contains "42" becomes `42` (int) in the Data block. A plain
+  string field containing `", "` is **not** split into an array when the
+  Specification section declares it as `string`

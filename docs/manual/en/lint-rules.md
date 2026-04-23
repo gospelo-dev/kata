@@ -61,6 +61,14 @@ Template syntax validation. Applied to files containing schema blocks, `{{ }}`, 
 
 **Remedy**: V001 — Add the property to the schema, or fix the variable name typo. V002 — Informational only.
 
+> **Note:** V001 no longer flags variables introduced by `{% set %}`.
+> For example, the `storyboard` template resolves each cut's speaker with
+> `{% set speaker = characters | selectattr("id", "equalto", cut.speaker) | first %}`
+> and later renders `{{ speaker.name }}`. `speaker` does not exist in the
+> schema by design — it is a local binding — and the rule now skips it.
+> Only references to names that are neither in the schema nor introduced
+> by `{% set %}` or `{% for %}` are reported.
+
 ---
 
 ## Document Mode (Rendered .kata.md / .md)

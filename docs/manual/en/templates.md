@@ -16,6 +16,24 @@ gospelo-kata templates    # List all templates
 | `agenda` | Meeting agenda (attendees, topics, decisions) | Meetings |
 | `checklist` | Structured checklist (categories, items, status) | QA, audits |
 
+## Narrative / Visual
+
+| Template | Description | Use Case |
+|----------|------------|----------|
+| `storyboard` | Scripted scene with characters, cuts, dialogue, and per-cut cut images | Onboarding flows, tutorials, short videos, dialogue mockups |
+
+The `storyboard` template bundles character avatar and cut placeholder
+images inside its `.katar`. Data references images via
+`./images/storyboard/...` so multiple templates with image assets can
+coexist in the same workspace without collision. The template supports
+two dialogue modes:
+
+- `dialogue: string[]` — single speaker per cut (uses `cut.speaker`)
+- `lines: [{speaker, text}, ...]` — multiple speakers per cut, each
+  rendered as its own speech bubble with the speaker's avatar
+
+See `docs/examples/en/storyboard/` for a full working sample.
+
 ## Security Testing
 
 | Template | Description | Depends On |

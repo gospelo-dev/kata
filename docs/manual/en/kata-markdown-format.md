@@ -180,6 +180,43 @@ priority must be one of high/medium/low.
 {% if priority == "high" %}**Critical**{% elif priority == "medium" %}Warning{% else %}Normal{% endif %}
 ```
 
+### Variable Assignment — `{% set %}`
+
+Bind a local variable with `{% set name = expr %}`. Useful for resolving
+a cross-reference once and reusing it, or for computing a derived value
+to keep rendered markup concise.
+
+This is how the built-in `storyboard` template picks each cut's speaker
+out of the `characters[]` array. For every cut, it looks up the
+character whose `id` matches `cut.speaker`, then renders that
+character's avatar next to the dialogue bubble:
+
+```jinja
+{% for cut in cuts %}
+### {{ cut.id }}
+
+{% set speaker = characters | selectattr("id", "equalto", cut.speaker) | first %}
+{% if speaker %}
+  <img src="{{ speaker.icon }}" alt="{{ speaker.name }}" width="48" />
+  <strong>{{ speaker.name }}</strong>
+{% endif %}
+
+{% for line in cut.dialogue %}{{ line }}
+{% endfor %}
+{% endfor %}
+```
+
+Values bound via `{% set %}` are **not annotated** with `data-kata`
+spans in the rendered output. `{{ speaker.name }}` in the snippet above
+renders as plain text — not as another `<span data-kata="p-characters-0-name">…</span>`.
+That is crucial for LiveMorph: `characters[0].name` is already
+annotated once when the template renders the Characters section, so
+re-emitting it through the set-resolved `speaker` variable would
+inflate the `characters` array on `sync to-data`.
+
+Block form (`{% set x %}...{% endset %}`) is not supported; only the
+inline assignment shown above.
+
 ### Built-in Filters
 
 | Filter | Description | Example |
@@ -196,6 +233,12 @@ priority must be one of high/medium/low.
 | `truncate(len)` | Truncate | `{{ desc \| truncate(100) }}` |
 | `e` / `escape` | HTML escape | `{{ html \| e }}` |
 | `tojson` | JSON conversion | `{{ data \| tojson }}` |
+| `selectattr(attr[, test[, value]])` | Keep elements where the attribute passes the test | `{{ items \| selectattr("active") }}` / `{{ items \| selectattr("id", "equalto", "a") }}` |
+| `rejectattr(attr[, test[, value]])` | Inverse of `selectattr` | `{{ items \| rejectattr("disabled") }}` |
+
+Supported `selectattr` / `rejectattr` tests: `equalto` (`eq`, `==`),
+`ne` (`!=`), `lt`, `gt`, `le`, `ge`, `in`. Omitting the test keeps
+elements whose attribute is truthy.
 
 ---
 
@@ -211,11 +254,35 @@ Template variables are wrapped in `<span data-kata="p-{property-path}">`:
 <span data-kata="p-title">Security Check</span>
 ```
 
-Nested property anchor paths are joined with `-`:
+Nested property anchor paths are joined with `-`. Array elements carry
+their index inside the anchor so the extractor can dispatch each value
+to the correct slot without relying on document order:
 
 ```html
-<span data-kata="p-categories-items-status">draft</span>
+<span data-kata="p-categories-0-items-0-status">draft</span>
 ```
+
+### data-kata-type Attribute
+
+When the schema declares a non-string type, the annotator adds a
+`data-kata-type` attribute so `extract` / `sync to-data` can coerce the
+textContent back to its original type:
+
+| Schema type | Rendered attribute | Round-trip result |
+|-------------|--------------------|-------------------|
+| `integer` | `data-kata-type="integer"` | `"42"` → `42` |
+| `number` | `data-kata-type="number"` | `"3.14"` → `3.14` |
+| `boolean` | `data-kata-type="boolean"` | `"true"` → `True` |
+| `enum(...)` | `data-kata-type="enum"` + `data-kata-enum="..."` | Kept as string |
+| `string[]` | `data-kata-type="array"` | Comma-separated → list |
+| `string` | (omitted — default) | Kept verbatim |
+
+Plain `string` fields are safe to contain `", "` in natural language
+(a sentence, a narration line, a cut's `audio` cue). The extractor
+consults the Specification section's schema shorthand and suppresses
+its legacy comma-splitting heuristic for any field declared as
+`string`, so sync does not turn `"Soft piano, strings in the background"`
+into a two-element array.
 
 ### data-kata-each Loop Markers
 

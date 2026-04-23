@@ -138,3 +138,48 @@ active: bool
 | Shorthand パーサー | `template.py` | `_TYPE_ALIASES` マップ追加、フォールバック削除 → `ValueError` |
 | バリデータ | `validator.py` | `validate_file` を `json.loads` → `yaml.safe_load` に変更 |
 | ドキュメント | `kata-markdown-format.md` | 型記法テーブルにエイリアスを追記 |
+
+---
+
+## Round-Trip の型保持 (data-kata-type)
+
+レンダリング済み `.kata.md` から Data を復元するときにも型変換が走ります。
+スキーマで string 以外の型が宣言されたフィールドについては、annotator が
+span に `data-kata-type` 属性を付与し、`extract` / `sync to-data` が元の型
+に戻せるようにしています。
+
+| スキーマ型 | 出力される span 属性 | extract 時の変換 |
+|-----------|----------------------|-----------------|
+| `integer` | `data-kata-type="integer"` | `"42"` → `42` |
+| `number` | `data-kata-type="number"` | `"3.14"` → `3.14` |
+| `boolean` | `data-kata-type="boolean"` | `"true"` / `"yes"` / `"1"` → `True` |
+| `enum` | `data-kata-type="enum"` + `data-kata-enum="..."` | そのまま文字列 |
+| スカラー配列 | `data-kata-type="array"` | `"a, b, c"` → `["a", "b", "c"]` |
+| `string` | *(省略 — デフォルト)* | そのまま文字列 |
+
+### string に type 属性を付けない理由
+
+`string` はデフォルトの型なので、markup を軽く保つために省略します。
+ただし extract 側は「本当に string かどうか」を判断する必要があります。
+型情報が何もない場合、legacy ヒューリスティックが `", "` を array の
+区切りとして解釈してしまい、`audio: "Soft piano, strings in the background"`
+のような自然文が 2 要素配列に誤変換されるためです。
+
+これを避けるため、extractor は Specification セクションの YAML shorthand
+をパースして、各配列要素の子フィールドの schema 型を引き当てます。
+`audio: string` と宣言されていれば、カンマ分割を抑制してそのまま
+文字列で返します。
+
+`extract_from_text(schema=...)` のように明示 JSON Schema を渡した場合は、
+そちらが優先され、rendered の Specification は参照されません。
+
+### `{% set %}` とクロスリファレンス
+
+`{% set %}` で束縛された変数(例: storyboard テンプレートで各カットの
+話者を `characters[]` から引く変数)は、**意図的に `data-kata` span を
+付けずに plain text として出力**されます。同じスキーマパスを 2 つの場所で
+annotate してしまうと、extractor が「ソース配列の要素数が実際より多い」
+と誤認してしまうためです。
+
+詳細は [LiveMorph](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/livemorph.md)
+を参照してください。

@@ -21,8 +21,33 @@ ZIP ベースで展開不要。`./templates/` に置くだけで即利用。
 my_template/
 ├── manifest.json             # メタデータ (必須)
 ├── my_template_tpl.kata.md   # テンプレート本体 (必須)
-└── images/                   # 画像ファイル (任意)
+└── images/                   # 画像アセット (任意)
+    └── my_template/          # テンプレート名で名前空間を切る
+        └── ...
 ```
+
+### 画像アセットのパス規約
+
+同梱画像は Data から `./images/{テンプレート名}/...` の形で参照します。
+素の `./images/...` ではなく**テンプレート名を挟む**ことで、画像アセットを
+持つテンプレートを複数インストールしてもファイル衝突が起こりません。
+
+`storyboard` テンプレートの Data の例:
+
+```yaml
+characters:
+  - id: alice
+    icon: ./images/storyboard/characters/alice.png
+  - id: bob
+    icon: ./images/storyboard/characters/bob.png
+cuts:
+  - id: C-001
+    image: ./images/storyboard/C-001.jpg
+```
+
+`.katar` アーカイブ内部では `storyboard/images/storyboard/...` の
+構造でアセットが格納されるため、パッケージ内とレンダリング先の
+作業ディレクトリで同じ相対パスが成立します。
 
 ---
 
@@ -72,6 +97,30 @@ gospelo-kata build my_template data.yml -o outputs/
 | `url` | No | リポジトリ URL |
 | `license` | No | ライセンス (MIT, Apache-2.0 等) |
 | `requires` | No | 依存する他テンプレート名の配列 |
+| `attributions` | No | 同梱した第三者アセットのクレジット配列(下記参照) |
+
+### attributions
+
+オプション。テンプレートに同梱している画像やフォント等、第三者アセットの
+出所・ライセンス情報を記録するフィールド。`.katar` を利用する側が
+上流の再配布条件を守るための手がかりになります。
+
+```json
+{
+  "attributions": [
+    {
+      "files": ["images/storyboard/characters/alice.png"],
+      "source": "Custom-drawn pictogram",
+      "license": "MIT",
+      "copyright": "Copyright 2026 your-name",
+      "notes": "手書きシルエットを 1440×1440 で描画し 128×128 にダウンサンプル"
+    }
+  ]
+}
+```
+
+各エントリの内訳は厳密に定まっておらず、`files` / `source` / `license`
+/ `copyright` / `notes` など必要なものだけ書きます。
 
 ---
 

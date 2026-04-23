@@ -26,7 +26,9 @@ Required files in a template directory:
 my_template/
 ├── manifest.json             # Manifest (required)
 ├── my_template_tpl.kata.md   # Template body (required)
-└── images/                   # Image files (optional)
+└── images/                   # Image assets (optional)
+    └── my_template/          # Template-namespaced root
+        └── ...
 ```
 
 ### Additional Files
@@ -38,9 +40,37 @@ Allowed image formats: `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp`, `.ico`,
 Example uses:
 
 - **Logos / icons** — image assets embedded in documents
+- **Character avatars / cut frames** — visual assets driven by Data
+  (the `storyboard` template bundles these: `alice.png`, `bob.png`,
+  `C-001.jpg`, `C-002.jpg`)
 - **Diagrams / screenshots** — supplementary materials for the template
 
 > **Security:** Only template and image files are allowed in packages.
+
+### Image Path Convention
+
+Image assets are stored under `images/{template-name}/...` inside the
+package and referenced from Data using `./images/{template-name}/...`.
+Using the template name as a namespace lets multiple templates with
+image assets coexist in the same workspace without their files
+colliding.
+
+For example, the `storyboard` template Data block uses:
+
+```yaml
+characters:
+  - id: alice
+    icon: ./images/storyboard/characters/alice.png
+cuts:
+  - id: C-001
+    image: ./images/storyboard/C-001.jpg
+```
+
+Inside the `.katar`, these files live at
+`storyboard/images/storyboard/characters/alice.png` and
+`storyboard/images/storyboard/C-001.jpg`, so the same relative path
+resolves correctly whether the reader is browsing the packed archive
+or a rendered document alongside extracted assets.
 
 ---
 
@@ -73,6 +103,35 @@ A file that defines template metadata. Required when packaging with the `pack` c
 | `url` | No | Repository or documentation URL |
 | `license` | No | License type (MIT, Apache-2.0, etc.) |
 | `requires` | No | Array of dependent template names |
+| `attributions` | No | Credits for bundled third-party assets |
+
+### `attributions` — Third-party Asset Credits
+
+If the template ships third-party images, fonts, or other assets, use
+`attributions` to record the origin and license of each. This makes it
+easy for downstream users of your `.katar` to comply with upstream
+redistribution requirements (OFL, CC-BY, Apache-2.0, etc.).
+
+```json
+{
+  "attributions": [
+    {
+      "files": [
+        "images/storyboard/characters/alice.png",
+        "images/storyboard/characters/bob.png"
+      ],
+      "source": "Custom-drawn pictograms",
+      "license": "MIT",
+      "copyright": "Copyright 2026 your-name",
+      "notes": "Bust-up avatars, 128×128 PNG, transparent background"
+    }
+  ]
+}
+```
+
+Each entry is free-form. Include `files`, `source`, `license`,
+`copyright`, and `notes` as appropriate. Omit the field entirely when
+the template contains only your own original assets.
 
 ### `requires` — Inter-template Dependencies
 

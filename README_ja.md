@@ -61,6 +61,9 @@ gospelo-kata lint todo.kata.md
 | `checklist` | カテゴリ・ステータス追跡付きチェックリスト |
 | `test_spec` | 前提条件と期待結果を含むテストケース仕様書 |
 | `agenda` | 決定事項・アクションアイテム付き会議アジェンダ |
+| `storyboard` | 登場人物・カット・セリフを扱う絵コンテ(キャラクターアバター・カット画像を同梱)|
+
+全ビルトインテンプレート(セキュリティテスト・ロード・インフラ等)は[テンプレート一覧](https://github.com/gospelo-dev/kata/blob/main/docs/manual/ja/templates.md)を参照。
 
 ## CLI コマンド一覧
 

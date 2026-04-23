@@ -21,8 +21,34 @@ ZIP-based, no extraction needed. Just place in `./templates/` and use immediatel
 my_template/
 ├── manifest.json             # Metadata (required)
 ├── my_template_tpl.kata.md   # Template body (required)
-└── images/                   # Image files (optional)
+└── images/                   # Image assets (optional)
+    └── my_template/          # Template-namespaced asset root
+        └── ...
 ```
+
+### Image Asset Path Convention
+
+Bundled image assets are addressed from Data using
+`./images/{template-name}/...` — a template-namespaced path rather than
+a bare `./images/...`. This lets multiple templates with image assets
+live side-by-side in the same workspace without their files colliding.
+
+Example from the `storyboard` template's Data block:
+
+```yaml
+characters:
+  - id: alice
+    icon: ./images/storyboard/characters/alice.png
+  - id: bob
+    icon: ./images/storyboard/characters/bob.png
+cuts:
+  - id: C-001
+    image: ./images/storyboard/C-001.jpg
+```
+
+The `.katar` archive stores these assets under
+`storyboard/images/storyboard/...` so the same relative path resolves
+both inside the package and in the rendered output's working directory.
 
 ---
 
@@ -72,6 +98,32 @@ gospelo-kata build my_template data.yml -o outputs/
 | `url` | No | Repository URL |
 | `license` | No | License (MIT, Apache-2.0, etc.) |
 | `requires` | No | Array of dependent template names |
+| `attributions` | No | Array of third-party asset credits (see below) |
+
+### attributions
+
+Optional. Record third-party asset origins (images, fonts, etc.)
+bundled with the template. Each entry documents which files come from
+which source and under what license, so `.katar` consumers can comply
+with upstream redistribution requirements.
+
+```json
+{
+  "attributions": [
+    {
+      "files": ["images/storyboard/characters/alice.png"],
+      "source": "Custom-drawn pictogram",
+      "license": "MIT",
+      "copyright": "Copyright 2026 your-name",
+      "notes": "Rendered from a hand-drawn silhouette at 1440×1440 then downsampled to 128×128"
+    }
+  ]
+}
+```
+
+Fields inside each entry are advisory — there is no strict schema.
+Include `files`, `source`, `license`, `copyright`, `notes` as
+appropriate for the origin you want to credit.
 
 ---
 
