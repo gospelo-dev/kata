@@ -1,0 +1,79 @@
+title: あの箱
+scenario_id: that-box
+version: "1.0"
+synopsis: アリスが驚愕の事実を告げる。ボブは「驚いた!」と言うが、表情はピクトグラムのまま。オチで触れてはいけない領域が顔を出す、仲のいい夫婦の 4 カット漫才。
+characters:
+  - id: alice
+    name: アリス
+    role: 妻(ツッコミ担当)
+    visual: 画面左 / ショートボブ + 7:3 の前髪 / 黒のシルエット
+    icon: ./images/storyboard/characters/alice.png
+    persona:
+      - 日常の観察眼が鋭く、夫のボケを即座に言語化する
+      - 夫の挙動から内面を推定する経験値が高い
+    speech_style:
+      - 関西弁のツッコミ、短く切れる
+      - 疑問形で相手を追い詰める
+  - id: bob
+    name: ボブ
+    role: 夫(ボケ担当)
+    visual: 画面右 / 短髪の丸頭 / 黒のシルエット
+    icon: ./images/storyboard/characters/bob.png
+    persona:
+      - 表情がピクトグラムのまま動かない
+      - 心拍数で感情を表現する派
+    speech_style:
+      - 一拍置いてから短く返す
+      - 肝心なところで話題を断ち切る
+cuts:
+  - id: C-001
+    speaker: alice
+    scene: リビングのソファに並んで座る 2 人。アリスがボブの方に少し身を乗り出し、何か言い出す気配。画面左にアリス(ショートボブ)、右にボブ(短髪)。
+    dialogue:
+      - ボブ、面白い話するから、驚いてな。
+    duration_sec: 6
+    audio: 穏やかな生活音(時計の秒針、換気扇のかすかな音)
+    notes: アリスのトーンは楽しそうだが、微妙に探るような目線。ボブはまだ気配を察していない。
+    image: ./images/storyboard/C-001.jpg
+    image_alt: アリスが話を振るカット
+    image_width: "480"
+  - id: C-002
+    scene: アリスがにっこり笑って爆弾を落とす。ボブの顔は 1 ミリも変わらないまま「驚いた!」と発話する。吹き出しの中身だけが声色を持っている。
+    lines:
+      - speaker: alice
+        text: 実はな、今日、あなたの部屋の "あの箱"、開けた。
+      - speaker: bob
+        text: ……驚いた!
+    duration_sec: 10
+    notes: アリスの爆弾発言 → ボブが無表情で驚きを返す 2 話者カット。吹き出しは左(アリス) / 右(ボブ)の順で出る。
+    image: ./images/storyboard/C-002.jpg
+    image_alt: 爆弾発言 + 無表情で驚くボブ
+    image_width: "480"
+  - id: C-003
+    scene: アリスが手をヒラヒラさせて嘘をバラす。半笑いで、ボブを斜めから見上げる構図。その直後、ボブが思わず本音を漏らす。
+    lines:
+      - speaker: alice
+        text: 嘘やで。表情わかりにくいねん。
+      - speaker: bob
+        text: いやいや危ない。見られたら死ぬ。
+    duration_sec: 8
+    audio: 生活音のまま、BGM なし
+    notes: アリスの嘘バラしでテンションが下がる直後、ボブが無表情のまま"死ぬ"級の本音を漏らす。嘘だったのに何かに本気で怯えてた、という空気を C-004 に渡す。
+    image: ./images/storyboard/C-003.jpg
+    image_alt: アリスが嘘をバラす + ボブの本音漏れ
+    image_width: "480"
+  - id: C-004
+    scene: アリスが怪訝な表情(ピクトグラムなので視線の想像でのみ)で追及。ボブが観念して自白する。カメラは 2 人を等距離で見るフラットなアングル。アリスの無言で余韻を作る。
+    lines:
+      - speaker: alice
+        text: '"あの箱"、何入っとるん?'
+      - speaker: bob
+        text: オレの妄想が詰まった日記や。
+    duration_sec: 8
+    notes: C-003 の本音漏れを受けてアリスが追及 → ボブが自爆オチ。"妄想日記"は可愛い自爆で、シリアスな緊張を一気に弛緩させる。アリスの返答はあえて書かない(沈黙で余韻)。
+    image: ./images/storyboard/C-004.jpg
+    image_alt: 追及 + 自爆オチ
+    image_width: "480"
+remarks: |
+  4 カット構成の「仲のいい夫婦漫才」サンプル。ピクトグラムの顔が動かないことそのものをギャグの軸に使い、C-004 で触れてはいけない領域を仄めかして終わる。
+  C-002 と C-004 のように 1 カット内で話者が入れ替わる場合、ピクトグラム表現では吹き出しの左右位置で話者を示すのが現実的。

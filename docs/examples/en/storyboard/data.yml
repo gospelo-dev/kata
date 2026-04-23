@@ -1,0 +1,79 @@
+title: The Box
+scenario_id: the-box
+version: "1.0"
+synopsis: Alice fakes a confession to get a reaction out of her deadpan husband Bob. When she admits she was joking, Bob lets slip exactly how much of a disaster it would have been — and accidentally outs the real secret he was guarding.
+characters:
+  - id: alice
+    name: Alice
+    role: Wife (observant)
+    visual: Left side of frame / short bob + side-swept fringe / black silhouette
+    icon: ./images/storyboard/characters/alice.png
+    persona:
+      - Quick observer of Bob's micro-reactions
+      - Deadpan humor, dry teasing
+    speech_style:
+      - Short, light, slightly mischievous
+      - Uses rhetorical questions to corner Bob
+  - id: bob
+    name: Bob
+    role: Husband (deadpan)
+    visual: Right side of frame / short rounded head / black silhouette
+    icon: ./images/storyboard/characters/bob.png
+    persona:
+      - Expression never changes (pictogram)
+      - Interior panic leaks out only through carefully worded one-liners
+    speech_style:
+      - Beat of silence, then a short reply
+      - Shuts down a topic when it gets too close to home
+cuts:
+  - id: C-001
+    speaker: alice
+    scene: Alice and Bob are sitting together on the couch. Alice leans slightly toward Bob with a mischievous smile, about to drop something. Alice on the left (bob cut), Bob on the right (short hair).
+    dialogue:
+      - Bob, I've got something to tell you — brace yourself.
+    duration_sec: 6
+    audio: Soft ambient room tone (clock, fan)
+    notes: Alice's tone is playful but probing. Bob hasn't caught on yet.
+    image: ./images/storyboard/C-001.jpg
+    image_alt: Alice sets up the bait
+    image_width: "480"
+  - id: C-002
+    scene: Alice drops the bomb with a smile. Bob's face does not move a single pixel, but he speaks the words. The speech bubble carries all the tone — the pictogram does none of it.
+    lines:
+      - speaker: alice
+        text: Actually, I opened "that box" in your room today.
+      - speaker: bob
+        text: "…Wow. I'm shocked."
+    duration_sec: 10
+    notes: Two-speaker cut. The humor comes from Bob's flat line landing next to Alice's bomb. Read Bob's bubble with a deliberate pause before the words.
+    image: ./images/storyboard/C-002.jpg
+    image_alt: The bomb drops / Bob's flat reaction
+    image_width: "480"
+  - id: C-003
+    scene: Alice waves it off with a little laugh, admitting the joke. A beat later, Bob unintentionally reveals how close to the edge he actually was.
+    lines:
+      - speaker: alice
+        text: Just kidding. I can't tell when you're reacting.
+      - speaker: bob
+        text: Don't joke about that. I'd actually die.
+    duration_sec: 8
+    audio: Room tone only, no BGM
+    notes: Alice's reveal lowers the tension. Bob's involuntary confession re-raises it — not as a joke, but as a real admission. The contrast between his unchanging face and the weight of "I'd actually die" is the whole beat.
+    image: ./images/storyboard/C-003.jpg
+    image_alt: Alice reveals the prank / Bob accidentally betrays his panic
+    image_width: "480"
+  - id: C-004
+    scene: Alice's posture shifts — now she really wants to know. Bob caves and confesses what is actually in the box. The cut closes on Alice's silence.
+    lines:
+      - speaker: alice
+        text: Okay, now I need to know — what's in the box?
+      - speaker: bob
+        text: The journal I kept when I was fourteen.
+    duration_sec: 8
+    notes: Punchline cut. The reveal is anticlimactic — not a dark secret, just a cringe teenage journal. Alice does not reply; the silence is the resolution.
+    image: ./images/storyboard/C-004.jpg
+    image_alt: Alice presses / Bob caves
+    image_width: "480"
+remarks: |
+  4-cut sitcom-style manzai. The joke hinges on the pictogram's unchanging face: Bob's "I'm shocked" in C-002, his genuine panic in C-003, and his final admission in C-004 all land on the same flat silhouette — the voice does all the acting.
+  C-002 through C-004 use the ``lines`` field to show speakers taking turns within a single cut, each line rendered as its own bubble with the speaker's avatar.
