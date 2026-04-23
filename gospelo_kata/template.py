@@ -579,6 +579,23 @@ class _IfNode:
         self.else_body = else_body
 
 
+class _SetNode:
+    """``{% set name = expr %}`` — assigns a local variable in context.
+
+    Block form (``{% set x %}...{% endset %}``) is intentionally not
+    supported; KATA templates don't need captured-body assignments yet.
+    Values assigned via ``set`` are NOT added to ``_var_map``, so
+    references to them in ``{{ name }}`` are rendered as raw text
+    without ``data-kata`` annotation. This is what enables clean
+    cross-referencing (e.g. resolving a speaker inside a cuts loop
+    without inflating the speaker's source array during extract).
+    """
+    __slots__ = ("name", "expr")
+    def __init__(self, name: str, expr: str):
+        self.name = name
+        self.expr = expr
+
+
 # ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
@@ -625,6 +642,11 @@ def _parse_nodes(
                 node, pos = _parse_if(tokens, pos)
                 nodes.append(node)
 
+            elif tag == "set":
+                node, pos = _parse_set(tokens, pos)
+                if node is not None:
+                    nodes.append(node)
+
             else:
                 # Unknown block tag – treat as text
                 nodes.append(_TextNode(""))
@@ -633,6 +655,25 @@ def _parse_nodes(
             pos += 1
 
     return nodes, pos
+
+
+def _parse_set(
+    tokens: list[tuple[str, str]], pos: int,
+) -> tuple[_SetNode | None, int]:
+    """Parse ``{% set name = expr %}`` into a ``_SetNode``.
+
+    Only the inline assignment form is supported. A malformed tag
+    returns ``None`` so the caller can skip it instead of raising —
+    this matches the "unknown block becomes empty text" behaviour
+    already used elsewhere in ``_parse_nodes``.
+    """
+    _, content = tokens[pos]
+    m = re.match(r"set\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)", content.strip())
+    if not m:
+        return None, pos + 1
+    name = m.group(1)
+    expr = m.group(2).strip()
+    return _SetNode(name, expr), pos + 1
 
 
 def _parse_for(tokens: list[tuple[str, str]], pos: int) -> tuple[_ForNode, int]:
@@ -1186,6 +1227,65 @@ def _filter_reject(value: Any) -> list:
     return [item for item in (value or []) if not item]
 
 
+def _attr_lookup(item: Any, attr: str) -> Any:
+    """Resolve ``item.attr`` or ``item["attr"]`` uniformly."""
+    if isinstance(item, dict):
+        return item.get(attr)
+    return getattr(item, attr, None)
+
+
+_SELECTATTR_TESTS = {
+    "equalto": lambda a, b: a == b,
+    "eq": lambda a, b: a == b,
+    "==": lambda a, b: a == b,
+    "ne": lambda a, b: a != b,
+    "!=": lambda a, b: a != b,
+    "lt": lambda a, b: a is not None and a < b,
+    "gt": lambda a, b: a is not None and a > b,
+    "le": lambda a, b: a is not None and a <= b,
+    "ge": lambda a, b: a is not None and a >= b,
+    "in": lambda a, b: a in (b or []),
+}
+
+
+@_register_filter("selectattr")
+def _filter_selectattr(
+    value: Any, attribute: str, test: str | None = None,
+    *args: Any,
+) -> list:
+    """``selectattr(attr[, test[, value]])`` — Jinja2-compatible.
+
+    - ``{{ items | selectattr("active") }}`` — items where attr is truthy
+    - ``{{ items | selectattr("id", "equalto", "a") }}`` — items where
+      ``item.id == "a"``. Supported tests: ``equalto``/``eq``/``==``,
+      ``ne``/``!=``, ``lt``, ``gt``, ``le``, ``ge``, ``in``.
+    """
+    items = list(value or [])
+    if test is None:
+        return [i for i in items if _attr_lookup(i, attribute)]
+    op = _SELECTATTR_TESTS.get(test)
+    if op is None:
+        raise ValueError(f"Unknown selectattr test: {test}")
+    target = args[0] if args else None
+    return [i for i in items if op(_attr_lookup(i, attribute), target)]
+
+
+@_register_filter("rejectattr")
+def _filter_rejectattr(
+    value: Any, attribute: str, test: str | None = None,
+    *args: Any,
+) -> list:
+    """Inverse of ``selectattr`` — same arg shape."""
+    items = list(value or [])
+    if test is None:
+        return [i for i in items if not _attr_lookup(i, attribute)]
+    op = _SELECTATTR_TESTS.get(test)
+    if op is None:
+        raise ValueError(f"Unknown rejectattr test: {test}")
+    target = args[0] if args else None
+    return [i for i in items if not op(_attr_lookup(i, attribute), target)]
+
+
 @_register_filter("batch")
 def _filter_batch(value: Any, count: int = 1, fill: Any = None) -> list:
     items = list(value or [])
@@ -1391,6 +1491,7 @@ def _render_nodes(
     annotate: bool = False,
     _var_map: dict[str, str] | None = None,
     _enum_map: dict[str, list[str]] | None = None,
+    _type_map: dict[str, str] | None = None,
 ) -> str:
     """Render AST nodes to string.
 
@@ -1402,11 +1503,17 @@ def _render_nodes(
         _var_map: Internal — maps loop variable names to their schema
             property path (e.g. ``{"a": "attendees"}``).
         _enum_map: Maps property paths to their enum values for CSS styling.
+        _type_map: Maps property paths to their JSON Schema type string
+            (e.g. ``"integer"``, ``"boolean"``, ``"enum"``). Used to emit
+            ``data-kata-type`` on annotated spans so the extractor can
+            restore the original data type.
     """
     if _var_map is None:
         _var_map = {}
     if _enum_map is None:
         _enum_map = {}
+    if _type_map is None:
+        _type_map = {}
     parts: list[str] = []
     for node in nodes:
         if isinstance(node, _TextNode):
@@ -1426,13 +1533,28 @@ def _render_nodes(
                     # - html.escape: < > & → entities (prevent XSS, fix extract)
                     # - pipe escape: | → &#124; (prevent Markdown table breakage)
                     safe_val = html.escape(rendered, quote=False).replace("|", "&#124;")
-                    # Add enum styling attribute if this property has enum values
-                    # Strip array index from prop to match enum_map keys
-                    base_prop = re.sub(r"-\d+-", "-", re.sub(r"-\d+$", "", prop))
-                    enum_attr = ""
+                    # Strip array index from prop and dash-normalize so the
+                    # lookup key matches enum_map / type_map (both of which
+                    # store dash-normalized keys, matching _prop_to_anchor).
+                    # Without underscore → dash, schema properties like
+                    # "duration_sec" never resolve their type hint.
+                    base_prop = re.sub(
+                        r"-\d+-", "-", re.sub(r"-\d+$", "", prop),
+                    ).replace("_", "-")
+                    attrs = ""
+                    # data-kata-type: emitted so the extractor can coerce
+                    # integer/boolean/number values back from textContent.
+                    # "string" is omitted because it's the default.
+                    kata_type = _type_map.get(base_prop)
+                    if kata_type and kata_type != "string":
+                        attrs += f' data-kata-type="{kata_type}"'
+                    # data-kata-enum: retained for CSS styling (value-based
+                    # selectors like [data-kata-enum="done"]). Emitted only
+                    # when the rendered value is one of the schema's enum
+                    # choices.
                     if base_prop in _enum_map and rendered in _enum_map[base_prop]:
-                        enum_attr = f' data-kata-enum="{html.escape(rendered, quote=True)}"'
-                    parts.append(f'<span data-kata="{anchor}"{enum_attr}>{safe_val}</span>')
+                        attrs += f' data-kata-enum="{html.escape(rendered, quote=True)}"'
+                    parts.append(f'<span data-kata="{anchor}"{attrs}>{safe_val}</span>')
                 else:
                     parts.append(rendered)
             else:
@@ -1483,13 +1605,13 @@ def _render_nodes(
                     parts.append(_render_nodes(
                         node.body, child_ctx,
                         annotate=annotate, _var_map=iter_var_map,
-                        _enum_map=_enum_map,
+                        _enum_map=_enum_map, _type_map=_type_map,
                     ))
             elif node.else_body:
                 parts.append(_render_nodes(
                     node.else_body, context,
                     annotate=annotate, _var_map=_var_map,
-                    _enum_map=_enum_map,
+                    _enum_map=_enum_map, _type_map=_type_map,
                 ))
 
         elif isinstance(node, _IfNode):
@@ -1499,7 +1621,7 @@ def _render_nodes(
                     parts.append(_render_nodes(
                         body, context,
                         annotate=annotate, _var_map=_var_map,
-                        _enum_map=_enum_map,
+                        _enum_map=_enum_map, _type_map=_type_map,
                     ))
                     rendered = True
                     break
@@ -1507,8 +1629,21 @@ def _render_nodes(
                 parts.append(_render_nodes(
                     node.else_body, context,
                     annotate=annotate, _var_map=_var_map,
-                    _enum_map=_enum_map,
+                    _enum_map=_enum_map, _type_map=_type_map,
                 ))
+
+        elif isinstance(node, _SetNode):
+            # Mutate the context in place so the binding survives for
+            # subsequent sibling nodes in this block. set-defined names
+            # are registered in _var_map with a ``None`` sentinel so
+            # that any {{ name.x }} reference resolves to an empty
+            # schema path in _expr_to_prop_path — i.e. the rendered
+            # value is emitted as raw text, never wrapped in a
+            # data-kata span. This is what makes cross-referencing
+            # (e.g. resolving a speaker inside a cuts loop) safe for
+            # extract: derived displays do not inflate the source array.
+            context[node.name] = _eval_expr(node.expr, context)
+            _var_map[node.name] = None  # None => "do not annotate"
 
     return "".join(parts)
 
@@ -1519,7 +1654,7 @@ def _render_nodes(
 
 def _expr_to_prop_path(
     expr: str,
-    var_map: dict[str, str],
+    var_map: dict[str, str | None],
     *,
     is_iterable: bool = False,
 ) -> str:
@@ -1527,7 +1662,10 @@ def _expr_to_prop_path(
 
     Args:
         expr: Template expression (e.g. "title", "a.name", "items | upper").
-        var_map: Maps loop variable names to array property names.
+        var_map: Maps names to either a schema path (``"attendees-0"``)
+            or ``None``. A ``None`` entry marks a name as non-annotatable
+            (e.g. variables assigned via ``{% set %}``); any reference
+            resolves to the empty string so the caller skips annotation.
         is_iterable: If True, the expr is used as a for-loop iterable.
 
     Returns:
@@ -1556,12 +1694,18 @@ def _expr_to_prop_path(
     # For iterable expressions, just return the root property name
     if is_iterable:
         if root in var_map:
-            return var_map[root] + "-" + ".".join(parts[1:]) if len(parts) > 1 else var_map[root]
+            mapped = var_map[root]
+            if mapped is None:
+                return ""
+            return mapped + "-" + ".".join(parts[1:]) if len(parts) > 1 else mapped
         return root
 
-    # Check if root is a loop variable mapped to an array property
+    # Check if root is a loop variable or a local (set) binding
     if root in var_map:
         arr_prop = var_map[root]
+        # ``None`` sentinel means "do not annotate" — used for {% set %}
+        if arr_prop is None:
+            return ""
         if len(parts) > 1:
             return arr_prop + "-" + "-".join(parts[1:])
         # Bare loop var reference (the element itself) — skip
@@ -1611,7 +1755,11 @@ def _collect_enum_map(
         return {}
     result: dict[str, list[str]] = {}
     props = schema.get("properties", {})
-    for key, prop_schema in props.items():
+    for raw_key, prop_schema in props.items():
+        # Normalize keys to the dash-separated anchor form (see
+        # _prop_to_anchor) so lookups by anchor-derived ``base_prop``
+        # hit correctly for schema keys containing underscores.
+        key = raw_key.replace("_", "-")
         path = f"{prefix}{key}" if not prefix else f"{prefix}-{key}"
         enum_vals = prop_schema.get("enum")
         if enum_vals:
@@ -1628,6 +1776,57 @@ def _collect_enum_map(
                 result[path] = [str(v) for v in items_schema["enum"]]
 
 
+    return result
+
+
+def _collect_type_map(
+    schema: dict[str, Any] | None,
+    prefix: str = "",
+) -> dict[str, str]:
+    """Build a map of property paths to their JSON Schema ``type`` string.
+
+    Lets the annotator emit ``data-kata-type`` so the extractor can
+    recover numeric/boolean fields without the round-trip collapsing
+    them to strings. Paths use the same dash-separated anchor format
+    as ``_collect_enum_map`` (without the ``p-`` prefix).
+
+    Properties with an ``enum`` constraint are mapped to ``"enum"``
+    regardless of their underlying JSON Schema type, so the extractor
+    (and CSS) can treat them uniformly.
+    """
+    if schema is None:
+        return {}
+    result: dict[str, str] = {}
+    props = schema.get("properties", {})
+    for raw_key, prop_schema in props.items():
+        # Anchors and base_prop keys are dash-normalized
+        # (see _prop_to_anchor), so the type_map key must be normalized
+        # too — otherwise a schema key like "duration_sec" never matches
+        # the base_prop "cuts-duration-sec" derived from the anchor.
+        key = raw_key.replace("_", "-")
+        path = f"{prefix}{key}" if not prefix else f"{prefix}-{key}"
+        type_val = prop_schema.get("type")
+        if prop_schema.get("enum"):
+            result[path] = "enum"
+        elif isinstance(type_val, str):
+            result[path] = type_val
+        # Recurse into nested objects
+        if type_val == "object" and "properties" in prop_schema:
+            result.update(_collect_type_map(prop_schema, path + "-"))
+        # Recurse into array items
+        items_schema = prop_schema.get("items")
+        if items_schema and isinstance(items_schema, dict):
+            if "properties" in items_schema:
+                result.update(_collect_type_map(items_schema, path))
+            elif items_schema.get("enum"):
+                result[path] = "enum"
+            else:
+                item_type = items_schema.get("type")
+                if isinstance(item_type, str):
+                    # Scalar-array items: expose the element type so each
+                    # rendered span carries it (e.g. integer list -> each
+                    # element gets data-kata-type="integer").
+                    result[path] = item_type
     return result
 
 
@@ -2275,7 +2474,11 @@ class Template:
         If no schema is embedded, falls back to plain render_dict.
         """
         enum_map = _collect_enum_map(self.schema) if self.schema else {}
-        body = _render_nodes(self._ast, data, annotate=True, _enum_map=enum_map)
+        type_map = _collect_type_map(self.schema) if self.schema else {}
+        body = _render_nodes(
+            self._ast, data, annotate=True,
+            _enum_map=enum_map, _type_map=type_map,
+        )
         if self.schema is not None:
             body += generate_schema_reference(
                 self.schema,
@@ -2403,6 +2606,64 @@ def _replace_data_in_source(source: str, new_data: dict[str, Any]) -> str:
     return _DATA_DETAILS_RE.sub(new_block, source)
 
 
+def merge_extracted_into_data(
+    old_data: dict[str, Any] | None,
+    extracted: dict[str, Any],
+) -> dict[str, Any]:
+    """Merge LiveMorph-extracted values into the existing Data block.
+
+    LiveMorph (``sync to-data``) gets back only those fields that the
+    template actually annotates with ``<span data-kata=...>``. Fields
+    that the template renders as raw markup — e.g. ``<img src="..." />``
+    attributes or hidden dialogue lines — never come back from extract,
+    so replacing the Data block with the raw extract would silently
+    destroy information that the user set in the original Data.
+
+    This merges the extract on top of the old Data so that:
+
+    - **Top-level scalars**: extract wins if present; otherwise old is
+      kept.
+    - **Arrays**: extract dictates the final length and ordering (so
+      user-initiated deletes and reorders flow through). Each element
+      is merged with the element at the same index in old_data so that
+      un-annotated fields on surviving elements survive too.
+    - **Nested dicts**: recursed into, same rules apply.
+    - If ``old_data`` is ``None`` (e.g. Data block missing or
+      unparseable), extract is returned as-is.
+    """
+    if old_data is None:
+        return extracted
+
+    def _merge(old: Any, new: Any) -> Any:
+        if isinstance(new, dict) and isinstance(old, dict):
+            merged = dict(old)
+            for k, v in new.items():
+                if k in merged:
+                    merged[k] = _merge(merged[k], v)
+                else:
+                    merged[k] = v
+            return merged
+        if isinstance(new, list) and isinstance(old, list):
+            merged_list = []
+            for i, item in enumerate(new):
+                if i < len(old):
+                    merged_list.append(_merge(old[i], item))
+                else:
+                    merged_list.append(item)
+            # Elements beyond the extract length are dropped — that
+            # mirrors a user-initiated delete in the rendered view.
+            return merged_list
+        # Scalar or type mismatch: extract wins.
+        return new
+
+    result = _merge(old_data, extracted)
+    if not isinstance(result, dict):
+        # Defensive: if the roots aren't both dicts, fall back to
+        # extract to avoid returning a non-dict Data block.
+        return extracted
+    return result
+
+
 def _extract_kata_template(source: str) -> str | None:
     """Extract template code from ```kata:template block."""
     m = _KATA_TEMPLATE_RE.search(source)
@@ -2504,7 +2765,11 @@ def render_kata(
 
         if annotate:
             enum_map = _collect_enum_map(schema) if schema else {}
-            body = _render_nodes(ast, data, annotate=True, _enum_map=enum_map)
+            type_map = _collect_type_map(schema) if schema else {}
+            body = _render_nodes(
+                ast, data, annotate=True,
+                _enum_map=enum_map, _type_map=type_map,
+            )
             if schema is not None:
                 body += generate_schema_reference(
                     schema,

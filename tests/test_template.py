@@ -22,6 +22,7 @@ from gospelo_kata.template import (
     extract_data,
     extract_schema,
     generate_schema_reference,
+    merge_extracted_into_data,
     render_file,
     render_template,
     strip_annotations,
@@ -185,6 +186,186 @@ class TestConditionals:
         t = Template('{{ "yes" if active else "no" }}')
         assert t.render(active=True) == "yes"
         assert t.render(active=False) == "no"
+
+
+class TestSetStatement:
+    def test_simple_assignment(self):
+        t = Template("{% set x = 42 %}{{ x }}")
+        assert t.render() == "42"
+
+    def test_string_literal_assignment(self):
+        t = Template("{% set greeting = 'hello' %}{{ greeting }}")
+        assert t.render() == "hello"
+
+    def test_references_context_var(self):
+        t = Template("{% set doubled = x * 2 %}{{ doubled }}")
+        # x * 2 is not supported (no arithmetic), so this falls back
+        # to a reference to x (which evaluates the whole expression).
+        # Instead test with a filter that returns a value.
+        t = Template("{% set upper_name = name | upper %}{{ upper_name }}")
+        assert t.render(name="alice") == "ALICE"
+
+    def test_overrides_previous_binding(self):
+        t = Template("{% set x = 1 %}{% set x = 2 %}{{ x }}")
+        assert t.render() == "2"
+
+    def test_inside_for_loop(self):
+        # `set` inside a for loop shadows per-iteration; we test that
+        # the binding is visible after the assignment in the same
+        # iteration.
+        t = Template(
+            "{% for u in users %}"
+            "{% set label = u.name | upper %}"
+            "{{ label }}"
+            "{% endfor %}"
+        )
+        result = t.render(users=[{"name": "a"}, {"name": "b"}])
+        assert result == "AB"
+
+    def test_select_first_element(self):
+        # This is the canonical cross-reference use case: pick an
+        # element out of one array to use inside a loop over another.
+        t = Template(
+            "{% for cut in cuts %}"
+            "{% set speaker = characters | selectattr('id', 'equalto', cut.speaker) | first %}"
+            "[{{ speaker.name }}] "
+            "{% endfor %}"
+        )
+        result = t.render(
+            characters=[
+                {"id": "a", "name": "Alice"},
+                {"id": "b", "name": "Bob"},
+            ],
+            cuts=[{"speaker": "a"}, {"speaker": "b"}, {"speaker": "a"}],
+        )
+        assert result == "[Alice] [Bob] [Alice] "
+
+    def test_no_output_from_set_itself(self):
+        t = Template("before{% set x = 'hidden' %}after")
+        assert t.render() == "beforeafter"
+
+    def test_malformed_set_is_silently_skipped(self):
+        # Malformed set tag should not crash the template. It's
+        # treated like any other unknown block — skipped with no output.
+        t = Template("before{% set broken %}after")
+        assert t.render() == "beforeafter"
+
+
+class TestSetAnnotationInteraction:
+    def test_set_result_is_not_annotated(self):
+        """Values bound via ``{% set %}`` must render as raw text.
+
+        If an annotated path were emitted here, the same schema
+        index would appear twice in the output (once at the source
+        annotation, once at the derived display), inflating arrays
+        on extract — exactly the bug this feature was meant to fix.
+        """
+        from gospelo_kata.template import Template
+        tpl_src = (
+            "{% for c in characters %}"
+            "## {{ c.name }}\n"
+            "{% endfor %}"
+            "---\n"
+            "{% for cut in cuts %}"
+            "{% set speaker = characters | selectattr('id', 'equalto', cut.speaker) | first %}"
+            "{{ speaker.name }}\n"
+            "{% endfor %}"
+        )
+        data = {
+            "characters": [
+                {"id": "a", "name": "Alice"},
+                {"id": "b", "name": "Bob"},
+            ],
+            "cuts": [
+                {"speaker": "a"},
+                {"speaker": "b"},
+                {"speaker": "a"},
+            ],
+        }
+        t = Template(tpl_src)
+        out = t.render_dict(data)
+        # Ensure the source annotations exist
+        # (the render_dict path doesn't annotate, but the test proves
+        # the for/set/selectattr chain renders correctly). Annotation
+        # behavior is covered by the extract cross-reference test.
+        # Alice: 1 source (Characters loop) + 2 derived (cuts 1 & 3)
+        # Bob:   1 source (Characters loop) + 1 derived (cut 2)
+        assert out.count("Alice") == 3
+        assert out.count("Bob") == 2
+
+    def test_derived_value_has_no_data_kata_span(self):
+        """When the template is rendered with annotations, the values
+        derived through ``{% set %}`` must render as plain text, not
+        as another ``<span data-kata="p-characters-*">``. This is the
+        core mechanism by which cross-referencing avoids inflating
+        the source array during extract."""
+        from gospelo_kata.template import Template
+        schema = {
+            "type": "object",
+            "properties": {
+                "characters": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "name": {"type": "string"},
+                        },
+                    },
+                },
+                "cuts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {"speaker": {"type": "string"}},
+                    },
+                },
+            },
+        }
+        tpl_src = (
+            "{#schema\n" + str(schema).replace("'", '"') + "\n#}\n"
+            "{% for c in characters %}## {{ c.name }}\n{% endfor %}"
+            "---\n"
+            "{% for cut in cuts %}"
+            "{% set speaker = characters | selectattr('id', 'equalto', cut.speaker) | first %}"
+            "SPK-{{ speaker.name }}\n"
+            "{% endfor %}"
+        )
+        # Write schema as JSON (safe form) — inline schema form
+        import json as _json
+        schema_json = _json.dumps(schema)
+        tpl_src = (
+            "{#schema\n" + schema_json + "\n#}\n"
+            "{% for c in characters %}## {{ c.name }}\n{% endfor %}"
+            "---\n"
+            "{% for cut in cuts %}"
+            "{% set speaker = characters | selectattr('id', 'equalto', cut.speaker) | first %}"
+            "SPK-{{ speaker.name }}\n"
+            "{% endfor %}"
+        )
+        data = {
+            "characters": [
+                {"id": "a", "name": "Alice"},
+                {"id": "b", "name": "Bob"},
+            ],
+            "cuts": [
+                {"speaker": "a"},
+                {"speaker": "b"},
+                {"speaker": "a"},
+            ],
+        }
+        t = Template(tpl_src)
+        out = t.render_annotated(data)
+        # Source Characters annotations exist
+        assert '<span data-kata="p-characters-0-name">Alice</span>' in out
+        assert '<span data-kata="p-characters-1-name">Bob</span>' in out
+        # Derived values appear as plain text prefix ("SPK-Alice")
+        # — crucially, NO additional p-characters-*-name spans are
+        # emitted from inside the cuts loop.
+        derived_lines = [line for line in out.split("\n") if line.startswith("SPK-")]
+        assert len(derived_lines) == 3
+        for line in derived_lines:
+            assert "data-kata" not in line
 
 
 # ---------------------------------------------------------------------------
@@ -1110,3 +1291,103 @@ class TestEnumColorSchemes:
         style = {"colorScheme": "vivid"}
         ref = generate_schema_reference(schema, style=style)
         assert "#00CEC9" in ref  # vivid todo uses cyan
+
+
+class TestMergeExtractedIntoData:
+    """merge_extracted_into_data protects un-annotated fields.
+
+    LiveMorph (``sync to-data``) only gets back the values that the
+    template actually wraps in ``<span data-kata=...>``. Fields like
+    image src attributes, hidden dialogue lines, etc. must survive a
+    round-trip; otherwise a single save in VSCode silently loses data.
+    """
+
+    def test_none_old_data_returns_extract(self):
+        assert merge_extracted_into_data(None, {"a": 1}) == {"a": 1}
+
+    def test_top_level_scalar_override(self):
+        old = {"title": "Old", "version": "1.0"}
+        new = {"title": "New"}
+        # version is not in extract, must survive
+        assert merge_extracted_into_data(old, new) == {
+            "title": "New", "version": "1.0",
+        }
+
+    def test_top_level_new_key_added(self):
+        # Extract surfaces a key we never had; merge keeps both
+        assert merge_extracted_into_data({"a": 1}, {"b": 2}) == {"a": 1, "b": 2}
+
+    def test_nested_dict_merge(self):
+        old = {"meta": {"author": "alice", "tags": ["a"]}}
+        new = {"meta": {"author": "bob"}}
+        assert merge_extracted_into_data(old, new) == {
+            "meta": {"author": "bob", "tags": ["a"]}
+        }
+
+    def test_array_element_survival_of_unannotated_field(self):
+        # Template annotates only ``name``; ``icon`` is rendered raw
+        # in an <img src> attribute and never reaches extract.
+        old = {
+            "characters": [
+                {"name": "Alice", "icon": "a.png"},
+                {"name": "Bob", "icon": "b.png"},
+            ],
+        }
+        extracted = {
+            "characters": [
+                {"name": "Alice"},
+                {"name": "Bob"},
+            ],
+        }
+        merged = merge_extracted_into_data(old, extracted)
+        assert merged["characters"][0]["icon"] == "a.png"
+        assert merged["characters"][1]["icon"] == "b.png"
+        assert merged["characters"][0]["name"] == "Alice"
+
+    def test_array_element_deleted_by_user(self):
+        # User removed the third cut from the rendered view.
+        # Extract has only 2 elements — merged result must match.
+        old = {"cuts": [{"id": "c1"}, {"id": "c2"}, {"id": "c3"}]}
+        extracted = {"cuts": [{"id": "c1"}, {"id": "c2"}]}
+        merged = merge_extracted_into_data(old, extracted)
+        assert len(merged["cuts"]) == 2
+        assert merged["cuts"][1]["id"] == "c2"
+
+    def test_array_element_added_beyond_old(self):
+        # Rendered view gained a new row. Extract is longer than old;
+        # the extra element is taken as-is (no old counterpart to merge).
+        old = {"cuts": [{"id": "c1", "icon": "keep"}]}
+        extracted = {
+            "cuts": [{"id": "c1"}, {"id": "c2"}],
+        }
+        merged = merge_extracted_into_data(old, extracted)
+        assert len(merged["cuts"]) == 2
+        assert merged["cuts"][0] == {"id": "c1", "icon": "keep"}
+        assert merged["cuts"][1] == {"id": "c2"}
+
+    def test_extract_value_wins_over_old_scalar(self):
+        old = {"a": {"n": 1}}
+        new = {"a": {"n": 2}}
+        assert merge_extracted_into_data(old, new) == {"a": {"n": 2}}
+
+    def test_type_mismatch_extract_wins(self):
+        # If the old value is a scalar but extract says array,
+        # extract wins (shape change is user-intent).
+        old = {"tags": "a"}
+        new = {"tags": ["a", "b"]}
+        assert merge_extracted_into_data(old, new) == {"tags": ["a", "b"]}
+
+    def test_deep_nested_unannotated_survives(self):
+        old = {
+            "cuts": [
+                {
+                    "id": "c1",
+                    "dialogue": ["line a", "line b"],
+                    "image": "a.jpg",
+                }
+            ]
+        }
+        extracted = {"cuts": [{"id": "c1"}]}
+        merged = merge_extracted_into_data(old, extracted)
+        assert merged["cuts"][0]["dialogue"] == ["line a", "line b"]
+        assert merged["cuts"][0]["image"] == "a.jpg"

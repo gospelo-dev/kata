@@ -1064,6 +1064,7 @@ def _cmd_sync_to_data(args: argparse.Namespace) -> None:
         _is_separated_format,
         _extract_data_from_details,
         _replace_data_in_source,
+        merge_extracted_into_data,
     )
 
     file_path = Path(args.file)
@@ -1087,8 +1088,15 @@ def _cmd_sync_to_data(args: argparse.Namespace) -> None:
         print("Error: no data-kata spans found to extract", file=sys.stderr)
         sys.exit(1)
 
-    # Step 2: Replace Data block with extracted data
-    updated_source = _replace_data_in_source(source, extracted)
+    # Step 2: Merge extracted values on top of the existing Data block,
+    # so fields the template doesn't annotate (hidden dialogue lines,
+    # image src attributes, etc.) are preserved. Without this merge,
+    # syncOnSave strips everything that wasn't wrapped in <span
+    # data-kata=...> — a silent data loss visible only on the next
+    # re-render.
+    old_data = _extract_data_from_details(source)
+    merged = merge_extracted_into_data(old_data, extracted)
+    updated_source = _replace_data_in_source(source, merged)
 
     # Step 3: Write updated source, then re-render via render_kata
     file_path.write_text(updated_source, encoding="utf-8")

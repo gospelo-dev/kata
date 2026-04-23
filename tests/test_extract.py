@@ -182,6 +182,216 @@ class TestParseValue:
         result = _parse_value(val)
         assert isinstance(result, str)
 
+    def test_integer_type_coerced(self):
+        assert _parse_value("42", "integer") == 42
+
+    def test_integer_type_invalid_falls_back_to_string(self):
+        assert _parse_value("abc", "integer") == "abc"
+
+    def test_number_type_coerced(self):
+        assert _parse_value("3.14", "number") == pytest.approx(3.14)
+
+    def test_boolean_true_forms(self):
+        assert _parse_value("true", "boolean") is True
+        assert _parse_value("True", "boolean") is True
+        assert _parse_value("YES", "boolean") is True
+        assert _parse_value("1", "boolean") is True
+
+    def test_boolean_false_forms(self):
+        assert _parse_value("false", "boolean") is False
+        assert _parse_value("No", "boolean") is False
+        assert _parse_value("0", "boolean") is False
+
+    def test_array_type_splits_on_comma_space(self):
+        assert _parse_value("a, b, c", "array") == ["a", "b", "c"]
+
+    def test_array_type_empty(self):
+        assert _parse_value("", "array") == []
+
+    def test_enum_kept_as_string(self):
+        assert _parse_value("active", "enum") == "active"
+
+    def test_string_with_type_hint_skips_heuristic(self):
+        # A typed "string" anchor must not be split on commas, even
+        # though the legacy heuristic would have split this value.
+        assert _parse_value("a, b, c", "string") == "a, b, c"
+
+
+SAMPLE_TYPED_KATA_MD = """\
+# <span data-kata="p-title">Typed Test</span>
+
+## Data
+
+| Field | Value |
+|-------|-------|
+| Count | <span data-kata="p-count" data-kata-type="integer">42</span> |
+| Enabled | <span data-kata="p-enabled" data-kata-type="boolean">true</span> |
+| Ratio | <span data-kata="p-ratio" data-kata-type="number">3.14</span> |
+
+## Items
+
+- id=<span data-kata="p-items-0-id">a</span>, qty=<span data-kata="p-items-0-qty" data-kata-type="integer">10</span>
+- id=<span data-kata="p-items-1-id">b</span>, qty=<span data-kata="p-items-1-qty" data-kata-type="integer">20</span>
+
+<details>
+<summary>Specification</summary>
+
+**Schema**
+
+```yaml
+title: string!
+count: integer
+enabled: boolean
+ratio: number
+items[]:
+  id: string
+  qty: integer
+```
+
+</details>
+"""
+
+
+class TestTypedExtraction:
+    def test_integer_round_trip_top_level(self):
+        data = extract_from_text(SAMPLE_TYPED_KATA_MD)
+        assert data["count"] == 42
+        assert isinstance(data["count"], int)
+
+    def test_boolean_round_trip_top_level(self):
+        data = extract_from_text(SAMPLE_TYPED_KATA_MD)
+        assert data["enabled"] is True
+
+    def test_number_round_trip_top_level(self):
+        data = extract_from_text(SAMPLE_TYPED_KATA_MD)
+        assert data["ratio"] == pytest.approx(3.14)
+
+    def test_typed_fields_inside_array_elements(self):
+        data = extract_from_text(SAMPLE_TYPED_KATA_MD)
+        assert data["items"][0]["qty"] == 10
+        assert data["items"][1]["qty"] == 20
+        assert isinstance(data["items"][0]["qty"], int)
+
+
+SAMPLE_CROSS_REFERENCE_KATA_MD = """\
+# <span data-kata="p-title">Cross-Reference Test</span>
+
+## Characters
+
+- <span data-kata="p-characters-0-name">Alice</span> (id=alice)
+- <span data-kata="p-characters-1-name">Bob</span> (id=bob)
+
+## Cuts
+
+- cut 1 speaker: <span data-kata="p-characters-0-name">Alice</span>
+- cut 2 speaker: <span data-kata="p-characters-1-name">Bob</span>
+- cut 3 speaker: <span data-kata="p-characters-0-name">Alice</span>
+
+<details>
+<summary>Specification</summary>
+
+**Schema**
+
+```yaml
+title: string!
+characters[]:
+  name: string
+```
+
+</details>
+"""
+
+
+class TestCrossReferenceExtraction:
+    def test_duplicate_annotations_do_not_inflate_array(self):
+        # Cross-referencing the same array element from multiple
+        # places in the template should not create phantom elements
+        # in the extracted output — the indexed anchor format lets
+        # the extractor collapse repeats onto the same logical entry.
+        data = extract_from_text(SAMPLE_CROSS_REFERENCE_KATA_MD)
+        assert len(data["characters"]) == 2
+        assert data["characters"][0]["name"] == "Alice"
+        assert data["characters"][1]["name"] == "Bob"
+
+
+SAMPLE_STRING_WITH_COMMAS_KATA_MD = """\
+# <span data-kata="p-title">Comma Survival Test</span>
+
+## Cuts
+
+### <span data-kata="p-cuts-0-id">C-001</span>
+<p>Scene: <span data-kata="p-cuts-0-scene">Wide establishing shot, crane down, fade in.</span></p>
+<p>Audio: <span data-kata="p-cuts-0-audio">Soft piano, strings in the background</span></p>
+<p>Tags: <span data-kata="p-cuts-0-tags">smoke, basic</span></p>
+
+<details>
+<summary>Specification</summary>
+
+**Schema**
+
+```yaml
+title: string!
+cuts[]:
+  id: string
+  scene: string
+  audio: string
+  tags: string[]
+```
+
+</details>
+"""
+
+
+class TestSchemaDrivenStringSplitSuppression:
+    """Schema-typed string children must not be split on ', ' even though the
+    legacy heuristic would otherwise turn natural prose into arrays."""
+
+    def test_string_typed_audio_is_not_split(self):
+        data = extract_from_text(SAMPLE_STRING_WITH_COMMAS_KATA_MD)
+        # audio is declared as ``string`` in the schema, so its comma-containing
+        # value must survive as a single string (previously became a list).
+        assert data["cuts"][0]["audio"] == "Soft piano, strings in the background"
+
+    def test_string_typed_scene_is_not_split(self):
+        data = extract_from_text(SAMPLE_STRING_WITH_COMMAS_KATA_MD)
+        assert data["cuts"][0]["scene"] == (
+            "Wide establishing shot, crane down, fade in."
+        )
+
+    def test_string_array_tags_still_split(self):
+        # tags: string[] — still legitimately an array of scalars.
+        data = extract_from_text(SAMPLE_STRING_WITH_COMMAS_KATA_MD)
+        assert data["cuts"][0]["tags"] == ["smoke", "basic"]
+
+    def test_external_schema_takes_precedence(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "cuts": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "scene": {"type": "string"},
+                            "audio": {"type": "string"},
+                            "tags": {"type": "array"},
+                        },
+                    },
+                },
+            },
+        }
+        data = extract_from_text(
+            SAMPLE_STRING_WITH_COMMAS_KATA_MD, schema=schema,
+        )
+        assert data["cuts"][0]["audio"] == (
+            "Soft piano, strings in the background"
+        )
+        assert data["cuts"][0]["scene"] == (
+            "Wide establishing shot, crane down, fade in."
+        )
+
 
 class TestExtractMetadata:
     def test_parses_metadata(self):

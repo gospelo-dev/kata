@@ -287,6 +287,18 @@ def _collect_for_vars(text: str) -> set[str]:
     return loop_vars
 
 
+def _collect_set_vars(text: str) -> set[str]:
+    """Collect local variable names from ``{% set name = ... %}`` blocks.
+
+    These names exist in the rendering context but are not part of the
+    schema, so V001 must not flag them.
+    """
+    set_pattern = re.compile(
+        r"\{%\s*set\s+([A-Za-z_][A-Za-z0-9_]*)\s*=",
+    )
+    return {m.group(1) for m in set_pattern.finditer(text)}
+
+
 def _is_literal(name: str) -> bool:
     """Check if a name is a literal value rather than a variable."""
     if name in ("true", "false", "True", "False", "none", "None", "not"):
@@ -333,9 +345,12 @@ def _check_var_references(
     schema_props = _get_schema_properties(schema)
     template_vars = _collect_template_vars(text)
     for_vars = _collect_for_vars(text)
+    set_vars = _collect_set_vars(text)
 
     for var_name, line, col in template_vars:
         if var_name in for_vars:
+            continue
+        if var_name in set_vars:
             continue
         if var_name not in schema_props:
             messages.append(LintMessage(
